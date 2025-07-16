@@ -465,7 +465,7 @@ void EventSlicingThreeDTool::CopyPfoHitsToSlices(const ClusterToSliceIndexMap &c
         // Add the 3D CaloHits straight away
         CaloHitList &slice3DList(slice.m_caloHitList3D);
         pCluster3D->GetOrderedCaloHitList().FillCaloHitList(slice3DList);
-        std::cout << "EventSlicing: Got " << pCluster3D->GetOrderedCaloHitList().size() << " hits from a 3D cluster" << std::endl;
+        // std::cout << "EventSlicing: Got " << pCluster3D->GetOrderedCaloHitList().size() << " hits from a 3D cluster" << std::endl;
 
         ClusterList clusters2D;
         LArPfoHelper::GetTwoDClusterList(pPfo, clusters2D);
