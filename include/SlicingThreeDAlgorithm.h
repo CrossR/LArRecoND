@@ -34,6 +34,7 @@ public:
      *  @brief  Default constructor
      */
     SlicingThreeDAlgorithm();
+    virtual ~SlicingThreeDAlgorithm();
 
 private:
     pandora::StatusCode Run();
@@ -51,6 +52,8 @@ private:
     std::string m_slicePfoListName;     ///< The name of the output slice pfo list
 
     bool m_evaluateSlices{false}; ///< Flag to indicate whether to evaluate slices
+    std::string m_analysisTreeName{"SlicingThreeDAnalysis"}; ///< The name of the analysis tree
+    std::string m_analysisFileName{"SlicingThreeDAnalysis.root"}; ///< The name of the analysis file
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------

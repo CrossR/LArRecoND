@@ -11,7 +11,6 @@
 #include "Pandora/Algorithm.h"
 #include "Pandora/AlgorithmTool.h"
 
-#include "LArSlice3D.h"
 #include "SlicingThreeDAlgorithm.h"
 
 #include "larpandoracontent/LArObjects/LArPointingCluster.h"
