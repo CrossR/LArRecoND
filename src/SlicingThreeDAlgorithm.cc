@@ -21,6 +21,7 @@
 #include "SlicingThreeDAlgorithm.h"
 
 #include <numeric>
+#include <random>
 
 using namespace pandora;
 
@@ -29,6 +30,14 @@ namespace lar_content
 
 SlicingThreeDAlgorithm::SlicingThreeDAlgorithm() : m_pEventSlicingTool(nullptr)
 {
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+SlicingThreeDAlgorithm::~SlicingThreeDAlgorithm()
+{
+    if (m_evaluateSlices)
+        PANDORA_MONITORING_API(SaveTree(this->GetPandora(), m_analysisTreeName.c_str(), m_analysisFileName.c_str(), "UPDATE"));
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -108,6 +117,16 @@ StatusCode SlicingThreeDAlgorithm::Run()
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
+long generateUniqueID()
+{
+    // Generate a random ID string.
+    // This is just a unique, random long ID to group our per-slice results together into a single event.
+    std::random_device rd;
+    std::mt19937 eng(rd());
+    std::uniform_int_distribution<long> distr(1, std::numeric_limits<long>::max());
+    return distr(eng);
+}
+
 void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
 {
     if (sliceList.empty())
@@ -144,6 +163,10 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
         return;
     }
 
+    // We don't have the run, subrun + event number yet...so lets just generate a random long ID.
+    // Is that good? No. Does it work and let us group our per-slice results together into a single event? Yes.
+    const long randomEventID = generateUniqueID();
+
     // List of all found true neutrinos.
     // Split into in detector and rock muons.
     std::set<const MCParticle *> neutrinoSet;
@@ -174,32 +197,20 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
                 largestContributor = parent;
         }
 
-        if (LArMCParticleHelper::IsNeutrino(largestContributor))
-        {
-            const auto vertex(largestContributor->GetVertex());
-            if (LArGeometryHelper::IsInDetector(detectorBoundaries, vertex))
-            {
-                neutrinoSet.insert(largestContributor);
-            }
-            else
-            {
-                rockMuonSet.insert(largestContributor);
-            }
-
-            nuToCaloHitMap[largestContributor].push_back(pCaloHit);
-            caloHitToNuMap[pCaloHit] = largestContributor;
-        }
-        else
-        {
+        if (!LArMCParticleHelper::IsNeutrino(largestContributor))
             std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Found a CaloHit with no neutrino parent" << std::endl;
-        }
+
+        const auto vertex(largestContributor->GetVertex());
+        if (LArGeometryHelper::IsInDetector(detectorBoundaries, vertex))
+            neutrinoSet.insert(largestContributor);
+        else
+            rockMuonSet.insert(largestContributor);
+
+        nuToCaloHitMap[largestContributor].push_back(pCaloHit);
+        caloHitToNuMap[pCaloHit] = largestContributor;
     }
 
-    std::vector<float> purity;
-    std::vector<float> completeness;
-    std::vector<bool> isRockMuon;
-    std::map<const MCParticle *, int> mcParticleToSliceMap;
-    unsigned int sliceIndex = 0;
+    int sliceIndex = 0;
 
     // Now, we can loop through every slice, and evaluate it.
     for (const Slice3D &slice : sliceList)
@@ -226,109 +237,75 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
             [](const auto &a, const auto &b) { return a.second < b.second; }));
         const MCParticle* maxNu = maxNuIt->first;
 
-        unsigned int nHitsInSlice = hits.size();
-        unsigned int trueNuHits = nuToCaloHitMap[maxNu].size();
-        unsigned int matchedHits = 0;
-        mcParticleToSliceMap[maxNu] = sliceIndex;
+        // Now, we know the main neutrino for this slice.
+        // Lets loop over every MC particle that contributed to this slice, and store every individual
+        // calculation of completeness and purity.
+        // Finally, we can store a "This slice is dominated by this neutrino" flag, to get
+        // the completeness and purity of the main contributor, whilst also storing the completeness and purity
+        // of every neutrino that contributed to this slice.
+        std::vector<float> puritySlice, completenessSlice, isRockMuonSlice, isMainNuSlice;
+        std::vector<float> trueNuSize, trueNuEnergy, sliceSize, sliceMatchedHits, sliceMissedHits;
 
-        // Count the number of hits that match the neutrino or don't.
-        for (const CaloHit *pCaloHit : hits)
+        for (const auto &nuContribution : nuContributionMap)
         {
-            const auto it(caloHitToNuMap.find(pCaloHit));
-            if (it == caloHitToNuMap.end())
+            const MCParticle *nu = nuContribution.first;
+            const bool isMainNu(nu == maxNu);
+
+            unsigned int nHitsInSlice = hits.size();
+            unsigned int trueNuHits = nuToCaloHitMap[nu].size();
+            unsigned int matchedHits = 0;
+            unsigned int missedHits = 0;
+
+            // Count the number of hits that match the neutrino or don't.
+            for (const CaloHit *pCaloHit : hits)
             {
-                std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: CaloHit not found in caloHitToNuMap" << std::endl;
-                continue;
+                const auto it(caloHitToNuMap.find(pCaloHit));
+                if (it == caloHitToNuMap.end())
+                {
+                    std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: CaloHit not found in caloHitToNuMap" << std::endl;
+                    continue;
+                }
+
+                if (it->second == nu)
+                    matchedHits++;
+                else
+                    missedHits++;
             }
 
-            if (it->second == maxNu)
-                matchedHits++;
+            // Finally, calculate and store the completeness and purity of the slice.
+            puritySlice.push_back(matchedHits / static_cast<float>(nHitsInSlice));
+            completenessSlice.push_back(matchedHits / static_cast<float>(trueNuHits));
+            isRockMuonSlice.push_back(rockMuonSet.find(maxNu) != rockMuonSet.end());
+            isMainNuSlice.push_back(isMainNu);
+
+            // Store some higher level information about the slice + MC.
+            trueNuSize.push_back(trueNuHits);
+            trueNuEnergy.push_back(nu->GetEnergy());
+            sliceSize.push_back(nHitsInSlice);
+            sliceMatchedHits.push_back(matchedHits);
+            sliceMissedHits.push_back(missedHits);
+
         }
 
-        // Finally, calculate and store the completeness and purity of the slice.
-        purity.push_back(matchedHits / static_cast<float>(nHitsInSlice));
-        completeness.push_back(matchedHits / static_cast<float>(trueNuHits));
-        isRockMuon.push_back(rockMuonSet.find(maxNu) != rockMuonSet.end());
+        // Add the results to a ROOT file.
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "randomEventID", randomEventID));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "sliceIndex", sliceIndex));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "completeness", &completenessSlice));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "purity", &puritySlice));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "isRockMuon", &isRockMuonSlice));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "isMainNu", &isMainNuSlice));
+
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "trueNuSize", &trueNuSize));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "trueNuEnergy", &trueNuEnergy));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "sliceSize", &sliceSize));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "sliceMatchedHits", &sliceMatchedHits));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "sliceMissedHits", &sliceMissedHits));
+
+        PANDORA_MONITORING_API(FillTree(this->GetPandora(), m_analysisTreeName.c_str()));
+
+        // Finally, increment the slice index for the next slice.
+        sliceIndex++;
     }
-
-    // Output the results.
-    std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Evaluated " << sliceList.size() << " slices." << std::endl;
-    std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Found " << neutrinoSet.size() << " neutrinos in the detector." << std::endl;
-    std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Found " << rockMuonSet.size() << " rock muons." << std::endl;
-    std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Completeness and purity of neutrino-majority slices:" << std::endl;
-
-    float nuTotalCompleteness = 0.0, nuTotalPurity = 0.0, nuCount = 0.0;
-    float rockMuonTotalCompleteness = 0.0, rockMuonTotalPurity = 0.0, rockMuonCount = 0.0;
-
-    for (size_t i = 0; i < sliceList.size(); ++i)
-    {
-        if (isRockMuon[i])
-            continue;
-
-        std::cout << "Slice: " << i << " | ";
-        std::cout << "Size 3D: " << sliceList[i].m_caloHitList3D.size() << " | ";
-        std::cout << "Completeness: " << completeness[i] << " | ";
-        std::cout << "Purity: " << purity[i] << " | ";
-        std::cout << "Rock Muon: " << (isRockMuon[i] ? "Yes" : "No") << std::endl;
-
-        nuTotalCompleteness += completeness[i];
-        nuTotalPurity += purity[i];
-        nuCount += 1.0f;
-    }
-    std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Average nu-majority completeness: " << (nuCount > 0 ? nuTotalCompleteness / nuCount : 0) << std::endl;
-    std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Average nu-majority purity: " << (nuCount > 0 ? nuTotalPurity / nuCount : 0) << std::endl;
-
-    std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Completeness and purity of rock muon-majority slices:" << std::endl;
-    for (size_t i = 0; i < sliceList.size(); ++i)
-    {
-        if (!isRockMuon[i])
-            continue;
-
-        std::cout << "Slice: " << i << " | ";
-        std::cout << "Size 3D: " << sliceList[i].m_caloHitList3D.size() << " | ";
-        std::cout << "Completeness: " << completeness[i] << " | ";
-        std::cout << "Purity: " << purity[i] << " | ";
-        std::cout << "Rock Muon: " << (isRockMuon[i] ? "Yes" : "No") << std::endl;
-
-        rockMuonTotalCompleteness += completeness[i];
-        rockMuonTotalPurity += purity[i];
-        rockMuonCount += 1.0f;
-    }
-    std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Average rock muon-majority completeness: "
-              << (rockMuonCount > 0 ? rockMuonTotalCompleteness / rockMuonCount : 0) << std::endl;
-    std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Average rock muon-majority purity: "
-              << (rockMuonCount > 0 ? rockMuonTotalPurity / rockMuonCount : 0) << std::endl;
-
-    std::cout << "Neutrino that were not the majority in any slice:" << std::endl;
-    for (const auto nu : neutrinoSet)
-    {
-        if (mcParticleToSliceMap.find(nu) != mcParticleToSliceMap.end())
-            continue;
-
-        std::cout << "Neutrino: " << nu->GetParticleId() << " | ";
-        std::cout << "Energy: " << nu->GetEnergy() << " | ";
-        std::cout << "Vertex: (" << nu->GetVertex().GetX() << ", "
-                                 << nu->GetVertex().GetY() << ", "
-                                 << nu->GetVertex().  GetZ() << ") | ";
-        std::cout << "Num Hits: " << nuToCaloHitMap[nu].size() << std::endl;
-
-    }
-
-    std::cout << "Rock muon that were not the majority in any slice:" << std::endl;
-    for (const auto rockMuon : rockMuonSet)
-    {
-        if (mcParticleToSliceMap.find(rockMuon) != mcParticleToSliceMap.end())
-            continue;
-
-        std::cout << "Rock Muon: " << rockMuon->GetParticleId() << " | ";
-        std::cout << "Energy: " << rockMuon->GetEnergy() << " | ";
-        std::cout << "Vertex: (" << rockMuon->GetVertex().GetX() << ", "
-                                   << rockMuon->GetVertex().GetY() << ", "
-                                   << rockMuon->GetVertex().  GetZ() << ") | ";
-        std::cout << "Num Hits: " << nuToCaloHitMap[rockMuon].size() << std::endl;
-    }
-
-    std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Done." << std::endl;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -365,7 +342,8 @@ StatusCode SlicingThreeDAlgorithm::ReadSettings(const TiXmlHandle xmlHandle)
 
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "OutputClusterListName", m_sliceClusterListName));
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "OutputPfoListName", m_slicePfoListName));
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "EvaluateSlices", m_evaluateSlices));
+
+    PANDORA_RETURN_RESULT_IF_AND_IF(STATUS_CODE_SUCCESS, STATUS_CODE_NOT_FOUND, !=, XmlHelper::ReadValue(xmlHandle, "EvaluateSlices", m_evaluateSlices));
 
     return STATUS_CODE_SUCCESS;
 }
