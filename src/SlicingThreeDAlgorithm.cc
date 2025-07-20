@@ -197,8 +197,17 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
                 largestContributor = parent;
         }
 
-        if (!LArMCParticleHelper::IsNeutrino(largestContributor))
-            std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Found a CaloHit with no neutrino parent" << std::endl;
+        try {
+            if (!LArMCParticleHelper::IsNeutrino(largestContributor))
+            {
+                std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Found a CaloHit with no neutrino parent" << std::endl;
+                continue;
+            }
+        } catch (const StatusCodeException &e) {
+            std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Caught exception while checking if largest contributor is a neutrino" << std::endl;
+            std::cout << "Back-trace: " << e.GetBackTrace() << std::endl;
+            continue;
+        }
 
         const auto vertex(largestContributor->GetVertex());
         if (LArGeometryHelper::IsInDetector(detectorBoundaries, vertex))
