@@ -243,6 +243,8 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
         // Finally, we can store a "This slice is dominated by this neutrino" flag, to get
         // the completeness and purity of the main contributor, whilst also storing the completeness and purity
         // of every neutrino that contributed to this slice.
+        std::vector<long> randomEventIDSlice;
+        std::vector<int> sliceIndexSlice;
         std::vector<float> puritySlice, completenessSlice, isRockMuonSlice, isMainNuSlice;
         std::vector<float> trueNuSize, trueNuEnergy, sliceSize, sliceMatchedHits, sliceMissedHits;
 
@@ -279,6 +281,8 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
             isMainNuSlice.push_back(isMainNu);
 
             // Store some higher level information about the slice + MC.
+            randomEventIDSlice.push_back(randomEventID);
+            sliceIndexSlice.push_back(sliceIndex);
             trueNuSize.push_back(trueNuHits);
             trueNuEnergy.push_back(nu->GetEnergy());
             sliceSize.push_back(nHitsInSlice);
@@ -288,8 +292,8 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
         }
 
         // Add the results to a ROOT file.
-        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "randomEventID", randomEventID));
-        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "sliceIndex", sliceIndex));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "randomEventID", &randomEventIDSlice));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "sliceIndex", &sliceIndexSlice));
         PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "completeness", &completenessSlice));
         PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "purity", &puritySlice));
         PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "isRockMuon", &isRockMuonSlice));
