@@ -12,6 +12,8 @@
 #include "Pandora/AlgorithmTool.h"
 #include "Pandora/Pandora.h"
 
+#include "CheatingEventSlicingThreeDTool.h"
+
 #include "CandidateVertexCreationThreeDAlgorithm.h"
 #include "CreateTwoDClustersFromThreeDAlgorithm.h"
 #include "CutClusterCharacterisationThreeDAlgorithm.h"
@@ -42,6 +44,7 @@
 
 #define LAR_ND_ALGORITHM_TOOL_LIST(d)                                                                                              \
     d("LArEventSlicingThreeD",                  EventSlicingThreeDTool)                                                            \
+    d("LArCheatingEventSlicingThreeD",          CheatingEventSlicingThreeDTool)                                                    \
 
 #define FACTORY Factory
 

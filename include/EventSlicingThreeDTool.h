@@ -50,7 +50,7 @@ public:
      *  @param  clusterListNames the hit type to cluster list name map
      *  @param  sliceList to receive the populated slice list
      */
-    void RunSlicing(const pandora::Algorithm *const pAlgorithm, const HitTypeToNameMap &caloHitListNames,
+    virtual void RunSlicing(const pandora::Algorithm *const pAlgorithm, const HitTypeToNameMap &caloHitListNames,
         const HitTypeToNameMap &clusterListNames, Slice3DList &sliceList);
 
 private:
