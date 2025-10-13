@@ -386,6 +386,50 @@ StatusCode MasterThreeDAlgorithm::GetVolumeIdToHitListMap(VolumeIdToHitListMap &
     return STATUS_CODE_SUCCESS;
 }
 
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+StatusCode MasterThreeDAlgorithm::RunCosmicRayReconstruction(const VolumeIdToHitListMap &volumeIdToHitListMap) const
+{
+    unsigned int workerCounter(0);
+
+    if (!m_useSingleVolumeForRockMuons)
+    {
+        for (const Pandora *const pCRWorker : m_crWorkerInstances)
+        {
+            const LArTPC &larTPC(pCRWorker->GetGeometry()->GetLArTPC());
+            VolumeIdToHitListMap::const_iterator iter(volumeIdToHitListMap.find(larTPC.GetLArTPCVolumeId()));
+
+            if (volumeIdToHitListMap.end() == iter)
+                continue;
+
+            for (const CaloHit *const pCaloHit : iter->second.m_allHitList)
+                PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->Copy(pCRWorker, pCaloHit));
+
+            if (m_printOverallRecoStatus)
+                std::cout << "Running cosmic-ray reconstruction worker instance " << ++workerCounter << " of " << m_crWorkerInstances.size() << std::endl;
+
+            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ProcessEvent(*pCRWorker));
+        }
+    }
+    else
+    {
+        for (const auto &mapEntry : volumeIdToHitListMap)
+        {
+            for (const CaloHit *const pCaloHit : mapEntry.second.m_allHitList)
+                PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->Copy(m_crWorkerInstances.front(), pCaloHit));
+        }
+
+        if (m_printOverallRecoStatus)
+            std::cout << "Running consolidated cosmic-ray reconstruction worker instance" << std::endl;
+
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ProcessEvent(*m_crWorkerInstances.front()));
+    }
+
+    return STATUS_CODE_SUCCESS;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
 StatusCode MasterThreeDAlgorithm::ReadSettings(const pandora::TiXmlHandle xmlHandle)
 {
     PANDORA_RETURN_RESULT_IF_AND_IF(
