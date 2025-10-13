@@ -8,7 +8,7 @@
 #ifndef PANDORA_LAR_GRID_H
 #define PANDORA_LAR_GRID_H 1
 
-#include "LArBox.h"
+#include "larrecond/LArObjects/LArBox.h"
 #include "Pandora/PandoraInputTypes.h"
 #include <array>
 

@@ -8,7 +8,7 @@
 
 #include "Pandora/AlgorithmHeaders.h"
 
-#include "ReplaceHitAndClusterListsAlgorithm.h"
+#include "larrecond/LArControlFlow/ReplaceHitAndClusterListsAlgorithm.h"
 
 using namespace pandora;
 

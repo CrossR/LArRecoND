@@ -8,12 +8,12 @@
 
 #include "Pandora/AlgorithmHeaders.h"
 
-#include "PreProcessingThreeDAlgorithm.h"
-
 #include "larpandoracontent/LArHelpers/LArClusterHelper.h"
 #include "larpandoracontent/LArObjects/LArCaloHit.h"
 
 #include "larpandoracontent/LArUtility/KDTreeLinkerAlgoT.h"
+
+#include "larrecond/LArControlFlow/PreProcessingThreeDAlgorithm.h"
 
 using namespace pandora;
 
@@ -241,11 +241,11 @@ void PreProcessingThreeDAlgorithm::GetFilteredCaloHitList(const CaloHitList &inp
         {
             outputList.push_back(pCaloHit1);
         }
-        else
-        {
-            if (PandoraContentApi::GetSettings(*this)->ShouldDisplayAlgorithmInfo())
-                std::cout << "PreProcessingThreeDAlgorithm: found two hits in same location, will remove lowest pulse height" << std::endl;
-        }
+        // else
+        // {
+        //     if (PandoraContentApi::GetSettings(*this)->ShouldDisplayAlgorithmInfo())
+        //         std::cout << "PreProcessingThreeDAlgorithm: found two hits in same location, will remove lowest pulse height" << std::endl;
+        // }
     }
 }
 

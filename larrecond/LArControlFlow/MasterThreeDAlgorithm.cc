@@ -10,9 +10,6 @@
 
 #include "Pandora/AlgorithmHeaders.h"
 
-#include "LArNDContent.h"
-#include "MasterThreeDAlgorithm.h"
-
 #include "larpandoracontent/LArContent.h"
 #include "larpandoracontent/LArHelpers/LArClusterHelper.h"
 #include "larpandoracontent/LArHelpers/LArFileHelper.h"
@@ -27,6 +24,9 @@
 #include "larpandoracontent/LArPlugins/LArRotationalTransformationPlugin.h"
 
 #include "larpandoracontent/LArUtility/PfoMopUpBaseAlgorithm.h"
+
+#include "larrecond/LArNDContent.h"
+#include "larrecond/LArControlFlow/MasterThreeDAlgorithm.h"
 
 #ifdef LIBTORCH_DL
 #include "larpandoradlcontent/LArDLContent.h"
@@ -309,12 +309,17 @@ StatusCode MasterThreeDAlgorithm::InitializeWorkerInstances()
         const LArTPCMap &larTPCMap(this->GetPandora().GetGeometry()->GetLArTPCMap());
         const DetectorGapList &gapList(this->GetPandora().GetGeometry()->GetDetectorGapList());
 
-        for (const LArTPCMap::value_type &mapEntry : larTPCMap)
-        {
-            const unsigned int volumeId(mapEntry.second->GetLArTPCVolumeId());
-            m_crWorkerInstances.push_back(
-                this->CreateWorkerInstance(*(mapEntry.second), gapList, m_crSettingsFile, "CRWorkerInstance" + std::to_string(volumeId)));
-        }
+        // TODO: Optional? We could want this back later...
+        // for (const LArTPCMap::value_type &mapEntry : larTPCMap)
+        // {
+        //     const unsigned int volumeId(mapEntry.second->GetLArTPCVolumeId());
+        //     m_crWorkerInstances.push_back(
+        //         this->CreateWorkerInstance(*(mapEntry.second), gapList, m_crSettingsFile, "CRWorkerInstance" + std::to_string(volumeId)));
+        // }
+
+        m_crWorkerInstances.push_back(
+            this->CreateWorkerInstance(larTPCMap, gapList, m_crSettingsFile, "CRWorkerInstance0")
+        );
 
         if (m_shouldRunSlicing)
             m_pSlicingWorkerInstance = this->CreateWorkerInstance(larTPCMap, gapList, m_slicingSettingsFile, "SlicingWorker");

@@ -10,6 +10,7 @@
 
 #include "Pandora/Algorithm.h"
 #include "Pandora/AlgorithmTool.h"
+
 #include "larpandoracontent/LArControlFlow/SlicingAlgorithm.h"
 
 namespace lar_content

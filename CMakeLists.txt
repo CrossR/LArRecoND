@@ -20,7 +20,7 @@ set(${PROJECT_NAME}_VERSION "${${PROJECT_NAME}_VERSION_MAJOR}.${${PROJECT_NAME}_
 include(PandoraCMakeSettings)
 
 # Prefer local include directory to any paths to installed header files
-include_directories(include)
+include_directories(./)
 
 find_package(PandoraSDK 03.04.01 REQUIRED)
 
@@ -74,7 +74,7 @@ endif()
 # Build products
 
 # - Collect sources - not ideal because you have to keep running CMake to pick up changes
-file(GLOB_RECURSE LAR_RECO_ND_SRCS RELATIVE ${PROJECT_SOURCE_DIR} "src/*.cc")
+file(GLOB_RECURSE LAR_RECO_ND_SRCS RELATIVE ${PROJECT_SOURCE_DIR} "larrecond/*.cc" "larrecond/*.h")
 
 # - Add library and properties
 add_library(${PROJECT_NAME} SHARED ${LAR_RECO_ND_SRCS})

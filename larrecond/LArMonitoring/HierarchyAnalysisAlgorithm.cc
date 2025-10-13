@@ -8,7 +8,7 @@
 
 #include "Pandora/AlgorithmHeaders.h"
 
-#include "HierarchyAnalysisAlgorithm.h"
+#include "larrecond/LArMonitoring/HierarchyAnalysisAlgorithm.h"
 
 #include "larpandoracontent/LArHelpers/LArClusterHelper.h"
 #include "larpandoracontent/LArHelpers/LArPfoHelper.h"

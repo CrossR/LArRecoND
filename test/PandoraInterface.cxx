@@ -38,9 +38,9 @@
 #include "larpandoradlcontent/LArDLContent.h"
 #endif
 
-#include "LArNDContent.h"
-#include "LArNDGeomSimple.h"
-#include "LArRay.h"
+#include "larrecond/LArNDContent.h"
+#include "larrecond/LArObjects/LArNDGeomSimple.h"
+#include "larrecond/LArObjects/LArRay.h"
 #include "PandoraInterface.h"
 
 #ifdef MONITORING

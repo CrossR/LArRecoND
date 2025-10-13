@@ -8,7 +8,7 @@
 #ifndef PANDORA_LAR_BOX_H
 #define PANDORA_LAR_BOX_H 1
 
-#include "LArRay.h"
+#include "larrecond/LArObjects/LArRay.h"
 #include "Pandora/PandoraInputTypes.h"
 
 namespace lar_nd_reco
@@ -31,7 +31,7 @@ public:
      *  @param  ray The ray (starting point and direction)
      *  @param  t0 The first intersection length along ray from its starting point (double precision)
      *  @param  t1 The second intersection length along ray from its starting point (double precision)
-     * 
+     *
      *  @return Success/failure of finding both intersection lengths
      */
     bool Intersect(const LArRay &ray, double &t0, double &t1) const;

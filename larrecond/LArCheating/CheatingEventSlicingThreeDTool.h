@@ -5,12 +5,13 @@
  *
  *  $Log: $
  */
-#include "Pandora/AlgorithmTool.h"
 #ifndef LAR_CHEATING_EVENT_SLICING_THREE_D_TOOL_H
 #define LAR_CHEATING_EVENT_SLICING_THREE_D_TOOL_H 1
 
-#include "EventSlicingThreeDTool.h"
-#include "LArSlice3D.h"
+#include "Pandora/AlgorithmTool.h"
+
+#include "larrecond/LArControlFlow/EventSlicingThreeDTool.h"
+#include "larrecond/LArObjects/LArSlice3D.h"
 
 #include <unordered_map>
 

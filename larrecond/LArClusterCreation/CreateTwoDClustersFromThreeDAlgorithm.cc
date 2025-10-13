@@ -10,7 +10,7 @@
 
 #include "larpandoracontent/LArHelpers/LArClusterHelper.h"
 
-#include "CreateTwoDClustersFromThreeDAlgorithm.h"
+#include "larrecond/LArClusterCreation/CreateTwoDClustersFromThreeDAlgorithm.h"
 
 using namespace pandora;
 

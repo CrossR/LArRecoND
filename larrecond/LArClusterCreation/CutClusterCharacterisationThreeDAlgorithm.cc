@@ -14,7 +14,7 @@
 #include "larpandoracontent/LArObjects/LArThreeDSlidingFitResult.h"
 #include "larpandoracontent/LArTrackShowerId/CutClusterCharacterisationAlgorithm.h"
 
-#include "CutClusterCharacterisationThreeDAlgorithm.h"
+#include "larrecond/LArClusterCreation/CutClusterCharacterisationThreeDAlgorithm.h"
 
 using namespace pandora;
 

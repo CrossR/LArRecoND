@@ -8,11 +8,11 @@
  */
 
 #include "Pandora/AlgorithmHeaders.h"
-
-#include "CheatingEventSlicingThreeDTool.h"
-
 #include "Pandora/PandoraEnumeratedTypes.h"
+
 #include "larpandoracontent/LArHelpers/LArMCParticleHelper.h"
+
+#include "larrecond/LArCheating/CheatingEventSlicingThreeDTool.h"
 #include <iostream>
 
 using namespace pandora;

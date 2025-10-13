@@ -16,9 +16,9 @@
 #include "larpandoracontent/LArObjects/LArThreeDSlidingConeFitResult.h"
 #include "larpandoracontent/LArObjects/LArThreeDSlidingFitResult.h"
 
-#include "EventSlicingThreeDTool.h"
-
 #include "larpandoracontent/LArUtility/KDTreeLinkerAlgoT.h"
+
+#include "larrecond/LArControlFlow/EventSlicingThreeDTool.h"
 
 using namespace pandora;
 

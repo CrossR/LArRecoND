@@ -16,7 +16,7 @@
 #include "larpandoracontent/LArHelpers/LArGeometryHelper.h"
 #include "larpandoracontent/LArHelpers/LArPfoHelper.h"
 
-#include "PfoThreeDHitAssignmentAlgorithm.h"
+#include "larrecond/LArPFOs/PfoThreeDHitAssignmentAlgorithm.h"
 
 #include <limits>
 

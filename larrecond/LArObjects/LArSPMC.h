@@ -9,7 +9,7 @@
 #ifndef PANDORA_LAR_SPMC_H
 #define PANDORA_LAR_SPMC_H 1
 
-#include "LArSP.h"
+#include "larrecond/LArObjects/LArSP.h"
 
 #include "TChain.h"
 #include "TFile.h"

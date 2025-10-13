@@ -11,7 +11,7 @@
 #include "larpandoracontent/LArHelpers/LArClusterHelper.h"
 #include "larpandoracontent/LArUtility/KDTreeLinkerAlgoT.h"
 
-#include "SimpleClusterCreationThreeDAlgorithm.h"
+#include "larrecond/LArClusterCreation/SimpleClusterCreationThreeDAlgorithm.h"
 
 #include <unordered_map>
 

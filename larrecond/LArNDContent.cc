@@ -12,21 +12,21 @@
 #include "Pandora/AlgorithmTool.h"
 #include "Pandora/Pandora.h"
 
-#include "CheatingEventSlicingThreeDTool.h"
+#include "larrecond/LArCheating/CheatingEventSlicingThreeDTool.h"
+#include "larrecond/LArVertex/CandidateVertexCreationThreeDAlgorithm.h"
+#include "larrecond/LArClusterCreation/CreateTwoDClustersFromThreeDAlgorithm.h"
+#include "larrecond/LArClusterCreation/CutClusterCharacterisationThreeDAlgorithm.h"
+#include "larrecond/LArControlFlow/EventSlicingThreeDTool.h"
+#include "larrecond/LArMonitoring/HierarchyAnalysisAlgorithm.h"
+#include "larrecond/LArControlFlow/MasterThreeDAlgorithm.h"
+#include "larrecond/LArPFOs/MergeClearTracksThreeDAlgorithm.h"
+#include "larrecond/LArPFOs/PfoThreeDHitAssignmentAlgorithm.h"
+#include "larrecond/LArControlFlow/PreProcessingThreeDAlgorithm.h"
+#include "larrecond/LArControlFlow/ReplaceHitAndClusterListsAlgorithm.h"
+#include "larrecond/LArClusterCreation/SimpleClusterCreationThreeDAlgorithm.h"
+#include "larrecond/LArControlFlow/SlicingThreeDAlgorithm.h"
 
-#include "CandidateVertexCreationThreeDAlgorithm.h"
-#include "CreateTwoDClustersFromThreeDAlgorithm.h"
-#include "CutClusterCharacterisationThreeDAlgorithm.h"
-#include "EventSlicingThreeDTool.h"
-#include "HierarchyAnalysisAlgorithm.h"
 #include "LArNDContent.h"
-#include "MasterThreeDAlgorithm.h"
-#include "MergeClearTracksThreeDAlgorithm.h"
-#include "PfoThreeDHitAssignmentAlgorithm.h"
-#include "PreProcessingThreeDAlgorithm.h"
-#include "ReplaceHitAndClusterListsAlgorithm.h"
-#include "SimpleClusterCreationThreeDAlgorithm.h"
-#include "SlicingThreeDAlgorithm.h"
 
 // clang-format off
 #define LAR_ND_ALGORITHM_LIST(d)                                                                                                   \
@@ -54,7 +54,7 @@
 namespace lar_content
 {
 
-#define LAR_ND_CONTENT_CREATE_ALGORITHM_FACTORY(a, b)                                                                              \
+#define LAR_ND_CONTENT_CREATE_ALGORITHM_FACTORY(a, b)                                                                           \
 class b##FACTORY : public pandora::AlgorithmFactory                                                                             \
 {                                                                                                                               \
 public:                                                                                                                         \
@@ -65,7 +65,7 @@ LAR_ND_ALGORITHM_LIST(LAR_ND_CONTENT_CREATE_ALGORITHM_FACTORY)
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-#define LAR_ND_CONTENT_CREATE_ALGORITHM_TOOL_FACTORY(a, b)                                                                         \
+#define LAR_ND_CONTENT_CREATE_ALGORITHM_TOOL_FACTORY(a, b)                                                                      \
 class b##FACTORY : public pandora::AlgorithmToolFactory                                                                         \
 {                                                                                                                               \
 public:                                                                                                                         \
@@ -79,14 +79,14 @@ LAR_ND_ALGORITHM_TOOL_LIST(LAR_ND_CONTENT_CREATE_ALGORITHM_TOOL_FACTORY)
 //------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-#define LAR_ND_CONTENT_REGISTER_ALGORITHM(a, b)                                                                                    \
+#define LAR_ND_CONTENT_REGISTER_ALGORITHM(a, b)                                                                                 \
 {                                                                                                                               \
     const pandora::StatusCode statusCode(PandoraApi::RegisterAlgorithmFactory(pandora, a, new lar_content::b##FACTORY));        \
     if (pandora::STATUS_CODE_SUCCESS != statusCode)                                                                             \
         return statusCode;                                                                                                      \
 }
 
-#define LAR_ND_CONTENT_REGISTER_ALGORITHM_TOOL(a, b)                                                                               \
+#define LAR_ND_CONTENT_REGISTER_ALGORITHM_TOOL(a, b)                                                                            \
 {                                                                                                                               \
     const pandora::StatusCode statusCode(PandoraApi::RegisterAlgorithmToolFactory(pandora, a, new lar_content::b##FACTORY));    \
     if (pandora::STATUS_CODE_SUCCESS != statusCode)                                                                             \

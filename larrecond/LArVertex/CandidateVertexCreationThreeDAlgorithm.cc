@@ -11,7 +11,7 @@
 #include "larpandoracontent/LArHelpers/LArClusterHelper.h"
 #include "larpandoracontent/LArHelpers/LArGeometryHelper.h"
 
-#include "CandidateVertexCreationThreeDAlgorithm.h"
+#include "larrecond/LArVertex/CandidateVertexCreationThreeDAlgorithm.h"
 
 #include <utility>
 
