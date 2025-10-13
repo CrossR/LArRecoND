@@ -13,39 +13,46 @@
 #include "Pandora/Pandora.h"
 
 
+#include "larrecond/LArCheating/CheatingEventSlicingThreeDTool.h"
+#include "larrecond/LArCheating/CheatingRockMuonRemovalAlgorithm.h"
+
 #include "larrecond/LArClusterCreation/CreateTwoDClustersFromThreeDAlgorithm.h"
 #include "larrecond/LArClusterCreation/CutClusterCharacterisationThreeDAlgorithm.h"
 #include "larrecond/LArClusterCreation/SimpleClusterCreationThreeDAlgorithm.h"
-#include "larrecond/LArControlFlow/MasterThreeDAlgorithm.h"
+
 #include "larrecond/LArControlFlow/EventSlicingThreeDTool.h"
+#include "larrecond/LArControlFlow/MasterThreeDAlgorithm.h"
 #include "larrecond/LArControlFlow/PreProcessingThreeDAlgorithm.h"
 #include "larrecond/LArControlFlow/ReplaceHitAndClusterListsAlgorithm.h"
 #include "larrecond/LArControlFlow/SlicingThreeDAlgorithm.h"
-#include "larrecond/LArCheating/CheatingEventSlicingThreeDTool.h"
+
 #include "larrecond/LArMonitoring/HierarchyAnalysisAlgorithm.h"
+
 #include "larrecond/LArPFOs/MergeClearTracksThreeDAlgorithm.h"
 #include "larrecond/LArPFOs/PfoThreeDHitAssignmentAlgorithm.h"
+
 #include "larrecond/LArVertex/CandidateVertexCreationThreeDAlgorithm.h"
 
 #include "LArNDContent.h"
 
 // clang-format off
 #define LAR_ND_ALGORITHM_LIST(d)                                                                                                   \
+    d("LArCandidateVertexCreationThreeD",       CandidateVertexCreationThreeDAlgorithm)                                            \
+    d("LArCheatingRockMuonRemoval",             CheatingRockMuonRemovalAlgorithm)                                                  \
+    d("LArCreateTwoDClustersFromThreeD",        CreateTwoDClustersFromThreeDAlgorithm)                                             \
+    d("LArCutClusterCharacterisationThreeD",    CutClusterCharacterisationThreeDAlgorithm)                                         \
+    d("LArHierarchyAnalysis",                   HierarchyAnalysisAlgorithm)                                                        \
     d("LArMasterThreeD",                        MasterThreeDAlgorithm)                                                             \
     d("LArMergeClearTracksThreeD",              MergeClearTracksThreeDAlgorithm)                                                   \
-    d("LArSimpleClusterCreationThreeD",         SimpleClusterCreationThreeDAlgorithm)                                              \
-    d("LArCreateTwoDClustersFromThreeD",        CreateTwoDClustersFromThreeDAlgorithm)                                             \
-    d("LArSlicingThreeD",                       SlicingThreeDAlgorithm)                                                            \
     d("LArPfoThreeDHitAssignment",              PfoThreeDHitAssignmentAlgorithm)                                                   \
-    d("LArReplaceHitAndClusterLists",           ReplaceHitAndClusterListsAlgorithm)                                                \
     d("LArPreProcessingThreeD",                 PreProcessingThreeDAlgorithm)                                                      \
-    d("LArCutClusterCharacterisationThreeD",    CutClusterCharacterisationThreeDAlgorithm)                                         \
-    d("LArCandidateVertexCreationThreeD",       CandidateVertexCreationThreeDAlgorithm)                                            \
-    d("LArHierarchyAnalysis",                   HierarchyAnalysisAlgorithm)
+    d("LArReplaceHitAndClusterLists",           ReplaceHitAndClusterListsAlgorithm)                                                \
+    d("LArSimpleClusterCreationThreeD",         SimpleClusterCreationThreeDAlgorithm)                                              \
+    d("LArSlicingThreeD",                       SlicingThreeDAlgorithm)
 
 #define LAR_ND_ALGORITHM_TOOL_LIST(d)                                                                                              \
-    d("LArEventSlicingThreeD",                  EventSlicingThreeDTool)                                                            \
     d("LArCheatingEventSlicingThreeD",          CheatingEventSlicingThreeDTool)                                                    \
+    d("LArEventSlicingThreeD",                  EventSlicingThreeDTool)
 
 #define FACTORY Factory
 

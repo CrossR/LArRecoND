@@ -86,6 +86,13 @@ protected:
      */
     pandora::StatusCode GetVolumeIdToHitListMap(VolumeIdToHitListMap &volumeIdToHitListMap) const;
 
+    /**
+     *  @brief  Run the cosmic-ray reconstruction worker instances
+     *
+     *  @param  volumeIdToHitListMap the volume id to hit list map
+     */
+    pandora::StatusCode RunCosmicRayReconstruction(const VolumeIdToHitListMap &volumeIdToHitListMap) const;
+
     pandora::StatusCode ReadSettings(const pandora::TiXmlHandle xmlHandle);
 
 private:
