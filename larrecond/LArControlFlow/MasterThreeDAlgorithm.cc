@@ -37,6 +37,11 @@ using namespace pandora;
 namespace lar_content
 {
 
+MasterThreeDAlgorithm::MasterThreeDAlgorithm() : MasterAlgorithm(),
+    m_useSingleVolumeForRockMuons(false) {}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
 StatusCode MasterThreeDAlgorithm::Run()
 {
     std::cout << "Should run slicing? " << m_shouldRunSlicing << std::endl;
@@ -309,13 +314,21 @@ StatusCode MasterThreeDAlgorithm::InitializeWorkerInstances()
         const LArTPCMap &larTPCMap(this->GetPandora().GetGeometry()->GetLArTPCMap());
         const DetectorGapList &gapList(this->GetPandora().GetGeometry()->GetDetectorGapList());
 
-        // TODO: Optional? We could want this back later...
-        // for (const LArTPCMap::value_type &mapEntry : larTPCMap)
-        // {
-        //     const unsigned int volumeId(mapEntry.second->GetLArTPCVolumeId());
-        //     m_crWorkerInstances.push_back(
-        //         this->CreateWorkerInstance(*(mapEntry.second), gapList, m_crSettingsFile, "CRWorkerInstance" + std::to_string(volumeId)));
-        // }
+        if (!m_useSingleVolumeForRockMuons)
+        {
+            for (const LArTPCMap::value_type &mapEntry : larTPCMap)
+            {
+                const unsigned int volumeId(mapEntry.second->GetLArTPCVolumeId());
+                m_crWorkerInstances.push_back(
+                    this->CreateWorkerInstance(*(mapEntry.second), gapList, m_crSettingsFile, "CRWorkerInstance" + std::to_string(volumeId)));
+            }
+        }
+        else
+        {
+            m_crWorkerInstances.push_back(
+                this->CreateWorkerInstance(larTPCMap, gapList, m_crSettingsFile, "CRWorkerInstance0")
+            );
+        }
 
         m_crWorkerInstances.push_back(
             this->CreateWorkerInstance(larTPCMap, gapList, m_crSettingsFile, "CRWorkerInstance0")
@@ -379,6 +392,9 @@ StatusCode MasterThreeDAlgorithm::GetVolumeIdToHitListMap(VolumeIdToHitListMap &
 
 StatusCode MasterThreeDAlgorithm::ReadSettings(const pandora::TiXmlHandle xmlHandle)
 {
+    PANDORA_RETURN_RESULT_IF_AND_IF(
+        STATUS_CODE_SUCCESS, STATUS_CODE_NOT_FOUND, !=, XmlHelper::ReadValue(xmlHandle, "UseSingleVolumeForRockMuons", m_useSingleVolumeForRockMuons));
+
     return MasterAlgorithm::ReadSettings(xmlHandle);
 }
 

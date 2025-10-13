@@ -12,19 +12,20 @@
 #include "Pandora/AlgorithmTool.h"
 #include "Pandora/Pandora.h"
 
-#include "larrecond/LArCheating/CheatingEventSlicingThreeDTool.h"
-#include "larrecond/LArVertex/CandidateVertexCreationThreeDAlgorithm.h"
+
 #include "larrecond/LArClusterCreation/CreateTwoDClustersFromThreeDAlgorithm.h"
 #include "larrecond/LArClusterCreation/CutClusterCharacterisationThreeDAlgorithm.h"
-#include "larrecond/LArControlFlow/EventSlicingThreeDTool.h"
-#include "larrecond/LArMonitoring/HierarchyAnalysisAlgorithm.h"
+#include "larrecond/LArClusterCreation/SimpleClusterCreationThreeDAlgorithm.h"
 #include "larrecond/LArControlFlow/MasterThreeDAlgorithm.h"
-#include "larrecond/LArPFOs/MergeClearTracksThreeDAlgorithm.h"
-#include "larrecond/LArPFOs/PfoThreeDHitAssignmentAlgorithm.h"
+#include "larrecond/LArControlFlow/EventSlicingThreeDTool.h"
 #include "larrecond/LArControlFlow/PreProcessingThreeDAlgorithm.h"
 #include "larrecond/LArControlFlow/ReplaceHitAndClusterListsAlgorithm.h"
-#include "larrecond/LArClusterCreation/SimpleClusterCreationThreeDAlgorithm.h"
 #include "larrecond/LArControlFlow/SlicingThreeDAlgorithm.h"
+#include "larrecond/LArCheating/CheatingEventSlicingThreeDTool.h"
+#include "larrecond/LArMonitoring/HierarchyAnalysisAlgorithm.h"
+#include "larrecond/LArPFOs/MergeClearTracksThreeDAlgorithm.h"
+#include "larrecond/LArPFOs/PfoThreeDHitAssignmentAlgorithm.h"
+#include "larrecond/LArVertex/CandidateVertexCreationThreeDAlgorithm.h"
 
 #include "LArNDContent.h"
 

@@ -31,7 +31,7 @@ public:
     /**
      *  @brief  Default constructor
      */
-    MasterThreeDAlgorithm() = default;
+    MasterThreeDAlgorithm();
 
 protected:
     pandora::StatusCode Run();
@@ -87,6 +87,10 @@ protected:
     pandora::StatusCode GetVolumeIdToHitListMap(VolumeIdToHitListMap &volumeIdToHitListMap) const;
 
     pandora::StatusCode ReadSettings(const pandora::TiXmlHandle xmlHandle);
+
+private:
+
+    bool m_useSingleVolumeForRockMuons = false; ///< Whether to split the rock muon reconstruction by TPC volume, or to use all available volumes at once.
 };
 
 } // namespace lar_content
