@@ -9,6 +9,8 @@
 #define LAR_CHEATING_ROCK_MUON_REMOVAL_ALGORITHM_H 1
 
 #include "Pandora/Algorithm.h"
+#include "Objects/MCParticle.h"
+#include "Pandora/Pandora.h"
 
 #include <unordered_map>
 
@@ -20,6 +22,17 @@ namespace lar_content
  */
 class CheatingRockMuonRemovalAlgorithm : public pandora::Algorithm
 {
+public:
+    /**
+     *  @brief  Is the specified MC particle a rock muon?
+     *
+     *  @param  pandora the pandora instance
+     *  @param  pMCParticle the MC particle pointer
+     *
+     *  @return whether the MC particle is a rock muon
+     */
+    static bool IsRockMuon(const pandora::Pandora &pandora, const pandora::MCParticle *const pMCParticle);
+
 private:
     pandora::StatusCode Run();
 

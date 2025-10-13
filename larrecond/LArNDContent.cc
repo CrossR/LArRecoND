@@ -15,6 +15,7 @@
 
 #include "larrecond/LArCheating/CheatingEventSlicingThreeDTool.h"
 #include "larrecond/LArCheating/CheatingRockMuonRemovalAlgorithm.h"
+#include "larrecond/LArCheating/CheatingRockMuonTaggingTool.h"
 
 #include "larrecond/LArClusterCreation/CreateTwoDClustersFromThreeDAlgorithm.h"
 #include "larrecond/LArClusterCreation/CutClusterCharacterisationThreeDAlgorithm.h"
@@ -52,6 +53,7 @@
 
 #define LAR_ND_ALGORITHM_TOOL_LIST(d)                                                                                              \
     d("LArCheatingEventSlicingThreeD",          CheatingEventSlicingThreeDTool)                                                    \
+    d("LArCheatingRockMuonTagging",             CheatingRockMuonTaggingTool)                                                       \
     d("LArEventSlicingThreeD",                  EventSlicingThreeDTool)
 
 #define FACTORY Factory

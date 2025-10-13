@@ -19,7 +19,7 @@ using namespace pandora;
 namespace lar_content
 {
 
-bool IsRockMuon(const Pandora& pandora, const MCParticle* const pMCParticle)
+bool CheatingRockMuonRemovalAlgorithm::IsRockMuon(const Pandora& pandora, const MCParticle* const pMCParticle)
 {
 
     const bool isMuon = (std::abs(pMCParticle->GetParticleId()) == 13);
@@ -48,7 +48,7 @@ StatusCode CheatingRockMuonRemovalAlgorithm::Run()
     for (const CaloHit *const pCaloHit : *pCaloHitList)
     {
         const MCParticle *const pMCParticle = MCParticleHelper::GetMainMCParticle(pCaloHit);
-        if (IsRockMuon(this->GetPandora(), pMCParticle))
+        if (this->IsRockMuon(this->GetPandora(), pMCParticle))
             pRockMuonCaloHitList.push_back(pCaloHit);
         else
             pNeutrinoCaloHitList.push_back(pCaloHit);
