@@ -330,10 +330,6 @@ StatusCode MasterThreeDAlgorithm::InitializeWorkerInstances()
             );
         }
 
-        m_crWorkerInstances.push_back(
-            this->CreateWorkerInstance(larTPCMap, gapList, m_crSettingsFile, "CRWorkerInstance0")
-        );
-
         if (m_shouldRunSlicing)
             m_pSlicingWorkerInstance = this->CreateWorkerInstance(larTPCMap, gapList, m_slicingSettingsFile, "SlicingWorker");
 
