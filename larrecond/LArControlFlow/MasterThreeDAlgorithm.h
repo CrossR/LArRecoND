@@ -37,6 +37,34 @@ protected:
     pandora::StatusCode Run();
 
     /**
+     *  @brief  Initialize pandora worker instances
+     */
+    pandora::StatusCode InitializeWorkerInstances();
+
+    /**
+     *  @brief  Get the mapping from lar tpc volume id to lists of all hits, and truncated hits
+     *
+     *  @param  volumeIdToHitListMap to receive the populated volume id to hit list map
+     *
+     *  @return status code
+     */
+    pandora::StatusCode GetVolumeIdToHitListMap(VolumeIdToHitListMap &volumeIdToHitListMap) const;
+
+    /**
+     *  @brief  Run the cosmic-ray reconstruction worker instances
+     *
+     *  @param  volumeIdToHitListMap the volume id to hit list map
+     */
+    pandora::StatusCode RunCosmicRayReconstruction(const VolumeIdToHitListMap &volumeIdToHitListMap) const;
+
+    /**
+     *  @brief  Run cosmic-ray hit removal, freeing hits in ambiguous pfos for further processing
+     *
+     *  @param  ambiguousPfos the list of ambiguous cosmic-ray pfos
+     */
+    pandora::StatusCode RunCosmicRayHitRemoval(const pandora::PfoList &ambiguousPfos) const;
+
+    /**
      *  @brief  Run the event slicing procedures, dividing available hits up into distinct 3D regions
      *
      *  @param  volumeIdToHitListMap the volume id to hit list map
@@ -71,27 +99,6 @@ protected:
      */
     const pandora::Pandora *CreateWorkerInstance(const pandora::LArTPCMap &larTPCMap, const pandora::DetectorGapList &gapList,
         const std::string &settingsFile, const std::string &name) const;
-
-    /**
-     *  @brief  Initialize pandora worker instances
-     */
-    pandora::StatusCode InitializeWorkerInstances();
-
-    /**
-     *  @brief  Get the mapping from lar tpc volume id to lists of all hits, and truncated hits
-     *
-     *  @param  volumeIdToHitListMap to receive the populated volume id to hit list map
-     *
-     *  @return status code
-     */
-    pandora::StatusCode GetVolumeIdToHitListMap(VolumeIdToHitListMap &volumeIdToHitListMap) const;
-
-    /**
-     *  @brief  Run the cosmic-ray reconstruction worker instances
-     *
-     *  @param  volumeIdToHitListMap the volume id to hit list map
-     */
-    pandora::StatusCode RunCosmicRayReconstruction(const VolumeIdToHitListMap &volumeIdToHitListMap) const;
 
     pandora::StatusCode ReadSettings(const pandora::TiXmlHandle xmlHandle);
 

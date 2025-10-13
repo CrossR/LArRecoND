@@ -10,6 +10,7 @@
 
 #include "Pandora/AlgorithmHeaders.h"
 
+#include "Pandora/PandoraEnumeratedTypes.h"
 #include "larpandoracontent/LArContent.h"
 #include "larpandoracontent/LArHelpers/LArClusterHelper.h"
 #include "larpandoracontent/LArHelpers/LArFileHelper.h"
@@ -427,6 +428,48 @@ StatusCode MasterThreeDAlgorithm::RunCosmicRayReconstruction(const VolumeIdToHit
 
     return STATUS_CODE_SUCCESS;
 }
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+StatusCode MasterThreeDAlgorithm::RunCosmicRayHitRemoval(const PfoList &ambiguousPfos) const
+{
+    PfoList allPfosToDelete;
+    LArPfoHelper::GetAllConnectedPfos(ambiguousPfos, allPfosToDelete);
+
+    for (const Pfo *const pPfoToDelete : allPfosToDelete)
+    {
+        const ClusterList clusterList(pPfoToDelete->GetClusterList());
+        const VertexList vertexList(pPfoToDelete->GetVertexList());
+
+        // ATTN: If an ambiguous pfo has been stitched, reset the calo hit positions in preparation for subsequent algorithm chains
+        if (LArStitchingHelper::HasPfoBeenStitched(pPfoToDelete))
+        {
+            CaloHitList caloHitList3D;
+            LArPfoHelper::GetCaloHits(pPfoToDelete, TPC_VIEW_U, caloHitList3D);
+            LArPfoHelper::GetCaloHits(pPfoToDelete, TPC_VIEW_V, caloHitList3D);
+            LArPfoHelper::GetCaloHits(pPfoToDelete, TPC_VIEW_W, caloHitList3D);
+            LArPfoHelper::GetCaloHits(pPfoToDelete, TPC_3D, caloHitList3D);
+            LArPfoHelper::GetIsolatedCaloHits(pPfoToDelete, TPC_VIEW_U, caloHitList3D);
+            LArPfoHelper::GetIsolatedCaloHits(pPfoToDelete, TPC_VIEW_V, caloHitList3D);
+            LArPfoHelper::GetIsolatedCaloHits(pPfoToDelete, TPC_VIEW_W, caloHitList3D);
+            LArPfoHelper::GetIsolatedCaloHits(pPfoToDelete, TPC_3D, caloHitList3D);
+
+            for (const CaloHit *const pCaloHit : caloHitList3D)
+            {
+                PandoraContentApi::CaloHit::Metadata metadata;
+                metadata.m_x0 = 0.f;
+                PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::CaloHit::AlterMetadata(*this, pCaloHit, metadata));
+            }
+        }
+
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::Delete(*this, pPfoToDelete));
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::Delete(*this, &clusterList));
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::Delete(*this, &vertexList));
+    }
+
+    return STATUS_CODE_SUCCESS;
+}
+
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
