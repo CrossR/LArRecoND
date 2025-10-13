@@ -1,5 +1,5 @@
 /**
- *  @file   src/CandidateVertexCreationThreeDAlgorithm.cc
+ *  @file   larrecond/LArVertex/CandidateVertexCreationThreeDAlgorithm.cc
  *
  *  @brief  Implementation of the candidate vertex creation algorithm class.
  *

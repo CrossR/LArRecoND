@@ -1,5 +1,5 @@
 /**
- *  @file   src/LArNDContent.cc
+ *  @file   larrecond/LArNDContent.cc
  *
  *  @brief  Factory implementations for content intended for use with particle flow reconstruction at liquid argon time projection chambers
  *

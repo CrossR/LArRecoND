@@ -1,5 +1,5 @@
 /**
- *  @file   src/CreateTwoDClustersFromThreeDAlgorithm.cc
+ *  @file   larrecond/LArClusterCreation/CreateTwoDClustersFromThreeDAlgorithm.cc
  *
  *  @brief  Implementation of the 3D to 2D cluster creation algorithm.
  *

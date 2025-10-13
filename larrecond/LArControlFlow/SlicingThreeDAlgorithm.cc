@@ -1,5 +1,5 @@
 /**
- *  @file   src/SlicingThreeDAlgorithm.cc
+ *  @file   larrecond/LArControlFlow/SlicingThreeDAlgorithm.cc
  *
  *  @brief  Implementation of the 3D slicing algorithm class.
  *

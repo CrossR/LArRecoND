@@ -1,5 +1,5 @@
 /**
- *  @file   include/CandidateVertexCreationThreeDAlgorithm.h
+ *  @file   larrecond/LArVertex/CandidateVertexCreationThreeDAlgorithm.h
  *
  *  @brief  Header file for the candidate vertex creation algorithm class.
  *

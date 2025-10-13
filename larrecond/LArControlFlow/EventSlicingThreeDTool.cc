@@ -1,5 +1,5 @@
 /**
- *  @file   src/EventSlicingThreeDTool.cc
+ *  @file   larrecond/LArControlFlow/EventSlicingThreeDTool.cc
  *
  *  @brief  Implementation of the 3D event slicing tool class.
  *

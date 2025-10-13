@@ -1,5 +1,5 @@
 /**
- *  @file   src/CutClusterCharacterisationThreeDAlgorithm.cc
+ *  @file   larrecond/LArClusterCreation/CutClusterCharacterisationThreeDAlgorithm.cc
  *
  *  @brief  Implementation of the cut based cluster characterisation algorithm class.
  *

@@ -1,5 +1,5 @@
 /**
- *  @file   src/PreProcessingThreeDAlgorithm.cc
+ *  @file   larrecond/LArControlFlow/PreProcessingThreeDAlgorithm.cc
  *
  *  @brief  Implementation of the 3D list preparation algorithm class.
  *

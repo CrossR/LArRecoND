@@ -1,6 +1,6 @@
 
 /**
- *  @file   larrecond/src/CheatingEventSlicingThreeDTool.cc
+ *  @file   larrecond/LArCheating/CheatingEventSlicingThreeDTool.cc
  *
  *  @brief  Implementation of the cheating 3D event slicing tool class.
  *

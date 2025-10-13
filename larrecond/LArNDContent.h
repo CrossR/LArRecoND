@@ -1,5 +1,5 @@
 /**
- *  @file   include/LArNDContent.h
+ *  @file   larrecond/LArNDContent.h
  *
  *  @brief  Header file detailing content for use with particle flow reconstruction at liquid argon time projection chambers
  *

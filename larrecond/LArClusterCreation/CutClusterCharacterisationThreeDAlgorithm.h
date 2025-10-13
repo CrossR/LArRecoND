@@ -1,5 +1,5 @@
 /**
- *  @file   include/CutClusterCharacterisationThreeDAlgorithm.h
+ *  @file   larrecond/LArClusterCreation/CutClusterCharacterisationThreeDAlgorithm.h
  *
  *  @brief  Header file for the cut based cluster characterisation algorithm class.
  *

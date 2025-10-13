@@ -1,5 +1,5 @@
 /**
- *  @file   include/HierarchyAnalysisAlgorithm.h
+ *  @file   larrecond/LArMonitoring/HierarchyAnalysisAlgorithm.h
  *
  *  @brief  Header file for the hierarchy analysis output algorithm
  *

@@ -1,5 +1,5 @@
 /**
- *  @file   LArReco/include/LArHitInfo.h
+ *  @file   larrecond/LArObjects/LArHitInfo.h
  *
  *  @brief  Header file for storing hit information
  *

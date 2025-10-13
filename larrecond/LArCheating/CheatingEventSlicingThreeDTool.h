@@ -1,5 +1,5 @@
 /**
- *  @file   larrecond/include/CheatingEventSlicingThreeDTool.h
+ *  @file   larrecond/LArCheating/CheatingEventSlicingThreeDTool.h
  *
  *  @brief  Header file for the cheating 3D event slicing tool class.
  *

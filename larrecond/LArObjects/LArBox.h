@@ -1,5 +1,5 @@
 /**
- *  @file   LArReco/include/LArBox.h
+ *  @file   larrecond/LArObjects/LArBox.h
  *
  *  @brief  Header file for LArBox, an element in the voxelisation grid
  *

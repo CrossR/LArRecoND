@@ -1,5 +1,5 @@
 /**
- *  @file   src/ReplaceHitAndClusterListsAlgorithm.cc
+ *  @file   larrecond/LArControlFlow/ReplaceHitAndClusterListsAlgorithm.cc
  *
  *  @brief  Implementation of the cluster creation algorithm class.
  *

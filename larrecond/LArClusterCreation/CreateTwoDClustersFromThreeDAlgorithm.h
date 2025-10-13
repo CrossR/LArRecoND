@@ -1,5 +1,5 @@
 /**
- *  @file   include/CreateTwoDClustersFromThreeDAlgorithm.h
+ *  @file   larrecond/LArClusterCreation/CreateTwoDClustersFromThreeDAlgorithm.h
  *
  *  @brief  Header file for the 3D to 2D cluster creation alg
  *

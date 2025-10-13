@@ -1,5 +1,5 @@
 /**
- *  @file   LArReco/include/LArRay.h
+ *  @file   larrecond/LArObjects/LArRay.h
  *
  *  @brief  Header file for the voxel tracing rays LArRay
  *

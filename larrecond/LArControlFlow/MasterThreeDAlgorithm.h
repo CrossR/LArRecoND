@@ -1,5 +1,5 @@
 /**
- *  @file   include/MasterThreeDAlgorithm.h
+ *  @file   larrecond/LArControlFlow/MasterThreeDAlgorithm.h
  *
  *  @brief  Header file for the master algorithm class.
  *

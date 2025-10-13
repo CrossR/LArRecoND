@@ -1,5 +1,5 @@
 /**
- *  @file   include/ReplaceHitAndClusterListsAlgorithm.h
+ *  @file   larrecond/LArControlFlow/ReplaceHitAndClusterListsAlgorithm.h
  *
  *  @brief  Header file for the class to replace current hit and cluster lists.
  *

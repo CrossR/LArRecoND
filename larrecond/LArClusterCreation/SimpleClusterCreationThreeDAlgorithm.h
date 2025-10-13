@@ -1,5 +1,5 @@
 /**
- *  @file   include/SimpleClusterCreationThreeDAlgorithm.h
+ *  @file   larrecond/LArClusterCreation/SimpleClusterCreationThreeDAlgorithm.h
  *
  *  @brief  Header file for the 3D cluster creation algorithm class.
  *

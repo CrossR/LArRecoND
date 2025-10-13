@@ -1,5 +1,5 @@
 /**
- *  @file   LArReco/include/LArNDGeomSimple.h
+ *  @file   larrecond/LArObjects/LArNDGeomSimple.h
  *
  *  @brief  Header file for storing geometry information for ND LAr
  *
