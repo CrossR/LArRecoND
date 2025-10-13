@@ -470,6 +470,66 @@ StatusCode MasterThreeDAlgorithm::RunCosmicRayHitRemoval(const PfoList &ambiguou
     return STATUS_CODE_SUCCESS;
 }
 
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+StatusCode MasterThreeDAlgorithm::Recreate(const ParticleFlowObject *const pInputPfo, const ParticleFlowObject *const pNewParentPfo, PfoList &newPfoList) const
+{
+    ClusterList inputClusterList2D, inputClusterList3D, totalClusterList, newClusterList;
+
+    // 2D clusters
+    LArPfoHelper::GetTwoDClusterList(pInputPfo, inputClusterList2D);
+    totalClusterList.insert(totalClusterList.end(), inputClusterList2D.begin(), inputClusterList2D.end());
+
+    // 3D clusters
+    LArPfoHelper::GetThreeDClusterList(pInputPfo, inputClusterList3D);
+    totalClusterList.insert(totalClusterList.end(), inputClusterList3D.begin(), inputClusterList3D.end());
+
+    std::cout << "Recreating PFO with " << totalClusterList.size() << " clusters (2D: " << inputClusterList2D.size()
+              << ", 3D: " << inputClusterList3D.size() << ")" << std::endl;
+
+    for (const Cluster *const pInputCluster : totalClusterList)
+    {
+        CaloHitList inputCaloHitList, newCaloHitList, newIsolatedCaloHitList;
+        pInputCluster->GetOrderedCaloHitList().FillCaloHitList(inputCaloHitList);
+        int threeDHitCount(0);
+
+        for (const CaloHit *const pInputCaloHit : inputCaloHitList)
+        {
+            newCaloHitList.push_back(static_cast<const CaloHit *>(pInputCaloHit->GetParentAddress()));
+            if (newCaloHitList.back()->GetHitType() == TPC_3D)
+                ++threeDHitCount;
+        }
+
+        for (const CaloHit *const pInputCaloHit : pInputCluster->GetIsolatedCaloHitList())
+        {
+            newIsolatedCaloHitList.push_back(static_cast<const CaloHit *>(pInputCaloHit->GetParentAddress()));
+            if (newCaloHitList.back()->GetHitType() == TPC_3D)
+                ++threeDHitCount;
+        }
+
+        if (threeDHitCount > 1)
+            std::cout << "Recreating cluster with " << newCaloHitList.size() << " hits, of which " << threeDHitCount << " are 3D" << std::endl;
+
+        if (!newCaloHitList.empty())
+            newClusterList.push_back(this->CreateCluster(pInputCluster, newCaloHitList, newIsolatedCaloHitList));
+    }
+
+    VertexList newVertexList;
+
+    for (const Vertex *const pInputVertex : pInputPfo->GetVertexList())
+        newVertexList.push_back(this->CreateVertex(pInputVertex));
+
+    const ParticleFlowObject *const pNewPfo(this->CreatePfo(pInputPfo, newClusterList, newVertexList));
+    newPfoList.push_back(pNewPfo);
+
+    if (pNewParentPfo)
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::SetPfoParentDaughterRelationship(*this, pNewParentPfo, pNewPfo))
+
+    for (const ParticleFlowObject *const pInputDaughterPfo : pInputPfo->GetDaughterPfoList())
+        this->Recreate(pInputDaughterPfo, pNewPfo, newPfoList);
+
+    return STATUS_CODE_SUCCESS;
+}
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 

@@ -75,6 +75,16 @@ protected:
     pandora::StatusCode RunSlicing(const VolumeIdToHitListMap &volumeIdToHitListMap, SliceVector &sliceVector) const;
 
     /**
+     *  @brief  Recreate a specified pfo in the current pandora instance
+     *
+     *  @param  pInputPfo the input pfo
+     *  @param  pNewParentPfo the new parent of the new output pfo (nullptr if none)
+     *  @param  newPfoList to receive the list of new pfos
+     */
+    pandora::StatusCode Recreate(const pandora::ParticleFlowObject *const pInputPfo, const pandora::ParticleFlowObject *const pNewParentPfo,
+        pandora::PfoList &newPfoList) const override;
+
+    /**
      *  @brief  Create a pandora worker instance to handle a single LArTPC
      *
      *  @param  larTPC the lar tpc
