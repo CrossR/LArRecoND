@@ -11,6 +11,7 @@
 #include "Pandora/AlgorithmHeaders.h"
 
 #include "larpandoracontent/LArHelpers/LArVertexHelper.h"
+#include "larpandoracontent/LArHelpers/LArMCParticleHelper.h"
 
 #include "larrecond/LArCheating/CheatingRockMuonRemovalAlgorithm.h"
 
@@ -21,11 +22,14 @@ namespace lar_content
 
 bool CheatingRockMuonRemovalAlgorithm::IsRockMuon(const Pandora& pandora, const MCParticle* const pMCParticle)
 {
+    // Get the parent MCParticle.
+    // This means things like delta rays, showers etc are all traced back to the original muon, and classified as a rock muon.
+    const auto parentMCParticle = LArMCParticleHelper::GetParentMCParticle(pMCParticle);
 
-    const bool isMuon = (std::abs(pMCParticle->GetParticleId()) == 13);
-    const bool vertexInsideFV = LArVertexHelper::IsInFiducialVolume(pandora, pMCParticle->GetVertex(), "dune_nd");
+    const bool isNuMu = (std::abs(parentMCParticle->GetParticleId()) == 14);
+    const bool vertexInsideFV = LArVertexHelper::IsInFiducialVolume(pandora, parentMCParticle->GetVertex(), "dune_nd");
 
-    return isMuon && !vertexInsideFV;
+    return isNuMu && !vertexInsideFV;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

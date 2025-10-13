@@ -4,12 +4,6 @@
     <ShouldDisplayAlgorithmInfo>false</ShouldDisplayAlgorithmInfo>
     <SingleHitTypeClusteringMode>true</SingleHitTypeClusteringMode>
 
-    <algorithm type = "LArVisualMonitoring">
-        <CaloHitListNames>Input</CaloHitListNames>
-        <ShowDetector>true</ShowDetector>
-        <StateName>Initial Cosmic Input Hits</StateName>
-    </algorithm>
-
     <!-- Separate rock muon hits from neutrino interaction hits -->
     <algorithm type = "LArCheatingRockMuonRemoval">
         <InputCaloHitListName>Input</InputCaloHitListName>
@@ -33,12 +27,6 @@
         <OutputCaloHitListName3D>CaloHitList3D</OutputCaloHitListName3D>
         <FilteredCaloHitListName>CaloHitList2D</FilteredCaloHitListName>
         <CurrentCaloHitListReplacement>CaloHitList2D</CurrentCaloHitListReplacement>
-    </algorithm>
-
-    <algorithm type = "LArVisualMonitoring">
-        <CaloHitListNames>CaloHitListU CaloHitListV CaloHitListW CaloHitList3D</CaloHitListNames>
-        <ShowDetector>true</ShowDetector>
-        <StateName>Prepared Cosmic Hits</StateName>
     </algorithm>
 
     <!-- 2D cosmic-ray muon reconstruction, U View -->
@@ -89,19 +77,19 @@
         <ReplaceCurrentClusterList>true</ReplaceCurrentClusterList>
     </algorithm>
 
-    <algorithm type = "LArVisualMonitoring">
-        <ClusterListNames>ClustersU ClustersV ClustersW Clusters3D</ClusterListNames>
-        <ShowDetector>true</ShowDetector>
-        <StateName>Cosmic Clusters</StateName>
-    </algorithm>
-
     <!-- 3D cosmic-ray muon reconstruction -->
     <algorithm type = "LArCheatingPfoCreation">
-        <InputClusterListNames>ClustersU ClustersV ClustersW</InputClusterListNames>
+        <InputClusterListNames>ClustersU ClustersV ClustersW Clusters3D</InputClusterListNames>
         <OutputPfoListName>CRParticles3D</OutputPfoListName>
         <OutputVertexListName>CRVertices3D</OutputVertexListName>
         <MCParticleListName>Input</MCParticleListName>
         <CollapseToPrimaryMCParticles>false</CollapseToPrimaryMCParticles>
+    </algorithm>
+
+    <algorithm type = "LArVisualMonitoring">
+        <PfoListNames>CRParticles3D</PfoListNames>
+        <ShowDetector>true</ShowDetector>
+        <StateName>Cosmic PFOs</StateName>
     </algorithm>
 
     <algorithm type = "LArPostProcessing">
