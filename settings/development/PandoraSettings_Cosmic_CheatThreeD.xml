@@ -1,0 +1,114 @@
+<pandora>
+    <!-- GLOBAL SETTINGS -->
+    <IsMonitoringEnabled>true</IsMonitoringEnabled>
+    <ShouldDisplayAlgorithmInfo>false</ShouldDisplayAlgorithmInfo>
+    <SingleHitTypeClusteringMode>true</SingleHitTypeClusteringMode>
+
+    <algorithm type = "LArVisualMonitoring">
+        <CaloHitListNames>Input</CaloHitListNames>
+        <ShowDetector>true</ShowDetector>
+        <StateName>Initial Cosmic Input Hits</StateName>
+    </algorithm>
+
+    <!-- Separate rock muon hits from neutrino interaction hits -->
+    <algorithm type = "LArCheatingRockMuonRemoval">
+        <InputCaloHitListName>Input</InputCaloHitListName>
+        <RockMuonCaloHitListName>RockMuonCaloHitList</RockMuonCaloHitListName>
+        <NeutrinoCaloHitListName>NeutrinoCaloHitList</NeutrinoCaloHitListName>
+        <MCParticleListName>Input</MCParticleListName>
+    </algorithm>
+
+    <algorithm type = "LArVisualMonitoring">
+        <CaloHitListNames>RockMuonCaloHitList</CaloHitListNames>
+        <ShowDetector>true</ShowDetector>
+        <StateName>Rock Muon Hits</StateName>
+    </algorithm>
+
+    <!-- Cosmic-ray muon reconstruction -->
+    <algorithm type = "LArPreProcessingThreeD">
+        <InputCaloHitListName>RockMuonCaloHitList</InputCaloHitListName>
+        <OutputCaloHitListNameU>CaloHitListU</OutputCaloHitListNameU>
+        <OutputCaloHitListNameV>CaloHitListV</OutputCaloHitListNameV>
+        <OutputCaloHitListNameW>CaloHitListW</OutputCaloHitListNameW>
+        <OutputCaloHitListName3D>CaloHitList3D</OutputCaloHitListName3D>
+        <FilteredCaloHitListName>CaloHitList2D</FilteredCaloHitListName>
+        <CurrentCaloHitListReplacement>CaloHitList2D</CurrentCaloHitListReplacement>
+    </algorithm>
+
+    <algorithm type = "LArVisualMonitoring">
+        <CaloHitListNames>CaloHitListU CaloHitListV CaloHitListW CaloHitList3D</CaloHitListNames>
+        <ShowDetector>true</ShowDetector>
+        <StateName>Prepared Cosmic Hits</StateName>
+    </algorithm>
+
+    <!-- 2D cosmic-ray muon reconstruction, U View -->
+    <algorithm type = "LArClusteringParent">
+        <algorithm type = "LArCheatingClusterCreation" description = "ClusterFormation">
+            <CollapseToPrimaryMCParticles>false</CollapseToPrimaryMCParticles>
+            <MCParticleListName>Input</MCParticleListName>
+        </algorithm>
+        <InputCaloHitListName>CaloHitListU</InputCaloHitListName>
+        <ClusterListName>ClustersU </ClusterListName>
+        <ReplaceCurrentCaloHitList>false</ReplaceCurrentCaloHitList>
+        <ReplaceCurrentClusterList>true</ReplaceCurrentClusterList>
+    </algorithm>
+
+    <!-- 2D cosmic-ray muon reconstruction, V View -->
+    <algorithm type = "LArClusteringParent">
+        <algorithm type = "LArCheatingClusterCreation" description = "ClusterFormation">
+            <CollapseToPrimaryMCParticles>false</CollapseToPrimaryMCParticles>
+            <MCParticleListName>Input</MCParticleListName>
+        </algorithm>
+        <InputCaloHitListName>CaloHitListV</InputCaloHitListName>
+        <ClusterListName>ClustersV</ClusterListName>
+        <ReplaceCurrentCaloHitList>false</ReplaceCurrentCaloHitList>
+        <ReplaceCurrentClusterList>true</ReplaceCurrentClusterList>
+    </algorithm>
+
+    <!-- 2D cosmic-ray muon reconstruction, W View -->
+    <algorithm type = "LArClusteringParent">
+        <algorithm type = "LArCheatingClusterCreation" description = "ClusterFormation">
+            <CollapseToPrimaryMCParticles>false</CollapseToPrimaryMCParticles>
+            <MCParticleListName>Input</MCParticleListName>
+        </algorithm>
+        <InputCaloHitListName>CaloHitListW</InputCaloHitListName>
+        <ClusterListName>ClustersW</ClusterListName>
+        <ReplaceCurrentCaloHitList>false</ReplaceCurrentCaloHitList>
+        <ReplaceCurrentClusterList>true</ReplaceCurrentClusterList>
+    </algorithm>
+
+    <!-- 3D cosmic-ray muon reconstruction -->
+    <algorithm type = "LArClusteringParent">
+        <algorithm type = "LArCheatingClusterCreation" description = "ClusterFormation">
+            <CollapseToPrimaryMCParticles>false</CollapseToPrimaryMCParticles>
+            <MCParticleListName>Input</MCParticleListName>
+        </algorithm>
+        <InputCaloHitListName>CaloHitList3D</InputCaloHitListName>
+        <ClusterListName>Clusters3D</ClusterListName>
+        <ReplaceCurrentCaloHitList>false</ReplaceCurrentCaloHitList>
+        <ReplaceCurrentClusterList>true</ReplaceCurrentClusterList>
+    </algorithm>
+
+    <algorithm type = "LArVisualMonitoring">
+        <ClusterListNames>ClustersU ClustersV ClustersW Clusters3D</ClusterListNames>
+        <ShowDetector>true</ShowDetector>
+        <StateName>Cosmic Clusters</StateName>
+    </algorithm>
+
+    <!-- 3D cosmic-ray muon reconstruction -->
+    <algorithm type = "LArCheatingPfoCreation">
+        <InputClusterListNames>ClustersU ClustersV ClustersW</InputClusterListNames>
+        <OutputPfoListName>CRParticles3D</OutputPfoListName>
+        <OutputVertexListName>CRVertices3D</OutputVertexListName>
+        <MCParticleListName>Input</MCParticleListName>
+        <CollapseToPrimaryMCParticles>false</CollapseToPrimaryMCParticles>
+    </algorithm>
+
+    <algorithm type = "LArPostProcessing">
+        <PfoListNames>CRParticles3D</PfoListNames>
+        <VertexListNames>CRVertices3D</VertexListNames>
+        <ClusterListNames>ClustersU ClustersV ClustersW Clusters3D</ClusterListNames>
+        <CaloHitListNames>CaloHitListU CaloHitListV CaloHitListW CaloHitList3D</CaloHitListNames>
+        <CurrentPfoListReplacement>CRParticles3D</CurrentPfoListReplacement>
+    </algorithm>
+</pandora>
