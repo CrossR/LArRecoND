@@ -1,459 +1,464 @@
-import numpy as np
-import awkward as awk
+#!/usr/bin/env python3
+# HDF5 to ROOT converter for ND LArFlow data
 
-import uproot as ur
-import h5py as h5
-
-from h5flow.data import dereference
-import h5flow
+import argparse
+from enum import Enum
 import os
-import sys
 
-# Refactored version of h5 to ROOT conversion, Bruce Howard - 2025
-# initial scripts are now saved in e.g. _minirun6_2.py and _minirun6_3.py versions e.g. and thanks to Richie Diurba and any others who made these scripts
+import awkward as awk
+import h5flow
+import h5py as h5
+import numpy as np
+import uproot as ur
 
-# NOTE for more on uproot TTree writing see the below or the uproot documentation
-# see https://stackoverflow.com/questions/72187937/writing-trees-number-of-baskets-and-compression-uproot
 
-# Main function with command line settable params
-def printUsage():
-    print('python h5_to_root_ndlarflow.py FileList IsData IsFinalHits OutName')
-    print('-- Parameters')
-    print('FileList    [REQUIRED]:                                         comma separated set of files to convert - note it will be one output')
-    print('IsData      [OPTIONAL, DEFAULT = 0, is MC]:                     1 = Data, otherwise = MC')
-    print('IsFinalHits [OPTIONAL, DEFAULT = 0, prompt hits]:               1 = use "final" hits, otherwise = "prompt"')
-    print('OutName     [OPTIONAL, DEFAULT = input[0]+"_hits_uproot.root"]: string for an output file name if you want to override. Note that default writes to current directory.')
-    print('')
-    print('NOTE: The output of this file should then be processed with the rootToRootConversion macro to get the format expected by LArRecoND.')
-    print('')
+class HitType(Enum):
+    FINAL = "final"
+    MERGED = "merged"
+    PROMPT = "prompt"
 
-def main(argv=None):
-    fileNames=[]
-    useData=False
-    useFinalHits=False
-    overrideOutname=1
-    outname=''
 
-    MeV2GeV=0.001
-    trueXOffset=0 # Offsets if geometry changes
-    trueYOffset=0 #42+268
-    trueZOffset=0 #-1300
+class LegacyMode(Enum):
+    NONE = 0
+    PRE_MINIRUN6 = 1
+    POST_MINIRUN6_NO_USEC = 2
 
-    if len(sys.argv)==1:
-        print('---------------------------------------------------------------')
-        print('Must at least pass a file location/name to be converted, usage:')
-        print('---------------------------------------------------------------')
-        printUsage()
-        return
-    if len(sys.argv)>1:
-        if str(sys.argv[1])=='help' or str(sys.argv[1])=='h' or str(sys.argv[1])=='-h' or str(sys.argv[1])=='--help':
-            print('---------------------------------------------------------------')
-            print('usage:')
-            print('---------------------------------------------------------------')
-            printUsage()
-            return
-        elif sys.argv[1]!=None:
-            fileList=str(sys.argv[1])
-            fileNames=fileList.split(',')
-        if len(sys.argv)>2 and sys.argv[2]!=None:
-            if int(sys.argv[2])==1:
-                useData=True
-        if len(sys.argv)>3 and sys.argv[3]!=None:
-            if int(sys.argv[3])==1:
-                useFinalHits=True
-        if len(sys.argv)>4 and sys.argv[4]!=None:
-            outname=str(sys.argv[4])
-            overrideOutname=0
 
-    MaxArrayDepth=int(10000)
-    MaxArrayDepthData=int(100000)
-    isWritten=False
+# Physics Constants
+MEV2GEV = 0.001
+TRUE_X_OFFSET = 0  # Offsets if geometry changes
+TRUE_Y_OFFSET = 0  # 42+268
+TRUE_Z_OFFSET = 0  # -1300
+MAX_ARRAY_DEPTH = int(10000)
+MAX_ARRAY_DEPTH_DATA = int(100000)
+INVALID_TRIGGER_ID = (1 << 31) - 1
+INVALID_TIME_VALUE = -5
+MIN_HITS_REQUIRED = 2
+# TODO: This was just a guesstimated name!
+TRIGGER_ID_BEAM = 5
 
-    promptKey='prompt'
-    if useFinalHits==True:
-        promptKey='final'
+# General settings
+PROGRESS_INTERVAL = 10
 
-    if overrideOutname==1:
-        outname = fileNames[0].split('/')[-1]+'_hits_uproot.root'
 
-    ## We are choosing to write a bogus subevent to set the types of all the branches.
-    ## The hope is this will then work well even in the case where the first event we'd see is actually a bad event
-    ##################################################
-    if len(fileNames) > 0:
-        # Simple versions of the input vectors where everything is set to 0 of the proper type
-        hits_z = np.array([0.]).astype('float32')
-        hits_y = np.array([0.]).astype('float32')
-        hits_x = np.array([0.]).astype('float32')
-        hits_Q = np.array([0.]).astype('float32')
-        hits_E = np.array([0.]).astype('float32')
-        hits_ts = np.array([0.]).astype('float32')
-        runID = np.array( [0], dtype='int32' )
-        subrunID = np.array( [0], dtype='int32' )
-        eventID = np.array( [0], dtype='int32' )
-        triggerID = np.array( [0], dtype='int32')
-        event_start_t = np.array( [-5], dtype='int32' )
-        event_end_t = np.array( [-5], dtype='int32' )
-        event_unix_ts = np.array( [-5], dtype='int32' )
-        event_unix_ts_usec = np.array( [-5], dtype='int32' )
-        if useData==False:
-            matches = np.array( [0] ).astype('uint16')
-            packetFrac = np.array( [0.] ).astype('float32')
-            pdgHit = np.array( [0] ).astype('int32')
-            trackID = np.array( [0] ).astype('int32')
-            particleID = np.array( [0] ).astype('int64')
-            particleIDLocal = np.array( [0] ).astype('int64')
-            interactionIndex = np.array( [0] ).astype('int64')
-            trajStartX = np.array( [0.] ).astype('float32')
-            trajStartY = np.array( [0.] ).astype('float32')
-            trajStartZ = np.array( [0.] ).astype('float32')
-            trajEndX = np.array( [0.] ).astype('float32')
-            trajEndY = np.array( [0.] ).astype('float32')
-            trajEndZ = np.array( [0.] ).astype('float32')
-            trajID = np.array( [0] ).astype('int64')
-            trajIDLocal = np.array( [0] ).astype('int64')
-            trajPDG = np.array( [0] ).astype('int32')
-            trajE = np.array( [0.] ).astype('float32')
-            trajPx = np.array( [0.] ).astype('float32')
-            trajPy = np.array( [0.] ).astype('float32')
-            trajPz = np.array( [0.] ).astype('float32')
-            trajVertexID = np.array( [0] ).astype('int64')
-            trajParentID = np.array( [0] ).astype('int64')
-            nu_vtx_id = np.array([0]).astype('int64')
-            nu_vtx_x = np.array([0.]).astype('float32')
-            nu_vtx_y = np.array([0.]).astype('float32')
-            nu_vtx_z = np.array([0.]).astype('float32')
-            nu_vtx_E = np.array([0.]).astype('float32')
-            nu_pdg = np.array([0]).astype('int32')
-            nu_px = np.array([0.]).astype('float32')
-            nu_py = np.array([0.]).astype('float32')
-            nu_pz = np.array([0.]).astype('float32')
-            nu_iscc = np.array([0]).astype('int32')
-            nu_code = np.array([0]).astype('int32')
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Convert ND LArFlow HDF5 files to ROOT format."
+    )
 
-        # Set up the dictionaries to write to the file
-        event_dict = { 'run':runID, 'subrun':subrunID, 'event':eventID, "triggers":triggerID, 'unix_ts':event_unix_ts, 'unix_ts_usec':event_unix_ts_usec,
-                       'event_start_t':event_start_t, 'event_end_t':event_end_t }
+    # Required arguments
+    parser.add_argument(
+        "file_list",
+        help="A comma-separated list of HDF5 input files to convert.",
+        type=str,
+    )
 
-        if useData==False:
-            other_dict = {  'x':hits_x, 'y':hits_y, 'z':hits_z, 'ts':hits_ts, 'charge':hits_Q, 'E':hits_E, 'matches':matches,\
-                            'mcp_energy':trajE, 'mcp_pdg':trajPDG, 'mcp_nuid':trajVertexID, 'mcp_vertex_id':trajVertexID,\
-                            'mcp_idLocal':trajIDLocal, 'mcp_id':trajID, 'mcp_px':trajPx, 'mcp_py':trajPy, 'mcp_pz':trajPz,\
-                            'mcp_mother':trajParentID, 'mcp_startx':trajStartX, 'mcp_starty':trajStartY, 'mcp_startz':trajStartZ,\
-                            'mcp_endx':trajEndX, 'mcp_endy':trajEndY, 'mcp_endz':trajEndZ,\
-                            'nuID':nu_vtx_id, 'vertex_id':nu_vtx_id, 'nue':nu_vtx_E, 'nuPDG':nu_pdg,\
-                            'nupx':nu_px, 'nupy':nu_py, 'nupz':nu_pz, 'nuvtxx':nu_vtx_x, 'nuvtxy':nu_vtx_y,\
-                            'nuvtxz':nu_vtx_z, 'mode':nu_code, 'ccnc':nu_iscc,\
-                            'hit_packetFrac':packetFrac, 'hit_particleID':particleID, 'hit_particleIDLocal':particleIDLocal,\
-                            'hit_pdg':pdgHit, 'hit_vertexID':interactionIndex, 'hit_segmentID':trackID }
+    # Optional arguments
+    parser.add_argument(
+        "-D",
+        "--is_data",
+        help="Flag to indicate if the input files are data, not MC (default: False).",
+        default=False,
+        action="store_true",
+    )
+    parser.add_argument(
+        "-H",
+        "--hit_type",
+        help="Type of hits to process: 'final', 'merged', or 'prompt' (default: 'prompt').",
+        type=str,
+        choices=[hit_type.value for hit_type in HitType],
+        default=HitType.PROMPT.value,
+    )
+    parser.add_argument(
+        "-L",
+        "--legacy_mode",
+        help="Pick the legacy mode: 0 for nothing, 1 for samples < MiniRun6, 2 > MiniRun6 without usec (default: 0).",
+        type=int,
+        choices=[mode.value for mode in LegacyMode],
+        default=LegacyMode.NONE.value,
+    )
+    parser.add_argument(
+        "-o",
+        "--output_file",
+        help="Output ROOT file name (default: input[0]_hits_uproot.root)",
+        type=str,
+        default="",
+    )
+
+    args = parser.parse_args()
+
+    # If no output file is specified, create a default name
+    if not args.output_file:
+        input_files = args.file_list.split(",")
+        base_name = os.path.splitext(os.path.basename(input_files[0]))[0]
+        args.output_file = f"{base_name}_hits_uproot.root"
+
+    return args
+
+
+def get_var_if_set(
+    var: np.ndarray | None,
+    bad_event: bool,
+    dtype: str = "float32",
+    default: np.ndarray | None = None,
+) -> np.ndarray:
+    """
+    Return the given variable if set and the event is good; otherwise, return a default array.
+
+    Args:
+        var (np.ndarray | None): The variable to return if set.
+        bad_event (bool): Flag indicating if the event is bad.
+        dtype (str): Data type for the default array if needed.
+        default (np.ndarray | None): Default values to use if the event is bad.
+    """
+    if not bad_event and var is not None:
+        return var
+    else:
+        default_arg = default if default is not None else []
+        return np.array(default_arg, dtype=dtype)
+
+
+def process_mc(
+    args: argparse.Namespace,
+    f: h5.File,
+    flow_out: h5.File,
+    hits_ids: np.ndarray,
+    spillID: int,
+    other_dict: dict,
+) -> None:
+    """
+    Inject MC truth information into the output dictionary.
+
+    Adds three levels of MC truth:
+    - Hit-level: backtracking info (PDG, segment IDs, etc.)
+    - Particle-level: trajectory information (start/end positions, momentum, etc.)
+    - Vertex-level: neutrino interaction information
+
+    Args:
+        args: Command-line arguments
+        f: HDF5 file handle
+        flow_out: H5Flow data manager
+        hits_ids: Array of hit IDs for this event
+        spillID: Spill/event ID for MC truth lookup
+        other_dict: Dictionary to add MC truth arrays to (modified in-place)
+    """
+    # First, hit-level truth information.
+    backtrack_hits = flow_out[
+        "charge/calib_" + args.hit_type + "_hits",
+        "mc_truth/calib_" + args.hit_type + "_hit_backtrack",
+        hits_ids[:],
+    ]
+
+    backtrack_masked = np.ma.masked_equal(backtrack_hits["fraction"].data, 0.0)
+    backtrack_mask_arr = np.ma.getmask(backtrack_masked)
+    other_dict["matches"] = backtrack_masked.count(axis=1).astype("uint16")
+    # Fractions - note that "packet" is not always right terminology, e.g. with merged hits. Keeping nomenclature.
+    other_dict["hit_packetFrac"] = (
+        backtrack_hits["fraction"].data[~backtrack_mask_arr].astype("float32")
+    )
+    # Get the segment IDs then get the segments themselves
+    segmentIDs = backtrack_hits["segment_ids"].data[~backtrack_mask_arr]
+    all_segments = f["mc_truth/segments/data"]
+    all_segments = all_segments[np.where(all_segments["event_id"] == spillID)]
+    all_segmentIDs = all_segments["segment_id"]
+    segments_where = np.array(
+        [
+            np.where(all_segmentIDs == segmentIDs[i])[0][0]
+            for i in range(len(segmentIDs))
+        ]
+    )
+    other_dict["hit_pdg"] = all_segments["pdg_id"][segments_where].astype("int32")
+    other_dict["hit_segmentID"] = all_segments["segment_id"][segments_where].astype(
+        "int64"
+    )
+    other_dict["hit_particleID"] = all_segments["file_traj_id"][segments_where].astype(
+        "int64"
+    )
+    other_dict["hit_particleIDLocal"] = all_segments["traj_id"][segments_where].astype(
+        "int64"
+    )
+    other_dict["hit_vertexID"] = all_segments["vertex_id"][segments_where].astype(
+        "int64"
+    )
+
+    # Secondly, event-level truth information.
+    traj_indicesArray = np.where(
+        flow_out["mc_truth/trajectories/data"]["event_id"] == spillID
+    )[0]
+    traj = flow_out["mc_truth/trajectories/data"][traj_indicesArray]
+    other_dict["mcp_startx"] = (traj["xyz_start"][:, 0]).astype("float32")
+    other_dict["mcp_starty"] = (traj["xyz_start"][:, 1]).astype("float32")
+    other_dict["mcp_startz"] = (traj["xyz_start"][:, 2]).astype("float32")
+    other_dict["mcp_endx"] = (traj["xyz_end"][:, 0]).astype("float32")
+    other_dict["mcp_endy"] = (traj["xyz_end"][:, 1]).astype("float32")
+    other_dict["mcp_endz"] = (traj["xyz_end"][:, 2]).astype("float32")
+    other_dict["mcp_id"] = (traj["file_traj_id"]).astype("int64")
+    other_dict["mcp_idLocal"] = (traj["traj_id"]).astype("int64")
+    other_dict["mcp_pdg"] = (traj["pdg_id"]).astype("int32")
+    other_dict["mcp_energy"] = (traj["E_start"] * MEV2GEV).astype("float32")
+    other_dict["mcp_px"] = (traj["pxyz_start"][:, 0] * MEV2GEV).astype("float32")
+    other_dict["mcp_py"] = (traj["pxyz_start"][:, 1] * MEV2GEV).astype("float32")
+    other_dict["mcp_pz"] = (traj["pxyz_start"][:, 2] * MEV2GEV).astype("float32")
+    other_dict["mcp_vertex_id"] = (traj["vertex_id"]).astype("int64")
+    other_dict["mcp_nuid"] = other_dict["mcp_vertex_id"]
+    other_dict["mcp_mother"] = (traj["parent_id"]).astype("int64")
+
+    # Finally, vertex-level truth information.
+    vertex_indicesArray = np.where(
+        flow_out["/mc_truth/interactions/data"]["event_id"] == spillID
+    )[0]
+    vtx = flow_out["/mc_truth/interactions/data"][vertex_indicesArray]
+    other_dict["vertex_id"] = (vtx["vertex_id"]).astype("int64")
+    if args.legacy_mode != LegacyMode.PRE_MINIRUN6.value:
+        other_dict["nuvtxx"] = (vtx["x_vert"]).astype("float32")
+        other_dict["nuvtxy"] = (vtx["y_vert"]).astype("float32")
+        other_dict["nuvtxz"] = (vtx["z_vert"]).astype("float32")
+    else:
+        other_dict["nuvtxx"] = (vtx["vertex"][:, 0]).astype("float32")
+        other_dict["nuvtxy"] = (vtx["vertex"][:, 1]).astype("float32")
+        other_dict["nuvtxz"] = (vtx["vertex"][:, 2]).astype("float32")
+    other_dict["nue"] = (vtx["Enu"] * MEV2GEV).astype("float32")
+    other_dict["nuPDG"] = (vtx["nu_pdg"]).astype("int32")
+    other_dict["nupx"] = (vtx["nu_4mom"][:, 0] * MEV2GEV).astype("float32")
+    other_dict["nupy"] = (vtx["nu_4mom"][:, 1] * MEV2GEV).astype("float32")
+    other_dict["nupz"] = (vtx["nu_4mom"][:, 2] * MEV2GEV).astype("float32")
+
+    # Neutrino interaction type coding
+    # Little bit of gymnastics here
+    ccnc = vtx["isCC"]
+    other_dict["nu_iscc"] = np.invert(ccnc).astype("int32")
+    # And more gymnastics here
+    codes = 1000 * np.ones(len(other_dict["vertex_id"]), dtype="int32")
+    idxQE = np.where(vtx["isQES"])
+    idxRES = np.where(vtx["isRES"])
+    idxDIS = np.where(vtx["isDIS"])
+    idxMEC = np.where(vtx["isMEC"])
+    idxCOH = np.where(vtx["isCOH"])
+    idxCOHQE = np.where((vtx["isCOH"]) & (vtx["isQES"]))
+    codes[idxQE] = 0
+    codes[idxRES] = 1
+    codes[idxDIS] = 2
+    codes[idxCOH] = 3
+    codes[idxCOHQE] = 4
+    codes[idxMEC] = 10
+    other_dict["mode"] = codes
+
+
+def process_file(
+    args: argparse.Namespace,
+    file_index: int,
+    input_file: str,
+    output_file: ur.WritableDirectory,
+) -> None:
+    """
+    Process a single HDF5 file and write events to ROOT format.
+
+    Args:
+        args: Command-line arguments
+        file_index: Index of this file in the input list (for first-write detection)
+        input_file: Path to input HDF5 file
+        output_file: Uproot writable directory for output
+    """
+    # Open the HDF5 file
+    f = h5.File(input_file, "r")
+    events = f["charge/events/data"]
+    flow_out = h5flow.data.H5FlowDataManager(input_file, "r")
+
+    num_events = len(events)
+
+    # Get the array of the trigger type for every event in the file
+    triggerIDs_data = flow_out["charge/events", "charge/ext_trigs", events["id"][:]]
+    triggerIDs_all = np.array(np.ma.getdata(triggerIDs_data["iogroup"]), dtype="int32")
+    triggerIDs = np.array(np.broadcast_to(INVALID_TRIGGER_ID, shape=num_events))
+
+    # Determine the trigger ID for each event
+    for i, trigID in enumerate(triggerIDs_all):
+        if np.sum(trigID) == 0:
+            continue
+
+        if TRIGGER_ID_BEAM in trigID:
+            triggerIDs[i] = TRIGGER_ID_BEAM
         else:
-            other_dict = {  'x':hits_x, 'y':hits_y, 'z':hits_z, 'ts':hits_ts, 'charge':hits_Q, 'E':hits_E }
+            triggerIDs[i] = trigID[0]
 
-        max_entries=0
-        for key in other_dict.keys():
-            if len(other_dict[key]) > max_entries:
-                max_entries = len(other_dict[key])
+    # Process each event
+    for i_event in range(num_events):
+        bad_event = False
 
-        if useData==True:
-            nSubEvents = int(max_entries/MaxArrayDepthData)+1
-            for idxSubEvent in range(nSubEvents):
-                first = MaxArrayDepth*idxSubEvent
-                last = MaxArrayDepth*(idxSubEvent+1)
-                event_dict['subevent'] = np.array([idxSubEvent], dtype='int32')
-                for key in other_dict.keys():
-                    event_dict[key] = awk.values_astype(awk.Array([other_dict[key][first:last]]),other_dict[key].dtype)
-                fout = ur.recreate(outname)
-                fout['subevents'] = event_dict
-                isWritten=True
-        else:
-            nSubEvents = int(max_entries/MaxArrayDepth)+1
-            for idxSubEvent in range(nSubEvents):
-                first = MaxArrayDepth*idxSubEvent
-                last = MaxArrayDepth*(idxSubEvent+1)
-                event_dict['subevent'] = np.array([idxSubEvent], dtype='int32')
-                for key in other_dict.keys():
-                    event_dict[key] = awk.values_astype(awk.Array([other_dict[key][first:last]]),other_dict[key].dtype)
-                fout = ur.recreate(outname)
-                fout['subevents'] = event_dict
-                isWritten=True
-            del packetFrac
-            del particleID
-            del particleIDLocal
-            del pdgHit
-            del interactionIndex
-            del trackID
-    ##################################################
+        if i_event % PROGRESS_INTERVAL == 0:
+            print(f"Processing event {i_event} of {num_events}")
 
-    for fileIdx in range(len(fileNames)):
-        print('Processing file',fileIdx,'of',len(fileNames))
-        fileName=fileNames[fileIdx]
+        event = events[i_event]
+        event_calib_prompt_hits = flow_out[
+            "charge/events",
+            "charge/calib_" + args.hit_type + "_hits",
+            events["id"][i_event],
+        ]
 
-        f = h5.File(fileName)
-        events=f['charge/events/data']
-        flow_out=h5flow.data.H5FlowDataManager(fileName,"r")
+        # Check we actually have some hits for this event
+        if len(event_calib_prompt_hits[0]) == 0:
+            print(
+                f"This event seems to be empty, setting bad_event to True. Trigger type ({triggerIDs[i_event]})"
+            )
+            bad_event = True
 
-        eventsToRun=len(events)
+        # Prepare hit arrays for good events
+        hits_x = hits_y = hits_z = hits_Q = hits_E = hits_ts = hits_ids = None
 
-        # Get the array of the trigger type for every event in the file
-        triggerIDsData=flow_out["charge/events","charge/ext_trigs",events["id"][:]]
-        triggerIDsAll=np.array(np.ma.getdata(triggerIDsData["iogroup"]),dtype='int32')
+        if not bad_event:
+            hits_x = (
+                np.ma.getdata(event_calib_prompt_hits["x"][0]) + TRUE_X_OFFSET
+            ).astype("float32")
+            hits_y = (
+                np.ma.getdata(event_calib_prompt_hits["y"][0]) + TRUE_Y_OFFSET
+            ).astype("float32")
+            hits_z = (
+                np.ma.getdata(event_calib_prompt_hits["z"][0]) + TRUE_Z_OFFSET
+            ).astype("float32")
+            hits_Q = np.ma.getdata(event_calib_prompt_hits["Q"][0]).astype("float32")
+            hits_E = np.ma.getdata(event_calib_prompt_hits["E"][0]).astype("float32")
+            hits_ts = np.ma.getdata(event_calib_prompt_hits["ts_pps"][0]).astype(
+                "float32"
+            )
+            hits_ids = np.ma.getdata(event_calib_prompt_hits["id"][0])
 
-        triggerIDs = np.array( np.broadcast_to( (1 << 31) - 1, shape=eventsToRun ) )
-        for i in range(len(triggerIDsAll)):
-            if np.sum(triggerIDsAll[i])==0:
-                continue
-            if 5 in triggerIDsAll[i]:
-                triggerIDs[i] = 5
+        # Check we have multiple hit ids
+        if not bad_event and len(hits_ids) < 2:
+            print(
+                f"This event seems to have less than 2 hits, setting bad_event to True. Trigger type ({triggerIDs[i_event]})"
+            )
+            bad_event = True
+
+        # Get the spill ID, so we can move on to the event-level info
+        spillID = 0
+
+        if not bad_event and not args.is_data:
+            unmaskedSpillIDs = []
+
+            if args.hit_type == HitType.PROMPT.value:
+                allSpillIDs = flow_out[
+                    "charge/calib_prompt_hits",
+                    "charge/packets",
+                    "mc_truth/segments",
+                    hits_ids,
+                ]["event_id"]
+                unmaskedSpillIDs = allSpillIDs.data[~allSpillIDs.mask]
             else:
-                triggerIDs[i] = triggerIDsAll[i][0]
+                event_hits_prompt = flow_out[
+                    "charge/events/", "charge/calib_prompt_hits", events["id"][i_event]
+                ]
+                hits_ids_prompt = np.ma.getdata(event_hits_prompt["id"][0])
+                allSpillIDs = flow_out[
+                    "charge/calib_prompt_hits",
+                    "charge/packets",
+                    "mc_truth/segments",
+                    hits_ids_prompt,
+                ]["event_id"]
+                unmaskedSpillIDs = allSpillIDs.data[~allSpillIDs.mask]
 
-        for ievt in range(eventsToRun):
-            badEvt=False
-
-            if ievt%10==0:
-                print('Currently on',ievt,'of',eventsToRun)
-            event = events[ievt]
-            event_calib_prompt_hits=flow_out["charge/events/","charge/calib_"+promptKey+"_hits", events["id"][ievt]]
-
-            if len(event_calib_prompt_hits[0])==0:
-                print('This event seems empty in the hits array, setting as bad event. Trigger type (',triggerIDs[ievt],')')
-                badEvt=True
-
-            # Removing duplicate hits_id instantiation and getting rid of hits_id_raw which is unused
-            #######################################
-            if badEvt==False:
-                # Check if the only values are masked and call this a bad event if so
-                if np.ma.count_masked(event_calib_prompt_hits["z"][0]) == len(event_calib_prompt_hits[0]):
-                    print('This event has a hit z array ( len hits =', len(event_calib_prompt_hits[0]), ') that appears to be only masked values, setting as bad event. Trigger type (',triggerIDs[ievt],')')
-                    badEvt=True
-
-            if badEvt==False:
-                hits_z = (np.ma.getdata(event_calib_prompt_hits["z"][0])+trueZOffset).astype('float32')
-                hits_y = ( np.ma.getdata(event_calib_prompt_hits["y"][0])+trueYOffset ).astype('float32')
-                hits_x = ( np.ma.getdata(event_calib_prompt_hits["x"][0])+trueXOffset ).astype('float32')
-                hits_Q = ( np.ma.getdata(event_calib_prompt_hits["Q"][0]) ).astype('float32')
-                hits_E = ( np.ma.getdata(event_calib_prompt_hits["E"][0]) ).astype('float32')
-                hits_ts = ( np.ma.getdata(event_calib_prompt_hits["ts_pps"][0]) ).astype('float32')
-                hits_ids = np.ma.getdata(event_calib_prompt_hits["id"][0])
+            # Check we have some unmasked spill IDs
+            if len(unmaskedSpillIDs) > 0:
+                spillID = unmaskedSpillIDs[0]
             else:
-                hits_z = np.array([]).astype('float32')
-                hits_y = np.array([]).astype('float32')
-                hits_x = np.array([]).astype('float32')
-                hits_Q = np.array([]).astype('float32')
-                hits_E = np.array([]).astype('float32')
-                hits_ts = np.array([]).astype('float32')
-                hits_ids = np.array([])
+                print(
+                    f"No valid spillID found for this event, setting bad_event to True. Trigger type ({triggerIDs[i_event]})"
+                )
+                bad_event = True
 
-            if badEvt==False and len(hits_ids)<2:
-                print('This event has < 2 hit IDs, setting as bad event. Trigger type (',triggerIDs[ievt],')')
-                badEvt=True
+        # Start on the event info
+        runID = np.array([0], dtype="int32")
+        subrunID = np.array([0], dtype="int32")
+        eventID = np.array([event["id"]], dtype="int32")
+        triggerID = np.array([triggerIDs[i_event]], dtype="int32")
 
-            # Start with the non-spill info, this is all ~like the current form
-            #   but not repeating
-            runID = np.array( [0], dtype='int32' )
-            subrunID = np.array( [0], dtype='int32' )
-            eventID = np.array( [event['id']], dtype='int32' )
-            triggerID = np.array( [triggerIDs[ievt]], dtype='int32')
+        maxTimeFromTrigger = np.max(np.array([event["ts_start"]], dtype="float64"))
+        useTimeFromTrigger = True if maxTimeFromTrigger < INVALID_TRIGGER_ID else False
 
-            maxTimeFromTrigger = np.max( np.array( [event['ts_start']], dtype='float64' ) )
-            useTimeFromTrigger = True
-            if maxTimeFromTrigger > ((1 << 31)-1):
-                useTimeFromTrigger = False
+        event_start_t = event_end_t = event_unix_ts = event_unix_ts_usec = None
 
-            if (triggerID!=((1 << 31)-1)) | (useTimeFromTrigger==True):
-                event_start_t = np.array( [event['ts_start']], dtype='int32' )
-                event_end_t = np.array( [event['ts_end']], dtype='int32' )
-                event_unix_ts = np.array( [event['unix_ts']], dtype='int32' )
-                event_unix_ts_usec = np.array( [event['unix_ts_usec']], dtype='int32' )
-            else:
-                event_start_t = np.array( [-5], dtype='int32' )
-                event_end_t = np.array( [-5], dtype='int32' )
-                event_unix_ts = np.array( [-5], dtype='int32' )
-                event_unix_ts_usec = np.array( [-5], dtype='int32' )
+        if triggerID != INVALID_TRIGGER_ID or useTimeFromTrigger:
+            event_start_t = np.array([event["ts_start"]], dtype="int32")
+            event_end_t = np.array([event["ts_end"]], dtype="int32")
+            event_unix_ts = np.array([event["unix_ts"]], dtype="int32")
 
-            # "uncalib" -- this alternative is not currently used in LArPandora that I can tell, so no need to save. Making optional to use the prompt or final hits to be saved.
-            #######################################
+            if args.legacy_mode == LegacyMode.NONE.value:
+                event_unix_ts_usec = np.array([event["unix_ts_usec"]], dtype="int32")
 
-            if useData==False:
-                # Truth-level info for hits
-                #######################################
-                if badEvt==False:
-                    trajFromHits=flow_out["charge/calib_prompt_hits","charge/packets","mc_truth/segments",hits_ids[:]][:,0]
-                    fracFromHits=flow_out["charge/calib_prompt_hits","charge/packets","mc_truth/packet_fraction",hits_ids[:]][:,0]
+        # Prepare dictionaries for uproot
+        event_dict = {
+            "run": runID,
+            "subrun": subrunID,
+            "event": eventID,
+            "triggers": triggerID,
+            "unix_ts": get_var_if_set(
+                event_unix_ts, bad_event, "int32", [INVALID_TIME_VALUE]
+            ),
+            "event_start_t": get_var_if_set(
+                event_start_t, bad_event, "int32", [INVALID_TIME_VALUE]
+            ),
+            "event_end_t": get_var_if_set(
+                event_end_t, bad_event, "int32", [INVALID_TIME_VALUE]
+            ),
+        }
+        other_dict = {
+            "x": get_var_if_set(hits_x, bad_event),
+            "y": get_var_if_set(hits_y, bad_event),
+            "z": get_var_if_set(hits_z, bad_event),
+            "ts": get_var_if_set(hits_ts, bad_event),
+            "charge": get_var_if_set(hits_Q, bad_event),
+            "E": get_var_if_set(hits_E, bad_event),
+        }
 
-                    matches = trajFromHits['segment_id'].count(axis=1).astype('uint16')
+        # Add unix_ts_usec if not in legacy mode
+        if args.legacy_mode == LegacyMode.NONE.value:
+            event_dict["unix_ts_usec"] = get_var_if_set(
+                event_unix_ts_usec, bad_event, "int32", [INVALID_TIME_VALUE]
+            )
 
-                    packetFrac = np.array( awk.flatten( awk.flatten( awk.Array( fracFromHits['fraction'].astype('float32') ) ) ) )
-                    packetFrac = packetFrac[np.where(packetFrac!=0)]
+        # Inject MC info for non-data files.
+        if not bad_event and not args.is_data:
+            process_mc(args, f, flow_out, hits_ids, spillID, other_dict)
 
-                    trajFromHits=trajFromHits.data[~trajFromHits['segment_id'].mask]
-                    pdgHit = trajFromHits['pdg_id'].astype('int32')
-                    trackID = trajFromHits['segment_id'].astype('int32')
-                    particleID = trajFromHits['file_traj_id'].astype('int64')
-                    particleIDLocal = trajFromHits['traj_id'].astype('int64')
-                    interactionIndex = trajFromHits['vertex_id'].astype('int64')
-                else:
-                    matches = np.array( [0] ).astype('uint16')
-                    packetFrac = np.array( [] ).astype('float32')
-                    pdgHit = np.array( [] ).astype('int32')
-                    trackID = np.array( [] ).astype('int32')
-                    particleID = np.array( [] ).astype('int64')
-                    particleIDLocal = np.array( [] ).astype('int64')
-                    interactionIndex = np.array( [] ).astype('int64')
+        # Start the writing process
+        max_entries = 0
+        for key in other_dict:
+            max_entries = max(max_entries, len(other_dict[key]))
 
-                # Truth-level info for the spill
-                #######################################
-                if badEvt==False:
-                    # try to get the spill ID
-                    allSpillIDs=flow_out["charge/calib_prompt_hits","charge/packets","mc_truth/segments",hits_ids]["event_id"]
-                    unmaskedSpillIDs = allSpillIDs.data[ ~allSpillIDs.mask ]
-                    if len(unmaskedSpillIDs) > 0:
-                        spillID = unmaskedSpillIDs[0]
-                    else:
-                        print('This event has no spillID from matches that we want to use in grabbing true particles/neutrinos. Setting as bad event. Trigger type (',triggerIDs[ievt],')')
-                        badEvt=True
+        max_data_len = MAX_ARRAY_DEPTH_DATA if args.is_data else MAX_ARRAY_DEPTH
+        n_sub_events = int(max_entries / max_data_len) + 1
 
-                if badEvt==False:
-                    # Trajectories
-                    traj_indicesArray = np.where(flow_out['mc_truth/trajectories/data']["event_id"] == spillID)[0]
-                    traj = flow_out["mc_truth/trajectories/data"][traj_indicesArray]
-                    trajStartX = (traj['xyz_start'][:,0]).astype('float32')
-                    trajStartY = (traj['xyz_start'][:,1]).astype('float32')
-                    trajStartZ = (traj['xyz_start'][:,2]).astype('float32')
-                    trajEndX = (traj['xyz_end'][:,0]).astype('float32')
-                    trajEndY = (traj['xyz_end'][:,1]).astype('float32')
-                    trajEndZ = (traj['xyz_end'][:,2]).astype('float32')
-                    trajID = (traj['file_traj_id']).astype('int64')
-                    trajIDLocal = (traj['traj_id']).astype('int64')
-                    trajPDG = (traj['pdg_id']).astype('int32')
-                    trajE = (traj['E_start']*MeV2GeV).astype('float32')
-                    trajPx = (traj['pxyz_start'][:,0]*MeV2GeV).astype('float32')
-                    trajPy = (traj['pxyz_start'][:,1]*MeV2GeV).astype('float32')
-                    trajPz = (traj['pxyz_start'][:,2]*MeV2GeV).astype('float32')
-                    trajVertexID = (traj['vertex_id']).astype('int64')
-                    trajParentID = (traj['parent_id']).astype('int64')
-                else:
-                    trajStartX = np.array( [] ).astype('float32')
-                    trajStartY = np.array( [] ).astype('float32')
-                    trajStartZ = np.array( [] ).astype('float32')
-                    trajEndX = np.array( [] ).astype('float32')
-                    trajEndY = np.array( [] ).astype('float32')
-                    trajEndZ = np.array( [] ).astype('float32')
-                    trajID = np.array( [] ).astype('int64')
-                    trajIDLocal = np.array( [] ).astype('int64')
-                    trajPDG = np.array( [] ).astype('int32')
-                    trajE = np.array( [] ).astype('float32')
-                    trajPx = np.array( [] ).astype('float32')
-                    trajPy = np.array( [] ).astype('float32')
-                    trajPz = np.array( [] ).astype('float32')
-                    trajVertexID = np.array( [] ).astype('int64')
-                    trajParentID = np.array( [] ).astype('int64')
+        for i_sub in range(n_sub_events):
+            first = max_data_len * i_sub
+            last = max_data_len * (i_sub + 1)
+            event_dict["subevent"] = np.array([i_sub], dtype="int32")
 
-                # Vertices
-                if badEvt==False:
-                    vertex_indicesArray = np.where(flow_out["/mc_truth/interactions/data"]["event_id"] == spillID)[0]
-                    vtx = flow_out["/mc_truth/interactions/data"][vertex_indicesArray]
-                    nu_vtx_id = (vtx['vertex_id']).astype('int64')
-                    nu_vtx_x = (vtx['x_vert']).astype('float32')
-                    nu_vtx_y = (vtx['y_vert']).astype('float32')
-                    nu_vtx_z = (vtx['z_vert']).astype('float32')
-                    nu_vtx_E = (vtx['Enu']*MeV2GeV).astype('float32')
-                    nu_pdg = (vtx['nu_pdg']).astype('int32')
-                    nu_px = (vtx['nu_4mom'][:,0]*MeV2GeV).astype('float32')
-                    nu_py = (vtx['nu_4mom'][:,1]*MeV2GeV).astype('float32')
-                    nu_pz = (vtx['nu_4mom'][:,2]*MeV2GeV).astype('float32')
-                    # Little bit of gymnastics here
-                    ccnc = vtx['isCC']
-                    nu_iscc = np.invert(ccnc).astype('int32')
-                    # And more gymnastics here
-                    codes = 1000*np.ones(len(nu_vtx_id),dtype='int32')
-                    idxQE = np.where(vtx['isQES']==True)
-                    idxRES = np.where(vtx['isRES']==True)
-                    idxDIS = np.where(vtx['isDIS']==True)
-                    idxMEC = np.where(vtx['isMEC']==True)
-                    idxCOH = np.where(vtx['isCOH']==True)
-                    idxCOHQE = np.where((vtx['isCOH']==True) & (vtx['isQES']==True))
-                    codes[idxQE] = 0
-                    codes[idxRES] = 1
-                    codes[idxDIS] = 2
-                    codes[idxCOH] = 3
-                    codes[idxCOHQE] = 4
-                    codes[idxMEC] = 10
-                    nu_code = codes
-                else:
-                    nu_vtx_id = np.array([]).astype('int64')
-                    nu_vtx_x = np.array([]).astype('float32')
-                    nu_vtx_y = np.array([]).astype('float32')
-                    nu_vtx_z = np.array([]).astype('float32')
-                    nu_vtx_E = np.array([]).astype('float32')
-                    nu_pdg = np.array([]).astype('int32')
-                    nu_px = np.array([]).astype('float32')
-                    nu_py = np.array([]).astype('float32')
-                    nu_pz = np.array([]).astype('float32')
-                    nu_iscc = np.array([]).astype('int32')
-                    nu_code = np.array([]).astype('int32')
-
-            ## Rebuild now with all the individual types
-            event_dict = { 'run':runID, 'subrun':subrunID, 'event':eventID, "triggers":triggerID, 'unix_ts':event_unix_ts, 'unix_ts_usec':event_unix_ts_usec,
-                           'event_start_t':event_start_t, 'event_end_t':event_end_t }
-
-            if useData==False:
-                other_dict = {  'x':hits_x, 'y':hits_y, 'z':hits_z, 'ts':hits_ts, 'charge':hits_Q, 'E':hits_E, 'matches':matches,\
-                                'mcp_energy':trajE, 'mcp_pdg':trajPDG, 'mcp_nuid':trajVertexID, 'mcp_vertex_id':trajVertexID,\
-                                'mcp_idLocal':trajIDLocal, 'mcp_id':trajID, 'mcp_px':trajPx, 'mcp_py':trajPy, 'mcp_pz':trajPz,\
-                                'mcp_mother':trajParentID, 'mcp_startx':trajStartX, 'mcp_starty':trajStartY, 'mcp_startz':trajStartZ,\
-                                'mcp_endx':trajEndX, 'mcp_endy':trajEndY, 'mcp_endz':trajEndZ,\
-                                'nuID':nu_vtx_id, 'vertex_id':nu_vtx_id, 'nue':nu_vtx_E, 'nuPDG':nu_pdg,\
-                                'nupx':nu_px, 'nupy':nu_py, 'nupz':nu_pz, 'nuvtxx':nu_vtx_x, 'nuvtxy':nu_vtx_y,\
-                                'nuvtxz':nu_vtx_z, 'mode':nu_code, 'ccnc':nu_iscc,\
-                                'hit_packetFrac':packetFrac, 'hit_particleID':particleID, 'hit_particleIDLocal':particleIDLocal,\
-                                'hit_pdg':pdgHit, 'hit_vertexID':interactionIndex, 'hit_segmentID':trackID }
-            else:
-                other_dict = {  'x':hits_x, 'y':hits_y, 'z':hits_z, 'ts':hits_ts, 'charge':hits_Q, 'E':hits_E }
-
-            max_entries=0
             for key in other_dict.keys():
-                if len(other_dict[key]) > max_entries:
-                    max_entries = len(other_dict[key])
-
-            if useData==True:
-                nSubEvents = int(max_entries/MaxArrayDepthData)+1
-                for idxSubEvent in range(nSubEvents):
-                    first = MaxArrayDepth*idxSubEvent
-                    last = MaxArrayDepth*(idxSubEvent+1)
-                    event_dict['subevent'] = np.array([idxSubEvent], dtype='int32')
-                    for key in other_dict.keys():
-                        event_dict[key] = awk.values_astype(awk.Array([other_dict[key][first:last]]),other_dict[key].dtype)
-                    if isWritten==False:
-                        print('TAKE NOTE! I thought I should have already made the output file by now, but I have "isWritten" as False, so I am attempting to create the output file.')
-                        fout = ur.recreate(outname)
-                        fout['subevents'] = event_dict
-                        isWritten=True
-                    else:
-                        fout['subevents'].extend(event_dict)
+                event_dict[key] = awk.values_astype(
+                    awk.Array([other_dict[key][first:last]]), other_dict[key].dtype
+                )
+            if file_index == 0 and i_event == 0 and i_sub == 0:
+                output_file.mktree("subevents", event_dict)
             else:
-                nSubEvents = int(max_entries/MaxArrayDepth)+1
-                for idxSubEvent in range(nSubEvents):
-                    first = MaxArrayDepth*idxSubEvent
-                    last = MaxArrayDepth*(idxSubEvent+1)
-                    event_dict['subevent'] = np.array([idxSubEvent], dtype='int32')
-                    for key in other_dict.keys():
-                        event_dict[key] = awk.values_astype(awk.Array([other_dict[key][first:last]]),other_dict[key].dtype)
-                    if isWritten==False:
-                        print('TAKE NOTE! I thought I should have already made the output file by now, but I have "isWritten" as False, so I am attempting to create the output file.')
-                        fout = ur.recreate(outname)
-                        fout['subevents'] = event_dict
-                        isWritten=True
-                    else:
-                        fout['subevents'].extend(event_dict)
-                del packetFrac
-                del particleID
-                del particleIDLocal
-                del pdgHit
-                del interactionIndex
-                del trackID
+                output_file["subevents"].extend(event_dict)
 
-        fout.close()
-        print('end of code')
+    # Close the HDF5 file
+    f.close()
 
-if __name__=="__main__":
+
+def main():
+    args = parse_args()
+
+    input_files = args.file_list.split(",")
+    output_file = ur.recreate(args.output_file)
+
+    for i, input_file in enumerate(input_files):
+        print(f"Processing file {i + 1} of {len(input_files)}")
+        process_file(args, i, input_file, output_file)
+
+    # Finally, close the output ROOT file
+    output_file.close()
+    print(f"Conversion complete. Output written to {args.output_file}")
+
+
+if __name__ == "__main__":
     main()
