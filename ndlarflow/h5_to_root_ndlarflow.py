@@ -90,7 +90,7 @@ def parse_args():
     # If no output file is specified, create a default name
     if not args.output_file:
         input_files = args.file_list.split(",")
-        base_name = os.path.splitext(os.path.basename(input_files[0]))[0]
+        base_name = os.path.basename(input_files[0])
         args.output_file = f"{base_name}_hits_uproot.root"
 
     return args
@@ -98,7 +98,6 @@ def parse_args():
 
 def get_var_if_set(
     var: np.ndarray | None,
-    bad_event: bool,
     dtype: str = "float32",
     default: np.ndarray | None = None,
 ) -> np.ndarray:
@@ -111,11 +110,11 @@ def get_var_if_set(
         dtype (str): Data type for the default array if needed.
         default (np.ndarray | None): Default values to use if the event is bad.
     """
-    if not bad_event and var is not None:
+    if var is not None:
         return var
     else:
         default_arg = default if default is not None else []
-        return np.array(default_arg, dtype=dtype)
+        return np.array(default_arg).astype(dtype)
 
 
 def process_mc(
@@ -147,7 +146,7 @@ def process_mc(
         "charge/calib_" + args.hit_type + "_hits",
         "mc_truth/calib_" + args.hit_type + "_hit_backtrack",
         hits_ids[:],
-    ]
+    ][:, 0]
 
     backtrack_masked = np.ma.masked_equal(backtrack_hits["fraction"].data, 0.0)
     backtrack_mask_arr = np.ma.getmask(backtrack_masked)
@@ -209,6 +208,7 @@ def process_mc(
     )[0]
     vtx = flow_out["/mc_truth/interactions/data"][vertex_indicesArray]
     other_dict["vertex_id"] = (vtx["vertex_id"]).astype("int64")
+    other_dict["nuID"] = other_dict["vertex_id"]
     if args.legacy_mode != LegacyMode.PRE_MINIRUN6.value:
         other_dict["nuvtxx"] = (vtx["x_vert"]).astype("float32")
         other_dict["nuvtxy"] = (vtx["y_vert"]).astype("float32")
@@ -226,7 +226,7 @@ def process_mc(
     # Neutrino interaction type coding
     # Little bit of gymnastics here
     ccnc = vtx["isCC"]
-    other_dict["nu_iscc"] = np.invert(ccnc).astype("int32")
+    other_dict["ccnc"] = np.invert(ccnc).astype("int32")
     # And more gymnastics here
     codes = 1000 * np.ones(len(other_dict["vertex_id"]), dtype="int32")
     idxQE = np.where(vtx["isQES"])
@@ -242,6 +242,58 @@ def process_mc(
     codes[idxCOHQE] = 4
     codes[idxMEC] = 10
     other_dict["mode"] = codes
+
+
+def insert_empty_mc(other_dict: dict) -> None:
+    """
+    To keep the structure consistent, insert empty MC truth arrays when processing data.
+    Try to keep this in sync with the process_mc variables...but if not the errors
+    you get are very obvious about things not lining up.
+
+    Args:
+        other_dict: Dictionary to add empty MC truth arrays to (modified in-place)
+    """
+
+    to_add = {
+        "matches": np.array([0], dtype="uint16"),
+        "hit_packetFrac": np.array([], dtype="float32"),
+        "hit_pdg": np.array([], dtype="int32"),
+        "hit_segmentID": np.array([], dtype="int64"),
+        "hit_particleID": np.array([], dtype="int64"),
+        "hit_particleIDLocal": np.array([], dtype="int64"),
+        "hit_vertexID": np.array([], dtype="int64"),
+        "mcp_startx": np.array([], dtype="float32"),
+        "mcp_starty": np.array([], dtype="float32"),
+        "mcp_startz": np.array([], dtype="float32"),
+        "mcp_endx": np.array([], dtype="float32"),
+        "mcp_endy": np.array([], dtype="float32"),
+        "mcp_endz": np.array([], dtype="float32"),
+        "mcp_id": np.array([], dtype="int64"),
+        "mcp_idLocal": np.array([], dtype="int64"),
+        "mcp_pdg": np.array([], dtype="int32"),
+        "mcp_energy": np.array([], dtype="float32"),
+        "mcp_px": np.array([], dtype="float32"),
+        "mcp_py": np.array([], dtype="float32"),
+        "mcp_pz": np.array([], dtype="float32"),
+        "mcp_vertex_id": np.array([], dtype="int64"),
+        "mcp_nuid": np.array([], dtype="int64"),
+        "mcp_mother": np.array([], dtype="int64"),
+        "vertex_id": np.array([], dtype="int64"),
+        "nuID": np.array([], dtype="int64"),
+        "nuvtxx": np.array([], dtype="float32"),
+        "nuvtxy": np.array([], dtype="float32"),
+        "nuvtxz": np.array([], dtype="float32"),
+        "nue": np.array([], dtype="float32"),
+        "nuPDG": np.array([], dtype="int32"),
+        "nupx": np.array([], dtype="float32"),
+        "nupy": np.array([], dtype="float32"),
+        "nupz": np.array([], dtype="float32"),
+        "ccnc": np.array([], dtype="int32"),
+        "mode": np.array([], dtype="int32"),
+    }
+
+    for key in to_add:
+        other_dict[key] = to_add[key]
 
 
 def process_file(
@@ -305,6 +357,19 @@ def process_file(
         # Prepare hit arrays for good events
         hits_x = hits_y = hits_z = hits_Q = hits_E = hits_ts = hits_ids = None
 
+        # Make sure that we have unmasked hits
+        if not bad_event and np.ma.count_masked(event_calib_prompt_hits["z"][0]) == len(
+            event_calib_prompt_hits[0]
+        ):
+            print(
+                "This event has a hit z array ( len hits =",
+                len(event_calib_prompt_hits[0]),
+                ") that appears to be only masked values, setting as bad event. Trigger type (",
+                triggerIDs[i_event],
+                ")",
+            )
+            bad_event = True
+
         if not bad_event:
             hits_x = (
                 np.ma.getdata(event_calib_prompt_hits["x"][0]) + TRUE_X_OFFSET
@@ -323,7 +388,7 @@ def process_file(
             hits_ids = np.ma.getdata(event_calib_prompt_hits["id"][0])
 
         # Check we have multiple hit ids
-        if not bad_event and len(hits_ids) < 2:
+        if not bad_event and len(hits_ids) < MIN_HITS_REQUIRED:
             print(
                 f"This event seems to have less than 2 hits, setting bad_event to True. Trigger type ({triggerIDs[i_event]})"
             )
@@ -390,34 +455,32 @@ def process_file(
             "subrun": subrunID,
             "event": eventID,
             "triggers": triggerID,
-            "unix_ts": get_var_if_set(
-                event_unix_ts, bad_event, "int32", [INVALID_TIME_VALUE]
-            ),
+            "unix_ts": get_var_if_set(event_unix_ts, "int32", [INVALID_TIME_VALUE]),
             "event_start_t": get_var_if_set(
-                event_start_t, bad_event, "int32", [INVALID_TIME_VALUE]
+                event_start_t, "int32", [INVALID_TIME_VALUE]
             ),
-            "event_end_t": get_var_if_set(
-                event_end_t, bad_event, "int32", [INVALID_TIME_VALUE]
-            ),
+            "event_end_t": get_var_if_set(event_end_t, "int32", [INVALID_TIME_VALUE]),
         }
         other_dict = {
-            "x": get_var_if_set(hits_x, bad_event),
-            "y": get_var_if_set(hits_y, bad_event),
-            "z": get_var_if_set(hits_z, bad_event),
-            "ts": get_var_if_set(hits_ts, bad_event),
-            "charge": get_var_if_set(hits_Q, bad_event),
-            "E": get_var_if_set(hits_E, bad_event),
+            "x": get_var_if_set(hits_x),
+            "y": get_var_if_set(hits_y),
+            "z": get_var_if_set(hits_z),
+            "ts": get_var_if_set(hits_ts),
+            "charge": get_var_if_set(hits_Q),
+            "E": get_var_if_set(hits_E),
         }
 
         # Add unix_ts_usec if not in legacy mode
         if args.legacy_mode == LegacyMode.NONE.value:
             event_dict["unix_ts_usec"] = get_var_if_set(
-                event_unix_ts_usec, bad_event, "int32", [INVALID_TIME_VALUE]
+                event_unix_ts_usec, "int32", [INVALID_TIME_VALUE]
             )
 
         # Inject MC info for non-data files.
         if not bad_event and not args.is_data:
             process_mc(args, f, flow_out, hits_ids, spillID, other_dict)
+        elif bad_event and not args.is_data:
+            insert_empty_mc(other_dict)
 
         # Start the writing process
         max_entries = 0
