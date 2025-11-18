@@ -66,8 +66,6 @@ void rootToRootConversion(
     Int_t   in_mcp_pdg[MaxDepthArrayMC];
     Int_t   in_mcp_start_process[MaxDepthArrayMC];
     Int_t   in_mcp_start_subprocess[MaxDepthArrayMC];
-    Int_t   in_mcp_end_process[MaxDepthArrayMC];
-    Int_t   in_mcp_end_subprocess[MaxDepthArrayMC];
     Long64_t  in_mcp_nuid[MaxDepthArrayMC];
     Long64_t  in_mcp_vertex_id[MaxDepthArrayMC];
     Long64_t  in_mcp_idLocal[MaxDepthArrayMC];
@@ -137,8 +135,6 @@ void rootToRootConversion(
         tr->SetBranchAddress("mcp_pdg", &in_mcp_pdg);
         tr->SetBranchAddress("mcp_startProcess", &in_mcp_start_process);
         tr->SetBranchAddress("mcp_startSubProcess", &in_mcp_start_subprocess);
-        tr->SetBranchAddress("mcp_endProcess", &in_mcp_end_process);
-        tr->SetBranchAddress("mcp_endSubProcess", &in_mcp_end_subprocess);
         tr->SetBranchAddress("mcp_nuid", &in_mcp_nuid);
         tr->SetBranchAddress("mcp_vertex_id", &in_mcp_vertex_id);
         tr->SetBranchAddress("mcp_idLocal", &in_mcp_idLocal);
@@ -194,8 +190,6 @@ void rootToRootConversion(
     std::vector<int> mcp_pdg;
     std::vector<int> mcp_start_process;
     std::vector<int> mcp_start_subprocess;
-    std::vector<int> mcp_end_process;
-    std::vector<int> mcp_end_subprocess;
     std::vector<long long> mcp_mother;
     std::vector<float> mcp_energy;
     std::vector<float> mcp_startx;
@@ -254,8 +248,6 @@ void rootToRootConversion(
         outgoingTree->Branch("mcp_pdg", &mcp_pdg);
         outgoingTree->Branch("mcp_startProcess", &mcp_start_process);
         outgoingTree->Branch("mcp_startSubProcess", &mcp_start_subprocess);
-        outgoingTree->Branch("mcp_endProcess", &mcp_end_process);
-        outgoingTree->Branch("mcp_endSubProcess", &mcp_end_subprocess);
         outgoingTree->Branch("mcp_mother", &mcp_mother);
         outgoingTree->Branch("mcp_energy", &mcp_energy);
         outgoingTree->Branch("mcp_startx", &mcp_startx);
@@ -395,8 +387,6 @@ void rootToRootConversion(
             mcp_pdg.clear();
             mcp_start_process.clear();
             mcp_start_subprocess.clear();
-            mcp_end_process.clear();
-            mcp_end_subprocess.clear();
             mcp_mother.clear();
             mcp_energy.clear();
             mcp_startx.clear();
@@ -487,8 +477,6 @@ void rootToRootConversion(
                 mcp_pdg.push_back(in_mcp_pdg[idxMCPart]);
                 mcp_start_process.push_back(in_mcp_start_process[idxMCPart]);
                 mcp_start_subprocess.push_back(in_mcp_start_subprocess[idxMCPart]);
-                mcp_end_process.push_back(in_mcp_end_process[idxMCPart]);
-                mcp_end_subprocess.push_back(in_mcp_end_subprocess[idxMCPart]);
                 mcp_mother.push_back(in_mcp_mother[idxMCPart]);
                 mcp_energy.push_back(in_mcp_energy[idxMCPart]);
                 mcp_startx.push_back(in_mcp_startx[idxMCPart]);
