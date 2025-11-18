@@ -64,8 +64,8 @@ void rootToRootConversion(
     Float_t in_mcp_endy[MaxDepthArrayMC];
     Float_t in_mcp_endz[MaxDepthArrayMC];
     Int_t   in_mcp_pdg[MaxDepthArrayMC];
-    Int_t   in_mcp_start_process[MaxDepthArrayMC];
-    Int_t   in_mcp_start_subprocess[MaxDepthArrayMC];
+    Long64_t  in_mcp_start_process[MaxDepthArrayMC];
+    Long64_t  in_mcp_start_subprocess[MaxDepthArrayMC];
     Long64_t  in_mcp_nuid[MaxDepthArrayMC];
     Long64_t  in_mcp_vertex_id[MaxDepthArrayMC];
     Long64_t  in_mcp_idLocal[MaxDepthArrayMC];
@@ -188,8 +188,8 @@ void rootToRootConversion(
     std::vector<long long> mcp_nuid;
     std::vector<long long> mcp_vertex_id;
     std::vector<int> mcp_pdg;
-    std::vector<int> mcp_start_process;
-    std::vector<int> mcp_start_subprocess;
+    std::vector<long long> mcp_start_process;
+    std::vector<long long> mcp_start_subprocess;
     std::vector<long long> mcp_mother;
     std::vector<float> mcp_energy;
     std::vector<float> mcp_startx;
