@@ -130,8 +130,6 @@ def main(argv=None):
             trajParentID = np.array( [0] ).astype('int64')
             trajStartProcess = (np.array([0])).astype('int64')
             trajStartSubProcess = (np.array([0])).astype('int64')
-            trajEndProcess = (np.array([0])).astype('int64')
-            trajEndSubProcess = (np.array([0])).astype('int64')
             nu_vtx_id = np.array([0]).astype('int64')
             nu_vtx_x = np.array([0.]).astype('float32')
             nu_vtx_y = np.array([0.]).astype('float32')
@@ -155,7 +153,6 @@ def main(argv=None):
                             'mcp_energy':trajE, 'mcp_pdg':trajPDG, 'mcp_nuid':trajVertexID, 'mcp_vertex_id':trajVertexID,\
                             'mcp_idLocal':trajIDLocal, 'mcp_id':trajID, 'mcp_px':trajPx, 'mcp_py':trajPy, 'mcp_pz':trajPz,\
                             'mcp_startProcess':trajStartProcess, 'mcp_startSubProcess':trajStartSubProcess,\
-                            'mcp_endProcess':trajEndProcess, 'mcp_endSubProcess':trajEndSubProcess,\
                             'mcp_mother':trajParentID, 'mcp_startx':trajStartX, 'mcp_starty':trajStartY, 'mcp_startz':trajStartZ,\
                             'mcp_endx':trajEndX, 'mcp_endy':trajEndY, 'mcp_endz':trajEndZ,\
                             'nuID':nu_vtx_id, 'vertex_id':nu_vtx_id, 'nue':nu_vtx_E, 'nuPDG':nu_pdg,\
@@ -366,8 +363,6 @@ def main(argv=None):
                     trajParentID = (traj['parent_id']).astype('int64')
                     trajStartProcess = (traj['start_process']).astype('int64')
                     trajStartSubProcess = (traj['start_subprocess']).astype('int64')
-                    trajEndProcess = (traj['end_process']).astype('int64')
-                    trajEndSubProcess = (traj['end_subprocess']).astype('int64')
                 else:
                     trajStartX = np.array( [] ).astype('float32')
                     trajStartY = np.array( [] ).astype('float32')
@@ -386,8 +381,6 @@ def main(argv=None):
                     trajParentID = np.array( [] ).astype('int64')
                     trajStartProcess = np.array( [] ).astype('int64')
                     trajStartSubProcess = np.array( [] ).astype('int64')
-                    trajEndProcess = np.array( [] ).astype('int64')
-                    trajEndSubProcess = np.array( [] ).astype('int64')
 
                 # Vertices
                 if badEvt==False:
@@ -449,7 +442,6 @@ def main(argv=None):
                                 'mcp_energy':trajE, 'mcp_pdg':trajPDG, 'mcp_nuid':trajVertexID, 'mcp_vertex_id':trajVertexID,\
                                 'mcp_idLocal':trajIDLocal, 'mcp_id':trajID, 'mcp_px':trajPx, 'mcp_py':trajPy, 'mcp_pz':trajPz,\
                                 'mcp_startProcess':trajStartProcess, 'mcp_startSubProcess':trajStartSubProcess,\
-                                'mcp_endProcess':trajEndProcess, 'mcp_endSubProcess':trajEndSubProcess,\
                                 'mcp_mother':trajParentID, 'mcp_startx':trajStartX, 'mcp_starty':trajStartY, 'mcp_startz':trajStartZ,\
                                 'mcp_endx':trajEndX, 'mcp_endy':trajEndY, 'mcp_endz':trajEndZ,\
                                 'nuID':nu_vtx_id, 'vertex_id':nu_vtx_id, 'nue':nu_vtx_E, 'nuPDG':nu_pdg,\
