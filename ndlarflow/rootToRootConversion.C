@@ -64,6 +64,10 @@ void rootToRootConversion(
     Float_t in_mcp_endy[MaxDepthArrayMC];
     Float_t in_mcp_endz[MaxDepthArrayMC];
     Int_t   in_mcp_pdg[MaxDepthArrayMC];
+    Int_t   in_mcp_start_process[MaxDepthArrayMC];
+    Int_t   in_mcp_start_subprocess[MaxDepthArrayMC];
+    Int_t   in_mcp_end_process[MaxDepthArrayMC];
+    Int_t   in_mcp_end_subprocess[MaxDepthArrayMC];
     Long64_t  in_mcp_nuid[MaxDepthArrayMC];
     Long64_t  in_mcp_vertex_id[MaxDepthArrayMC];
     Long64_t  in_mcp_idLocal[MaxDepthArrayMC];
@@ -131,6 +135,10 @@ void rootToRootConversion(
         tr->SetBranchAddress("mcp_endy", &in_mcp_endy);
         tr->SetBranchAddress("mcp_endz", &in_mcp_endz);
         tr->SetBranchAddress("mcp_pdg", &in_mcp_pdg);
+        tr->SetBranchAddress("mcp_startProcess", &in_mcp_start_process);
+        tr->SetBranchAddress("mcp_startSubProcess", &in_mcp_start_subprocess);
+        tr->SetBranchAddress("mcp_endProcess", &in_mcp_end_process);
+        tr->SetBranchAddress("mcp_endSubProcess", &in_mcp_end_subprocess);
         tr->SetBranchAddress("mcp_nuid", &in_mcp_nuid);
         tr->SetBranchAddress("mcp_vertex_id", &in_mcp_vertex_id);
         tr->SetBranchAddress("mcp_idLocal", &in_mcp_idLocal);
@@ -167,7 +175,7 @@ void rootToRootConversion(
     std::vector<float> ts;
     std::vector<float> E;
     std::vector<float> charge;
-  
+
     // segmentIndex, particleIndex unfilled!
     std::vector< std::vector<int> >   hit_pdg;
     std::vector< std::vector<long long> >  hit_segmentID;
@@ -175,7 +183,7 @@ void rootToRootConversion(
     std::vector< std::vector<long long> >  hit_particleIDLocal;
     std::vector< std::vector<long long> >  hit_vertexID;
     std::vector< std::vector<float> > hit_packetFrac;
-    
+
     std::vector<float> mcp_px;
     std::vector<float> mcp_py;
     std::vector<float> mcp_pz;
@@ -184,6 +192,10 @@ void rootToRootConversion(
     std::vector<long long> mcp_nuid;
     std::vector<long long> mcp_vertex_id;
     std::vector<int> mcp_pdg;
+    std::vector<int> mcp_start_process;
+    std::vector<int> mcp_start_subprocess;
+    std::vector<int> mcp_end_process;
+    std::vector<int> mcp_end_subprocess;
     std::vector<long long> mcp_mother;
     std::vector<float> mcp_energy;
     std::vector<float> mcp_startx;
@@ -240,6 +252,10 @@ void rootToRootConversion(
         outgoingTree->Branch("mcp_nuid", &mcp_nuid);
         outgoingTree->Branch("mcp_vertex_id", &mcp_vertex_id);
         outgoingTree->Branch("mcp_pdg", &mcp_pdg);
+        outgoingTree->Branch("mcp_startProcess", &mcp_start_process);
+        outgoingTree->Branch("mcp_startSubProcess", &mcp_start_subprocess);
+        outgoingTree->Branch("mcp_endProcess", &mcp_end_process);
+        outgoingTree->Branch("mcp_endSubProcess", &mcp_end_subprocess);
         outgoingTree->Branch("mcp_mother", &mcp_mother);
         outgoingTree->Branch("mcp_energy", &mcp_energy);
         outgoingTree->Branch("mcp_startx", &mcp_startx);
@@ -284,7 +300,7 @@ void rootToRootConversion(
             thisRun = in_run;
             thisSubRun = in_subrun;
             thisEvent = in_event;
-	    
+
 	}
 	if ( idx%100==0 ) std::cout << in_run << ":" << in_subrun << ":" << in_event << ":" << in_subevent << std::endl;
         if ( idx > 1 && ( (in_run!=thisRun || in_subrun!=thisSubRun || in_event!=thisEvent) || idx==NEvents ) ) {
@@ -377,6 +393,10 @@ void rootToRootConversion(
             mcp_nuid.clear();
             mcp_vertex_id.clear();
             mcp_pdg.clear();
+            mcp_start_process.clear();
+            mcp_start_subprocess.clear();
+            mcp_end_process.clear();
+            mcp_end_subprocess.clear();
             mcp_mother.clear();
             mcp_energy.clear();
             mcp_startx.clear();
@@ -397,7 +417,7 @@ void rootToRootConversion(
             nuPDG.clear();
             mode.clear();
             ccnc.clear();
-            
+
             sum_matches=0;
             all_matches.clear();
             all_hit_pdg.clear();
@@ -411,7 +431,7 @@ void rootToRootConversion(
             thisRun = in_run;
             thisSubRun = in_subrun;
             thisEvent = in_event;
-            
+
             if (idx==NEvents) break; // We're done!
         }
 
@@ -424,7 +444,7 @@ void rootToRootConversion(
 	if (!legacyMode)
 	  unix_ts_usec = in_unix_ts_usec;
         triggers = in_triggers;
-	
+
         // fill up the vectors for as much stuff as we can in this subevent:
         for ( unsigned int idxHit=0; idxHit<(unsigned int)Nhits; ++idxHit ) {
             x.push_back(in_x[idxHit]);
@@ -465,6 +485,10 @@ void rootToRootConversion(
                 mcp_nuid.push_back(in_mcp_nuid[idxMCPart]);
                 mcp_vertex_id.push_back(in_mcp_vertex_id[idxMCPart]);
                 mcp_pdg.push_back(in_mcp_pdg[idxMCPart]);
+                mcp_start_process.push_back(in_mcp_start_process[idxMCPart]);
+                mcp_start_subprocess.push_back(in_mcp_start_subprocess[idxMCPart]);
+                mcp_end_process.push_back(in_mcp_end_process[idxMCPart]);
+                mcp_end_subprocess.push_back(in_mcp_end_subprocess[idxMCPart]);
                 mcp_mother.push_back(in_mcp_mother[idxMCPart]);
                 mcp_energy.push_back(in_mcp_energy[idxMCPart]);
                 mcp_startx.push_back(in_mcp_startx[idxMCPart]);

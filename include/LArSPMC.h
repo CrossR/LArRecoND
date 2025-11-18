@@ -52,6 +52,8 @@ public:
     // MC Particle information
     std::vector<float> *m_mcp_energy = nullptr;
     std::vector<int> *m_mcp_pdg = nullptr;
+    std::vector<int> *m_mcp_startProcess = nullptr;
+    std::vector<int> *m_mcp_startSubProcess = nullptr;
     std::vector<long> *m_mcp_nuid = nullptr;
     std::vector<long> *m_mcp_vertex_id = nullptr;
     std::vector<long> *m_mcp_idLocal = nullptr;
@@ -68,6 +70,8 @@ public:
     std::vector<float> *m_mcp_endz = nullptr;
     TBranch *m_b_mcp_energy = nullptr;
     TBranch *m_b_mcp_pdg = nullptr;
+    TBranch *m_b_mcp_startProcess = nullptr;
+    TBranch *m_b_mcp_startSubProcess = nullptr;
     TBranch *m_b_mcp_nuid = nullptr;
     TBranch *m_b_mcp_vertex_id = nullptr;
     TBranch *m_b_mcp_idLocal = nullptr;
@@ -144,6 +148,8 @@ void LArSPMC::InitMC(TTree *tree)
     m_fChain->SetBranchAddress("hit_packetFrac", &m_hit_packetFrac, &m_b_hit_packetFrac);
     m_fChain->SetBranchAddress("mcp_energy", &m_mcp_energy, &m_b_mcp_energy);
     m_fChain->SetBranchAddress("mcp_pdg", &m_mcp_pdg, &m_b_mcp_pdg);
+    m_fChain->SetBranchAddress("mcp_startProcess", &m_mcp_startProcess, &m_b_mcp_startProcess);
+    m_fChain->SetBranchAddress("mcp_startSubProcess", &m_mcp_startSubProcess, &m_b_mcp_startSubProcess);
     m_fChain->SetBranchAddress("mcp_nuid", &m_mcp_nuid, &m_b_mcp_nuid);
     m_fChain->SetBranchAddress("mcp_vertex_id", &m_mcp_vertex_id, &m_b_mcp_vertex_id);
     m_fChain->SetBranchAddress("mcp_idLocal", &m_mcp_idLocal, &m_b_mcp_idLocal);

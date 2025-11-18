@@ -495,6 +495,71 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
+void FillProcessTable(std::unordered_map<int, std::unordered_map<int, MCProcess>> processTable)
+{
+    // Transportation
+    m_processTable[1][91] = MC_PROC_TRANSPORTATION; // Maps "Transportation:Transportation"
+    m_processTable[1][92] = MC_PROC_TRANSPORTATION; // Maps "Transportation:CoupledTransportation"
+
+    // Electromagnetic
+    m_processTable[2][1] = MC_PROC_COULOMB_SCAT; // Maps "EM:CoulombScattering"
+    m_processTable[2][2] = MC_PROC_E_IONI; // Maps "EM:Ionisation"
+    m_processTable[2][3] = MC_PROC_E_BREM; // Maps "EM:Bremsstrahlung"
+    m_processTable[2][4] = MC_PROC_CONV; // Maps "EM:PairProductionByCharged"
+    m_processTable[2][5] = MC_PROC_ANNIHIL; // Maps "EM:Annihilation"
+    m_processTable[2][6] = MC_PROC_ANNIHIL; // Maps "EM:AnnihilationToMuMu"
+    m_processTable[2][7] = MC_PROC_ANNIHIL; // Maps "EM:AnnihilationToHadrons"
+    m_processTable[2][8] = MC_PROC_UNKNOWN; // Maps "EM:NuclearStopping"
+    m_processTable[2][10] = MC_PROC_UNKNOWN; // Maps "EM:MultipleScattering"
+    m_processTable[2][11] = MC_PROC_RAYLEIGH; // Maps "EM:Rayleigh"
+    m_processTable[2][12] = MC_PROC_PHOT; // Maps "EM:PhotoElectricEffect"
+    m_processTable[2][13] = MC_PROC_COMPT; // Maps "EM:ComptonScattering"
+    m_processTable[2][14] = MC_PROC_CONV; // Maps "EM:GammaConversion"
+    m_processTable[2][15] = MC_PROC_CONV; // Maps "EM:GammaConversionToMuMu"
+    m_processTable[2][21] = MC_PROC_UNKNOWN; // Maps "EM:Cerenkov"
+    m_processTable[2][22] = MC_PROC_UNKNOWN; // Maps "EM:Scintillation"
+    m_processTable[2][23] = MC_PROC_UNKNOWN; // Maps "EM:SynchrotronRadiation"
+    m_processTable[2][24] = MC_PROC_UNKNOWN; // Maps "EM:TransitionRadiation"
+
+    // Optical
+    m_processTable[4][31] = MC_PROC_UNKNOWN; // Maps "OPT:OpAbsorption"
+    m_processTable[4][32] = MC_PROC_UNKNOWN; // Maps "OPT:OpBoundary"
+    m_processTable[4][33] = MC_PROC_UNKNOWN; // Maps "OPT:OpRayleigh"
+    m_processTable[4][34] = MC_PROC_UNKNOWN; // Maps "OPT:OpWLS"
+    m_processTable[4][35] = MC_PROC_UNKNOWN; // Maps "OPT:OpMieHG"
+
+    // Hadronic
+    m_processTable[4][111] = MC_PROC_HAD_ELASTIC; // Maps "HAD:HadronElastic"
+    m_processTable[4][121] = MC_PROC_NEUTRON_INELASTIC; // Maps "HAD:HadronInelastic"
+    m_processTable[4][131] = MC_PROC_N_CAPTURE; // Maps "HAD:Capture"
+    m_processTable[4][141] = MC_PROC_UNKNOWN; // Maps "HAD:Fission"
+    m_processTable[4][151] = MC_PROC_UNKNOWN; // Maps "HAD:HadronAtRest"
+    m_processTable[4][152] = MC_PROC_MU_MINUS_CAPTURE_AT_REST; // Maps "HAD:LeptonAtRest"
+    m_processTable[4][161] = MC_PROC_UNKNOWN; // Maps "HAD:ChargeExchange"
+    m_processTable[4][210] = MC_PROC_RADIOACTIVE_DECAY_BASE; // Maps "HAD:RadioactiveDecay"
+
+    // Decay
+    m_processTable[6][201] = MC_PROC_DECAY; // Maps "DEC:Decay"
+    m_processTable[6][202] = MC_PROC_DECAY; // Maps "DEC:DecayWithSpin"
+    m_processTable[6][203] = MC_PROC_DECAY; // Maps "DEC:DecayPionMakeSpin"
+    m_processTable[6][210] = MC_PROC_RADIOACTIVE_DECAY_BASE; // Maps "DEC:Radioactive"
+    m_processTable[6][211] = MC_PROC_DECAY; // Maps "DEC:Unknown"
+    m_processTable[6][231] = MC_PROC_DECAY; // Maps "DEC:External"
+
+    // General
+    m_processTable[7][401] = MC_PROC_UNKNOWN; // Maps "General:StepLimiter"
+    m_processTable[7][402] = MC_PROC_UNKNOWN; // Maps "General:UserSpecialCuts"
+    m_processTable[7][403] = MC_PROC_NEUTRON_KILLER; // Maps "General:NeutronKiller"
+
+    // UCN
+    m_processTable[12][41] = MC_PROC_UNKNOWN; // Maps "UCN:UCNLoss"
+    m_processTable[12][42] = MC_PROC_UNKNOWN; // Maps "UCN:UCNAbsorption"
+    m_processTable[12][43] = MC_PROC_UNKNOWN; // Maps "UCN:UCNBoundary"
+    m_processTable[12][44] = MC_PROC_UNKNOWN; // Maps "UCN:UCNMultiScattering"
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
 void CreateSPMCParticles(const LArSPMC &larspmc, const pandora::Pandora *const pPrimaryPandora, const Parameters &parameters)
 {
     lar_content::LArMCParticleFactory mcParticleFactory;
@@ -596,7 +661,9 @@ void CreateSPMCParticles(const LArSPMC &larspmc, const pandora::Pandora *const p
         mcParticleParameters.m_endpoint = pandora::CartesianVector(endx, endy, endz);
 
         // Process ID
-        mcParticleParameters.m_process = lar_content::MC_PROC_UNKNOWN;
+        const int startProcess = (*larspmc.m_mcp_startProcess)[i];
+        const int startSubProcess = (*larspmc.m_mcp_startSubProcess)[i];
+        mcParticleParameters.m_process = GetMCProcessID(startProcess, startSubProcess);
 
         // Create MCParticle
         try
