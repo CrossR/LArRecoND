@@ -4,6 +4,7 @@
 import argparse
 from enum import Enum
 import os
+from collections import defaultdict
 
 import awkward as awk
 import h5flow
@@ -39,6 +40,46 @@ TRIGGER_ID_BEAM = 5
 
 # General settings
 PROGRESS_INTERVAL = 10
+
+# Pre-defining the empty MC dictionary structure to avoid recreation in loops
+# Make sure this matches the keys used in process_mc!
+EMPTY_MC_DATA = {
+    "matches": np.array([0], dtype="uint16"),
+    "hit_packetFrac": np.array([], dtype="float32"),
+    "hit_pdg": np.array([], dtype="int32"),
+    "hit_segmentID": np.array([], dtype="int64"),
+    "hit_particleID": np.array([], dtype="int64"),
+    "hit_particleIDLocal": np.array([], dtype="int64"),
+    "hit_vertexID": np.array([], dtype="int64"),
+    "mcp_startx": np.array([], dtype="float32"),
+    "mcp_starty": np.array([], dtype="float32"),
+    "mcp_startz": np.array([], dtype="float32"),
+    "mcp_endx": np.array([], dtype="float32"),
+    "mcp_endy": np.array([], dtype="float32"),
+    "mcp_endz": np.array([], dtype="float32"),
+    "mcp_id": np.array([], dtype="int64"),
+    "mcp_idLocal": np.array([], dtype="int64"),
+    "mcp_pdg": np.array([], dtype="int32"),
+    "mcp_energy": np.array([], dtype="float32"),
+    "mcp_px": np.array([], dtype="float32"),
+    "mcp_py": np.array([], dtype="float32"),
+    "mcp_pz": np.array([], dtype="float32"),
+    "mcp_vertex_id": np.array([], dtype="int64"),
+    "mcp_nuid": np.array([], dtype="int64"),
+    "mcp_mother": np.array([], dtype="int64"),
+    "vertex_id": np.array([], dtype="int64"),
+    "nuID": np.array([], dtype="int64"),
+    "nuvtxx": np.array([], dtype="float32"),
+    "nuvtxy": np.array([], dtype="float32"),
+    "nuvtxz": np.array([], dtype="float32"),
+    "nue": np.array([], dtype="float32"),
+    "nuPDG": np.array([], dtype="int32"),
+    "nupx": np.array([], dtype="float32"),
+    "nupy": np.array([], dtype="float32"),
+    "nupz": np.array([], dtype="float32"),
+    "ccnc": np.array([], dtype="int32"),
+    "mode": np.array([], dtype="int32"),
+}
 
 
 def parse_args():
@@ -106,7 +147,6 @@ def get_var_if_set(
 
     Args:
         var (np.ndarray | None): The variable to return if set.
-        bad_event (bool): Flag indicating if the event is bad.
         dtype (str): Data type for the default array if needed.
         default (np.ndarray | None): Default values to use if the event is bad.
     """
@@ -160,12 +200,15 @@ def process_mc(
     all_segments = f["mc_truth/segments/data"]
     all_segments = all_segments[np.where(all_segments["event_id"] == spillID)]
     all_segmentIDs = all_segments["segment_id"]
-    segments_where = np.array(
-        [
-            np.where(all_segmentIDs == segmentIDs[i])[0][0]
-            for i in range(len(segmentIDs))
-        ]
-    )
+
+    if len(all_segmentIDs) > 0 and len(segmentIDs) > 0:
+        sorter = np.argsort(all_segmentIDs)
+        insert_indices = np.searchsorted(all_segmentIDs, segmentIDs, sorter=sorter)
+        insert_indices = np.clip(insert_indices, 0, len(all_segmentIDs) - 1)
+        segments_where = sorter[insert_indices]
+    else:
+        segments_where = np.array([], dtype=int)
+
     other_dict["hit_pdg"] = all_segments["pdg_id"][segments_where].astype("int32")
     other_dict["hit_segmentID"] = all_segments["segment_id"][segments_where].astype(
         "int64"
@@ -247,53 +290,13 @@ def process_mc(
 def insert_empty_mc(other_dict: dict) -> None:
     """
     To keep the structure consistent, insert empty MC truth arrays when processing data.
-    Try to keep this in sync with the process_mc variables...but if not the errors
-    you get are very obvious about things not lining up.
+    Uses the pre-defined EMPTY_MC_DATA to save re-allocation time.
 
     Args:
         other_dict: Dictionary to add empty MC truth arrays to (modified in-place)
     """
-
-    to_add = {
-        "matches": np.array([0], dtype="uint16"),
-        "hit_packetFrac": np.array([], dtype="float32"),
-        "hit_pdg": np.array([], dtype="int32"),
-        "hit_segmentID": np.array([], dtype="int64"),
-        "hit_particleID": np.array([], dtype="int64"),
-        "hit_particleIDLocal": np.array([], dtype="int64"),
-        "hit_vertexID": np.array([], dtype="int64"),
-        "mcp_startx": np.array([], dtype="float32"),
-        "mcp_starty": np.array([], dtype="float32"),
-        "mcp_startz": np.array([], dtype="float32"),
-        "mcp_endx": np.array([], dtype="float32"),
-        "mcp_endy": np.array([], dtype="float32"),
-        "mcp_endz": np.array([], dtype="float32"),
-        "mcp_id": np.array([], dtype="int64"),
-        "mcp_idLocal": np.array([], dtype="int64"),
-        "mcp_pdg": np.array([], dtype="int32"),
-        "mcp_energy": np.array([], dtype="float32"),
-        "mcp_px": np.array([], dtype="float32"),
-        "mcp_py": np.array([], dtype="float32"),
-        "mcp_pz": np.array([], dtype="float32"),
-        "mcp_vertex_id": np.array([], dtype="int64"),
-        "mcp_nuid": np.array([], dtype="int64"),
-        "mcp_mother": np.array([], dtype="int64"),
-        "vertex_id": np.array([], dtype="int64"),
-        "nuID": np.array([], dtype="int64"),
-        "nuvtxx": np.array([], dtype="float32"),
-        "nuvtxy": np.array([], dtype="float32"),
-        "nuvtxz": np.array([], dtype="float32"),
-        "nue": np.array([], dtype="float32"),
-        "nuPDG": np.array([], dtype="int32"),
-        "nupx": np.array([], dtype="float32"),
-        "nupy": np.array([], dtype="float32"),
-        "nupz": np.array([], dtype="float32"),
-        "ccnc": np.array([], dtype="int32"),
-        "mode": np.array([], dtype="int32"),
-    }
-
-    for key in to_add:
-        other_dict[key] = to_add[key]
+    for key in EMPTY_MC_DATA:
+        other_dict[key] = EMPTY_MC_DATA[key]
 
 
 def process_file(
@@ -324,14 +327,13 @@ def process_file(
     triggerIDs = np.array(np.broadcast_to(INVALID_TRIGGER_ID, shape=num_events))
 
     # Determine the trigger ID for each event
-    for i, trigID in enumerate(triggerIDs_all):
-        if np.sum(trigID) == 0:
-            continue
+    mask_nonzero = np.sum(triggerIDs_all, axis=1) != 0
+    triggerIDs[mask_nonzero] = triggerIDs_all[mask_nonzero, 0]
+    mask_beam = np.any(triggerIDs_all == TRIGGER_ID_BEAM, axis=1)
+    triggerIDs[mask_beam] = TRIGGER_ID_BEAM
 
-        if TRIGGER_ID_BEAM in trigID:
-            triggerIDs[i] = TRIGGER_ID_BEAM
-        else:
-            triggerIDs[i] = trigID[0]
+    # Batch writes, to minimize overhead
+    batch_accumulator = defaultdict(list)
 
     # Process each event
     for i_event in range(num_events):
@@ -482,7 +484,7 @@ def process_file(
         elif bad_event and not args.is_data:
             insert_empty_mc(other_dict)
 
-        # Start the writing process
+        # Start the storing process, for later writing
         max_entries = 0
         for key in other_dict:
             max_entries = max(max_entries, len(other_dict[key]))
@@ -493,16 +495,32 @@ def process_file(
         for i_sub in range(n_sub_events):
             first = max_data_len * i_sub
             last = max_data_len * (i_sub + 1)
-            event_dict["subevent"] = np.array([i_sub], dtype="int32")
 
+            # Copy dict to avoid reference issues
+            sub_event_dict = event_dict.copy()
+            sub_event_dict["subevent"] = np.array([i_sub], dtype="int32")
+
+            # Populate with data slices
             for key in other_dict.keys():
-                event_dict[key] = awk.values_astype(
-                    awk.Array([other_dict[key][first:last]]), other_dict[key].dtype
-                )
-            if file_index == 0 and i_event == 0 and i_sub == 0:
-                output_file.mktree("subevents", event_dict)
-            else:
-                output_file["subevents"].extend(event_dict)
+                # Directly append the numpy array slice.
+                # Conversion to Awkward Array happens once at end-of-file.
+                sub_event_dict[key] = other_dict[key][first:last]
+
+            # Accumulate in batch
+            for key, val in sub_event_dict.items():
+                batch_accumulator[key].append(val)
+
+    # Write entire file's worth of events in one go
+    if batch_accumulator:
+        final_output = {}
+        for key, val_list in batch_accumulator.items():
+            # Create the Jagged Array structure efficiently from the list of numpy arrays
+            final_output[key] = awk.Array(val_list)
+
+        if "subevents" not in output_file:
+            output_file.mktree("subevents", final_output)
+        else:
+            output_file["subevents"].extend(final_output)
 
     # Close the HDF5 file
     f.close()
