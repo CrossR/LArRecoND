@@ -5,6 +5,7 @@ import argparse
 from enum import Enum
 import os
 from collections import defaultdict
+from typing import Optional
 
 import awkward as awk
 import h5flow
@@ -41,8 +42,20 @@ TRIGGER_ID_BEAM = 5
 # General settings
 PROGRESS_INTERVAL = 10
 
+# Keys that should be written as flat scalars (N,) instead of jagged arrays (N, 1)
+SCALAR_KEYS = {
+    "run",
+    "subrun",
+    "event",
+    "triggers",
+    "unix_ts",
+    "unix_ts_usec",
+    "event_start_t",
+    "event_end_t",
+    "subevent",
+}
+
 # Pre-defining the empty MC dictionary structure to avoid recreation in loops
-# Make sure this matches the keys used in process_mc!
 EMPTY_MC_DATA = {
     "matches": np.array([0], dtype="uint16"),
     "hit_packetFrac": np.array([], dtype="float32"),
@@ -138,17 +151,17 @@ def parse_args():
 
 
 def get_var_if_set(
-    var: np.ndarray | None,
+    var: Optional[np.ndarray],
     dtype: str = "float32",
-    default: np.ndarray | None = None,
+    default: Optional[np.ndarray] = None,
 ) -> np.ndarray:
     """
     Return the given variable if set and the event is good; otherwise, return a default array.
 
     Args:
-        var (np.ndarray | None): The variable to return if set.
+        var (Optional[np.ndarray]): The variable to return if set.
         dtype (str): Data type for the default array if needed.
-        default (np.ndarray | None): Default values to use if the event is bad.
+        default (Optional[np.ndarray]): Default values to use if the event is bad.
     """
     if var is not None:
         return var
@@ -502,8 +515,6 @@ def process_file(
 
             # Populate with data slices
             for key in other_dict.keys():
-                # Directly append the numpy array slice.
-                # Conversion to Awkward Array happens once at end-of-file.
                 sub_event_dict[key] = other_dict[key][first:last]
 
             # Accumulate in batch
@@ -514,8 +525,18 @@ def process_file(
     if batch_accumulator:
         final_output = {}
         for key, val_list in batch_accumulator.items():
-            # Create the Jagged Array structure efficiently from the list of numpy arrays
-            final_output[key] = awk.Array(val_list)
+            if key in SCALAR_KEYS:
+                # Concatenate list of (1,) arrays into a single flat (N,) array
+                final_output[key] = np.concatenate(val_list)
+            else:
+                # Create jagged array from list of (N,) arrays
+                ak_array = awk.Array(val_list)
+                # Force dtype for numeric types to prevent float64 promotion
+                if len(val_list) > 0 and hasattr(val_list[0], "dtype"):
+                    target_dtype = val_list[0].dtype
+                    if np.issubdtype(target_dtype, np.number):
+                        ak_array = awk.values_astype(ak_array, target_dtype)
+                final_output[key] = ak_array
 
         if "subevents" not in output_file:
             output_file.mktree("subevents", final_output)
