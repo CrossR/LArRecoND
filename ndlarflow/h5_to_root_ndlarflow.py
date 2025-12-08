@@ -502,12 +502,16 @@ def process_file(
         for key in other_dict:
             max_entries = max(max_entries, len(other_dict[key]))
 
-        max_data_len = MAX_ARRAY_DEPTH_DATA if args.is_data else MAX_ARRAY_DEPTH
-        n_sub_events = int(max_entries / max_data_len) + 1
+        if args.is_data:
+            n_sub_events = int(max_entries / MAX_ARRAY_DEPTH_DATA) + 1
+            chunk_size = MAX_ARRAY_DEPTH
+        else:
+            n_sub_events = int(max_entries / MAX_ARRAY_DEPTH) + 1
+            chunk_size = MAX_ARRAY_DEPTH
 
         for i_sub in range(n_sub_events):
-            first = max_data_len * i_sub
-            last = max_data_len * (i_sub + 1)
+            first = chunk_size * i_sub
+            last = chunk_size * (i_sub + 1)
 
             # Copy dict to avoid reference issues
             sub_event_dict = event_dict.copy()

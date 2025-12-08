@@ -20,7 +20,7 @@ void rootToRootConversion(
     //   https://root-forum.cern.ch/t/problem-in-accessing-vector-vector-float/27983
     // though others also do this.
     gInterpreter->GenerateDictionary("vector<vector<float> >", "vector");
-    gInterpreter->GenerateDictionary("vector<vector<long> >", "vector");
+    gInterpreter->GenerateDictionary("vector<vector<long long> >", "vector");
     gInterpreter->GenerateDictionary("vector<vector<int> >", "vector");
 
     TFile *f = new TFile(fname.c_str(),"read");
@@ -33,56 +33,55 @@ void rootToRootConversion(
 
     // hits
     int Nhits;
-    std::vector<unsigned short> matches(MaxDepthArray);
-    std::vector<Float_t> in_x(MaxDepthArray);
-    std::vector<Float_t> in_y(MaxDepthArray);
-    std::vector<Float_t> in_z(MaxDepthArray);
-    std::vector<Float_t> in_ts(MaxDepthArray);
-    std::vector<Float_t> in_charge(MaxDepthArray);
-    std::vector<Float_t> in_E(MaxDepthArray);
+    unsigned short matches[MaxDepthArray];
+    Float_t in_x[MaxDepthArray];
+    Float_t in_y[MaxDepthArray];
+    Float_t in_z[MaxDepthArray];
+    Float_t in_ts[MaxDepthArray];
+    Float_t in_charge[MaxDepthArray];
+    Float_t in_E[MaxDepthArray];
 
     // Hit truth
     int     nmatchesinsubevent(0);
-    std::vector<Float_t> packetFrac(MaxDepthArrayMC);
-    std::vector<Long64_t> particleID(MaxDepthArrayMC);
-    std::vector<Long64_t> particleIDLocal(MaxDepthArrayMC);
-    std::vector<Int_t> pdg(MaxDepthArrayMC);
-    std::vector<Long64_t> vertexID(MaxDepthArrayMC);
-    std::vector<Long64_t> segmentID(MaxDepthArrayMC);
+    Float_t packetFrac[MaxDepthArrayMC];
+    Long64_t  particleID[MaxDepthArrayMC];
+    Long64_t  particleIDLocal[MaxDepthArrayMC];
+    Int_t   pdg[MaxDepthArrayMC];
+    Long64_t  vertexID[MaxDepthArrayMC];
+    Long64_t  segmentID[MaxDepthArrayMC];
 
     // MCP
     // We have a maximum depth set by the h5_to_root_ndlarflow.py script matching the 10000 set above. For data mode, this will not be used.
     int     nmcpinsubevent(0);
-    std::vector<Float_t> in_mcp_energy(MaxDepthArrayMC);
-    std::vector<Float_t> in_mcp_px(MaxDepthArrayMC);
-    std::vector<Float_t> in_mcp_py(MaxDepthArrayMC);
-    std::vector<Float_t> in_mcp_pz(MaxDepthArrayMC);
-    std::vector<Float_t> in_mcp_startx(MaxDepthArrayMC);
-    std::vector<Float_t> in_mcp_starty(MaxDepthArrayMC);
-    std::vector<Float_t> in_mcp_startz(MaxDepthArrayMC);
-    std::vector<Float_t> in_mcp_endx(MaxDepthArrayMC);
-    std::vector<Float_t> in_mcp_endy(MaxDepthArrayMC);
-    std::vector<Float_t> in_mcp_endz(MaxDepthArrayMC);
-    std::vector<Int_t> in_mcp_pdg(MaxDepthArrayMC);
-    std::vector<Long64_t> in_mcp_nuid(MaxDepthArrayMC);
-    std::vector<Long64_t> in_mcp_vertex_id(MaxDepthArrayMC);
-    std::vector<Long64_t> in_mcp_idLocal(MaxDepthArrayMC);
-    std::vector<Long64_t> in_mcp_id(MaxDepthArrayMC);
-    std::vector<Long64_t> in_mcp_mother(MaxDepthArrayMC);
-
+    Float_t in_mcp_energy[MaxDepthArrayMC];
+    Float_t in_mcp_px[MaxDepthArrayMC];
+    Float_t in_mcp_py[MaxDepthArrayMC];
+    Float_t in_mcp_pz[MaxDepthArrayMC];
+    Float_t in_mcp_startx[MaxDepthArrayMC];
+    Float_t in_mcp_starty[MaxDepthArrayMC];
+    Float_t in_mcp_startz[MaxDepthArrayMC];
+    Float_t in_mcp_endx[MaxDepthArrayMC];
+    Float_t in_mcp_endy[MaxDepthArrayMC];
+    Float_t in_mcp_endz[MaxDepthArrayMC];
+    Int_t   in_mcp_pdg[MaxDepthArrayMC];
+    Long64_t  in_mcp_nuid[MaxDepthArrayMC];
+    Long64_t  in_mcp_vertex_id[MaxDepthArrayMC];
+    Long64_t  in_mcp_idLocal[MaxDepthArrayMC];
+    Long64_t  in_mcp_id[MaxDepthArrayMC];
+    Long64_t  in_mcp_mother[MaxDepthArrayMC];
     // Neutrinos: see caveat above, but here we'll have a hard cap at 500 -- TODO: can we tolerate having this officially set to the maximum subevent size of 10000 as well?
     int     nnuinsubevent(0);
-    std::vector<Long64_t> in_nuID(MaxDepthArrayNu);
-    std::vector<Int_t> in_nuPDG(MaxDepthArrayNu);
-    std::vector<Int_t> in_mode(MaxDepthArrayNu);
-    std::vector<Int_t> in_ccnc(MaxDepthArrayNu);
-    std::vector<Float_t> in_nue(MaxDepthArrayNu);
-    std::vector<Float_t> in_nupx(MaxDepthArrayNu);
-    std::vector<Float_t> in_nupy(MaxDepthArrayNu);
-    std::vector<Float_t> in_nupz(MaxDepthArrayNu);
-    std::vector<Float_t> in_nuvtxx(MaxDepthArrayNu);
-    std::vector<Float_t> in_nuvtxy(MaxDepthArrayNu);
-    std::vector<Float_t> in_nuvtxz(MaxDepthArrayNu);
+    Long64_t  in_nuID[MaxDepthArrayNu];
+    Int_t   in_nuPDG[MaxDepthArrayNu];
+    Int_t   in_mode[MaxDepthArrayNu];
+    Int_t   in_ccnc[MaxDepthArrayNu];
+    Float_t in_nue[MaxDepthArrayNu];
+    Float_t in_nupx[MaxDepthArrayNu];
+    Float_t in_nupy[MaxDepthArrayNu];
+    Float_t in_nupz[MaxDepthArrayNu];
+    Float_t in_nuvtxx[MaxDepthArrayNu];
+    Float_t in_nuvtxy[MaxDepthArrayNu];
+    Float_t in_nuvtxz[MaxDepthArrayNu];
 
     TTree* tr = (TTree*)f->Get("subevents");
     tr->SetBranchAddress("run",&in_run);
@@ -90,58 +89,66 @@ void rootToRootConversion(
     tr->SetBranchAddress("event",&in_event);
     tr->SetBranchAddress("triggers",&in_triggers);
     tr->SetBranchAddress("unix_ts",&in_unix_ts);
-    tr->SetBranchAddress("unix_ts_usec",&in_unix_ts_usec);
+
+    // Is this a legacy mode tree?
+    bool legacyMode=false;
+    if ( !tr->FindBranch("unix_ts_usec") ){
+      legacyMode=true;
+    }
+    if (!legacyMode)
+      tr->SetBranchAddress("unix_ts_usec",&in_unix_ts_usec);
+
     tr->SetBranchAddress("event_start_t",&in_event_start_t);
     tr->SetBranchAddress("event_end_t",&in_event_end_t);
     tr->SetBranchAddress("subevent",&in_subevent);
 
     tr->SetBranchAddress("nx",&Nhits);
-    tr->SetBranchAddress("x",in_x.data());
-    tr->SetBranchAddress("y",in_y.data());
-    tr->SetBranchAddress("z",in_z.data());
-    tr->SetBranchAddress("ts",in_ts.data());
-    tr->SetBranchAddress("charge",in_charge.data());
-    tr->SetBranchAddress("E",in_E.data());
+    tr->SetBranchAddress("x",&in_x);
+    tr->SetBranchAddress("y",&in_y);
+    tr->SetBranchAddress("z",&in_z);
+    tr->SetBranchAddress("ts",&in_ts);
+    tr->SetBranchAddress("charge",&in_charge);
+    tr->SetBranchAddress("E",&in_E);
 
     if ( isMC ) {
-        tr->SetBranchAddress("matches",matches.data());
-        tr->SetBranchAddress("hit_packetFrac",packetFrac.data());
-        tr->SetBranchAddress("hit_particleID",particleID.data());
-        tr->SetBranchAddress("hit_particleIDLocal",particleIDLocal.data());
-        tr->SetBranchAddress("hit_pdg",pdg.data());
-        tr->SetBranchAddress("hit_vertexID",vertexID.data());
-        tr->SetBranchAddress("hit_segmentID",segmentID.data());
+        tr->SetBranchAddress("matches",&matches);
+        tr->SetBranchAddress("hit_packetFrac",&packetFrac);
+        tr->SetBranchAddress("hit_particleID",&particleID);
+        tr->SetBranchAddress("hit_particleIDLocal",&particleIDLocal);
+        tr->SetBranchAddress("hit_pdg",&pdg);
+        tr->SetBranchAddress("hit_vertexID",&vertexID);
+        tr->SetBranchAddress("hit_segmentID",&segmentID);
         tr->SetBranchAddress("nhit_packetFrac",&nmatchesinsubevent);
 
-        tr->SetBranchAddress("mcp_energy", in_mcp_energy.data());
-        tr->SetBranchAddress("mcp_px", in_mcp_px.data());
-        tr->SetBranchAddress("mcp_py", in_mcp_py.data());
-        tr->SetBranchAddress("mcp_pz", in_mcp_pz.data());
-        tr->SetBranchAddress("mcp_startx", in_mcp_startx.data());
-        tr->SetBranchAddress("mcp_starty", in_mcp_starty.data());
-        tr->SetBranchAddress("mcp_startz", in_mcp_startz.data());
-        tr->SetBranchAddress("mcp_endx", in_mcp_endx.data());
-        tr->SetBranchAddress("mcp_endy", in_mcp_endy.data());
-        tr->SetBranchAddress("mcp_endz", in_mcp_endz.data());
-        tr->SetBranchAddress("mcp_pdg", in_mcp_pdg.data());
-        tr->SetBranchAddress("mcp_nuid", in_mcp_nuid.data());
-        tr->SetBranchAddress("mcp_vertex_id", in_mcp_vertex_id.data());
-        tr->SetBranchAddress("mcp_idLocal", in_mcp_idLocal.data());
-        tr->SetBranchAddress("mcp_id", in_mcp_id.data());
-        tr->SetBranchAddress("mcp_mother", in_mcp_mother.data());
+        tr->SetBranchAddress("mcp_energy", &in_mcp_energy);
+        tr->SetBranchAddress("mcp_px", &in_mcp_px);
+        tr->SetBranchAddress("mcp_py", &in_mcp_py);
+        tr->SetBranchAddress("mcp_pz", &in_mcp_pz);
+        tr->SetBranchAddress("mcp_startx", &in_mcp_startx);
+        tr->SetBranchAddress("mcp_starty", &in_mcp_starty);
+        tr->SetBranchAddress("mcp_startz", &in_mcp_startz);
+        tr->SetBranchAddress("mcp_endx", &in_mcp_endx);
+        tr->SetBranchAddress("mcp_endy", &in_mcp_endy);
+        tr->SetBranchAddress("mcp_endz", &in_mcp_endz);
+        tr->SetBranchAddress("mcp_pdg", &in_mcp_pdg);
+        tr->SetBranchAddress("mcp_nuid", &in_mcp_nuid);
+        tr->SetBranchAddress("mcp_vertex_id", &in_mcp_vertex_id);
+        tr->SetBranchAddress("mcp_idLocal", &in_mcp_idLocal);
+        tr->SetBranchAddress("mcp_id", &in_mcp_id);
+        tr->SetBranchAddress("mcp_mother", &in_mcp_mother);
         tr->SetBranchAddress("nmcp_energy",&nmcpinsubevent);
 
-        tr->SetBranchAddress("nuID", in_nuID.data()); // both nuID and vertex_id appear to use this value
-        tr->SetBranchAddress("nuPDG", in_nuPDG.data());
-        tr->SetBranchAddress("mode", in_mode.data());
-        tr->SetBranchAddress("ccnc", in_ccnc.data());
-        tr->SetBranchAddress("nue", in_nue.data());
-        tr->SetBranchAddress("nupx", in_nupx.data());
-        tr->SetBranchAddress("nupy", in_nupy.data());
-        tr->SetBranchAddress("nupz", in_nupz.data());
-        tr->SetBranchAddress("nuvtxx", in_nuvtxx.data());
-        tr->SetBranchAddress("nuvtxy", in_nuvtxy.data());
-        tr->SetBranchAddress("nuvtxz", in_nuvtxz.data());
+        tr->SetBranchAddress("nuID", &in_nuID); // both nuID and vertex_id appear to use this value
+        tr->SetBranchAddress("nuPDG", &in_nuPDG);
+        tr->SetBranchAddress("mode", &in_mode);
+        tr->SetBranchAddress("ccnc", &in_ccnc);
+        tr->SetBranchAddress("nue", &in_nue);
+        tr->SetBranchAddress("nupx", &in_nupx);
+        tr->SetBranchAddress("nupy", &in_nupy);
+        tr->SetBranchAddress("nupz", &in_nupz);
+        tr->SetBranchAddress("nuvtxx", &in_nuvtxx);
+        tr->SetBranchAddress("nuvtxy", &in_nuvtxy);
+        tr->SetBranchAddress("nuvtxz", &in_nuvtxz);
         tr->SetBranchAddress("nnuID",&nnuinsubevent);
     }
 
@@ -163,21 +170,21 @@ void rootToRootConversion(
 
     // segmentIndex, particleIndex unfilled!
     std::vector< std::vector<int> >   hit_pdg;
-    std::vector< std::vector<long> >  hit_segmentID;
-    std::vector< std::vector<long> >  hit_particleID;
-    std::vector< std::vector<long> >  hit_particleIDLocal;
-    std::vector< std::vector<long> >  hit_vertexID;
+    std::vector< std::vector<long long> >  hit_segmentID;
+    std::vector< std::vector<long long> >  hit_particleID;
+    std::vector< std::vector<long long> >  hit_particleIDLocal;
+    std::vector< std::vector<long long> >  hit_vertexID;
     std::vector< std::vector<float> > hit_packetFrac;
 
     std::vector<float> mcp_px;
     std::vector<float> mcp_py;
     std::vector<float> mcp_pz;
-    std::vector<long> mcp_id;
-    std::vector<long> mcp_idLocal;
-    std::vector<long> mcp_nuid;
-    std::vector<long> mcp_vertex_id;
+    std::vector<long long> mcp_id;
+    std::vector<long long> mcp_idLocal;
+    std::vector<long long> mcp_nuid;
+    std::vector<long long> mcp_vertex_id;
     std::vector<int> mcp_pdg;
-    std::vector<long> mcp_mother;
+    std::vector<long long> mcp_mother;
     std::vector<float> mcp_energy;
     std::vector<float> mcp_startx;
     std::vector<float> mcp_starty;
@@ -193,8 +200,8 @@ void rootToRootConversion(
     std::vector<float> nupy;
     std::vector<float> nupz;
     std::vector<float> nue;
-    std::vector<long> nuID;
-    std::vector<long> vertex_id;
+    std::vector<long long> nuID;
+    std::vector<long long> vertex_id;
     std::vector<int> nuPDG;
     std::vector<int> mode;
     std::vector<int> ccnc;
@@ -209,7 +216,8 @@ void rootToRootConversion(
     outgoingTree->Branch("event_end_t", &event_end_t);
     outgoingTree->Branch("triggers",&triggers);
     outgoingTree->Branch("unix_ts", &unix_ts);
-    outgoingTree->Branch("unix_ts_usec", &unix_ts_usec);
+    if (!legacyMode)
+      outgoingTree->Branch("unix_ts_usec", &unix_ts_usec);
     outgoingTree->Branch("nhits",&nhits);
     outgoingTree->Branch("x", &x);
     outgoingTree->Branch("y", &y);
@@ -261,10 +269,10 @@ void rootToRootConversion(
     unsigned long sum_matches=0;
     std::vector<short> all_matches;
     std::vector<int>   all_hit_pdg;
-    std::vector<long>  all_hit_segmentID;
-    std::vector<long>  all_hit_particleID;
-    std::vector<long>  all_hit_particleIDLocal;
-    std::vector<long>  all_hit_vertexID;
+    std::vector<long long>  all_hit_segmentID;
+    std::vector<long long>  all_hit_particleID;
+    std::vector<long long>  all_hit_particleIDLocal;
+    std::vector<long long>  all_hit_vertexID;
     std::vector<float> all_hit_packetFrac;
 
     // First entry is bogus, just sets the right types in uproot. Start on idx 1
@@ -277,10 +285,8 @@ void rootToRootConversion(
             thisSubRun = in_subrun;
             thisEvent = in_event;
 
-        }
-
-        if ( idx%100==0 ) std::cout << in_run << ":" << in_subrun << ":" << in_event << ":" << in_subevent << std::endl;
-
+	}
+	if ( idx%100==0 ) std::cout << in_run << ":" << in_subrun << ":" << in_event << ":" << in_subevent << std::endl;
         if ( idx > 1 && ( (in_run!=thisRun || in_subrun!=thisSubRun || in_event!=thisEvent) || idx==NEvents ) ) {
             if ( isMC ) {
                 // Something has changed... finish with the matches, fill the tree, and reset
@@ -293,10 +299,10 @@ void rootToRootConversion(
                 }
                 unsigned long matchIndex = 0;
                 std::vector<int>   this_hit_pdg;
-                std::vector<long>  this_hit_segmentID;
-                std::vector<long>  this_hit_particleID;
-                std::vector<long>  this_hit_particleIDLocal;
-                std::vector<long>  this_hit_vertexID;
+                std::vector<long long>  this_hit_segmentID;
+                std::vector<long long>  this_hit_particleID;
+                std::vector<long long>  this_hit_particleIDLocal;
+                std::vector<long long>  this_hit_vertexID;
                 std::vector<float> this_hit_packetFrac;
                 for ( unsigned int idxMatch=0; idxMatch<=(unsigned int)all_hit_packetFrac.size(); ++idxMatch ){
                     if( this_hit_pdg.size() == (unsigned int)all_matches[matchIndex] || idxMatch==(unsigned int)all_hit_packetFrac.size()) {
@@ -314,32 +320,27 @@ void rootToRootConversion(
                         this_hit_particleIDLocal.clear();
                         this_hit_vertexID.clear();
                         this_hit_packetFrac.clear();
-                        // break if we have run out of hits to fill matches for
-                        // match We have to check for unmatched hits first
-                        // because if there
-                        //   is one as the last hit, we'd miss it if we checked
-                        //   idxMatch first (since we would be at the end of the
-                        //   loop already)
-                        if (matchIndex >= all_matches.size())
-                          break;
-                        bool extraReset = false;
-                        while (all_matches[matchIndex] == 0) {
-                          hit_pdg.push_back(this_hit_pdg);
-                          hit_segmentID.push_back(this_hit_segmentID);
-                          hit_particleID.push_back(this_hit_particleID);
-                          hit_particleIDLocal.push_back(
-                              this_hit_particleIDLocal);
-                          hit_vertexID.push_back(this_hit_vertexID);
-                          hit_packetFrac.push_back(this_hit_packetFrac);
-                          // mini-reset
-                          matchIndex += 1;
-                          if (matchIndex >= all_matches.size()) {
-                            extraReset = true;
-                            break;
-                          }
-                        }
-                        if (extraReset)
-                          break;
+			// break if we have run out of hits to fill matches for match
+			// We have to check for unmatched hits first because if there
+			//   is one as the last hit, we'd miss it if we checked idxMatch
+			//   first (since we would be at the end of the loop already)
+			if ( matchIndex >= all_matches.size() ) break;
+			bool extraReset=false;
+			while ( all_matches[matchIndex]==0 ) {
+			  hit_pdg.push_back( this_hit_pdg );
+			  hit_segmentID.push_back( this_hit_segmentID );
+			  hit_particleID.push_back( this_hit_particleID );
+			  hit_particleIDLocal.push_back( this_hit_particleIDLocal );
+			  hit_vertexID.push_back( this_hit_vertexID );
+			  hit_packetFrac.push_back( this_hit_packetFrac );
+			  // mini-reset
+			  matchIndex+=1;
+			  if ( matchIndex >= all_matches.size() ) {
+			    extraReset=true;
+			    break;
+			  }
+			}
+			if ( extraReset ) break;
                         // break if == end
                         if ( idxMatch == all_hit_packetFrac.size() ) break;
                     }
@@ -352,11 +353,11 @@ void rootToRootConversion(
                 }
             }
             // Fill
-            nhits = (int)x.size();
+	    nhits = (int)x.size();
             outgoingTree->Fill();
             // Clear
             triggers=-999;
-            x.clear();
+	    x.clear();
             y.clear();
             z.clear();
             ts.clear();
@@ -420,7 +421,8 @@ void rootToRootConversion(
         event_start_t = in_event_start_t;
         event_end_t = in_event_end_t;
         unix_ts = in_unix_ts;
-        unix_ts_usec = in_unix_ts_usec;
+	if (!legacyMode)
+	  unix_ts_usec = in_unix_ts_usec;
         triggers = in_triggers;
 
         // fill up the vectors for as much stuff as we can in this subevent:
@@ -436,11 +438,11 @@ void rootToRootConversion(
                 sum_matches+=(unsigned long)matches[idxHit];
             }
         }
-        // in case there are no hits, set up a 0 here so we don't seg fault later and push back an empty match vector
-        if ( Nhits==0 && isMC )
-            all_matches.push_back(0);
+	// in case there are no hits, set up a 0 here so we don't seg fault later and push back an empty match vector
+	if ( Nhits==0 && isMC )
+	    all_matches.push_back(0);
 
-        if ( isMC ) {
+	if ( isMC ) {
             // Because the arrays of matches and hits need not be sync'ed, we'll fill up
             //   vectors will all the info for the event here and then break it into sub-
             //   vectors at the end of the event...
