@@ -275,8 +275,7 @@ void rootToRootConversion(
     std::vector<long long>  all_hit_vertexID;
     std::vector<float> all_hit_packetFrac;
 
-    // First entry is bogus, just sets the right types in uproot. Start on idx 1
-    for (unsigned int idx=1; idx<=NEvents; ++idx) {
+    for (unsigned int idx=0; idx<=NEvents; ++idx) {
         if (idx!=NEvents){
             tr->GetEntry(idx);
         }
