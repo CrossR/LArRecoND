@@ -22,11 +22,11 @@ option(PANDORA_MONITORING "Build with PandoraMonitoring support" ON)
 option(LArRecoND_BUILD_DOCS "Build documentation for ${PROJECT_NAME}" OFF)
 
 # Dependencies
-fin# Build Options
+# Build Options
 option(PANDORA_LIBTORCH "Build with LibTorch-dependent libraries" OFF)
 option(PANDORA_MONITORING "Build with PandoraMonitoring support" ON)
 option(LArRecoND_BUILD_DOCS "Build documentation for ${PROJECT_NAME}" OFF)
-_package(PandoraSDK 04.00.02 REQUIRED)
+find_package(PandoraSDK 04.00.02 REQUIRED)
 find_package(LArContent 04.17.02 REQUIRED)
 
 if(PANDORA_LIBTORCH)
