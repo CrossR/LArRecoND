@@ -120,7 +120,7 @@ if(PANDORA_MONITORIN)
     endif()
     target_compile_definitions(PandoraInterface PRIVATE -DMONITORING=1)
     target_compile_definitions(${PROJECT_NAME} PRIVATE -DMONITORING=1)
-endif(
+endif()
 
 # Optional documents
 if(LArRecoND_BUILD_DOCS)
