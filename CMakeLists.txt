@@ -1,55 +1,40 @@
-# cmake file for building LArRecoND
-#-------------------------------------------------------------------------------------------------------------------------------------------
-cmake_minimum_required(VERSION 2.8.2 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
+project(LArRecoND VERSION 01.03.00 LANGUAGES CXX)
 
+# Automatically add the path of the linked libraries to the RPATH
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+# Apply the RPATH settings to the executable in the build tree, not just the installed one
+# set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+
+# Enforce out-of-source builds, a good practice from the original file
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
     message(FATAL_ERROR "LArRecoND requires an out-of-source build.")
 endif()
 
-# project name
-project(LArRecoND)
-
-# project version
-set(${PROJECT_NAME}_VERSION_MAJOR 01)
-set(${PROJECT_NAME}_VERSION_MINOR 03)
-set(${PROJECT_NAME}_VERSION_PATCH 00)
-set(${PROJECT_NAME}_VERSION "${${PROJECT_NAME}_VERSION_MAJOR}.${${PROJECT_NAME}_VERSION_MINOR}.${${PROJECT_NAME}_VERSION_PATCH}")
-
-#-------------------------------------------------------------------------------------------------------------------------------------------
-# Dependencies
-include(PandoraCMakeSettings)
-
-# Prefer local include directory to any paths to installed header files
-include_directories(include)
-
-find_package(PandoraSDK 03.04.01 REQUIRED)
-
-set(LAR_CONTENT_LIBRARY_NAME "LArContent")
-set(LAR_CONTENT_LIBRARY_VERSION "04.14.00")
-find_package(${LAR_CONTENT_LIBRARY_NAME} ${LAR_CONTENT_LIBRARY_VERSION} REQUIRED)
-
-if(PANDORA_LIBTORCH)
-    set(LAR_DL_CONTENT_LIBRARY_NAME "LArDLContent")
-    find_package(${LAR_DL_CONTENT_LIBRARY_NAME} ${LAR_CONTENT_LIBRARY_VERSION} REQUIRED)
-    add_definitions(-DLIBTORCH_DL=1)
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "Default install path for ${PROJECT_NAME}" FORCE)
 endif()
 
-foreach(package PandoraSDK ${LAR_CONTENT_LIBRARY_NAME} ${LAR_DL_CONTENT_LIBRARY_NAME})
-    if(${package}_FOUND)
-        include_directories(${${package}_INCLUDE_DIRS})
-        link_libraries(${${package}_LIBRARIES})
-        add_definitions (${${package}_DEFINITIONS})
-    endif()
-endforeach()
+# Build Options
+option(PANDORA_LIBTORCH "Build with LibTorch-dependent libraries" OFF)
+option(PANDORA_MONITORING "Build with PandoraMonitoring support" ON)
+option(LArRecoND_BUILD_DOCS "Build documentation for ${PROJECT_NAME}" OFF)
+
+# Dependencies
+fin# Build Options
+option(PANDORA_LIBTORCH "Build with LibTorch-dependent libraries" OFF)
+option(PANDORA_MONITORING "Build with PandoraMonitoring support" ON)
+option(LArRecoND_BUILD_DOCS "Build documentation for ${PROJECT_NAME}" OFF)
+_package(PandoraSDK 04.00.02 REQUIRED)
+find_package(LArContent 04.17.02 REQUIRED)
+
+if(PANDORA_LIBTORCH)
+    find_package(LArDLContent 04.17.02 REQUIRED)
+endif()
 
 if(PANDORA_MONITORING)
-    find_package(PandoraMonitoring 03.06.00 REQUIRED)
-    include_directories(${PandoraMonitoring_INCLUDE_DIRS})
-    link_libraries(${PandoraMonitoring_LIBRARIES})
-    add_definitions(${PandoraMonitoring_DEFINITIONS})
-    add_definitions("-DMONITORING")
-
-    list(APPEND CMAKE_MODULE_PATH "$ENV{ROOTSYS}/etc/cmake/")
+    find_package(PandoraMonitoring 04.00.02 REQUIRED)
     find_package(ROOT 6.18.04 REQUIRED COMPONENTS Eve Geom RGL EG)
 endif()
 
@@ -58,58 +43,90 @@ if(USE_EDEPSIM)
   add_definitions("-DUSE_EDEPSIM")
 endif()
 
-#-------------------------------------------------------------------------------------------------------------------------------------------
-# Low level settings - compiler etc
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -pedantic -Wno-long-long -Wno-sign-compare -Wshadow -fno-strict-aliasing -std=c++17 ${CMAKE_CXX_FLAGS}")
+# --- Executable ---
+add_executable(PandoraInterface test/PandoraInterface.cxx)
 
-include(CheckCXXCompilerFlag)
-unset(COMPILER_SUPPORTS_CXX_FLAGS CACHE)
-CHECK_CXX_COMPILER_FLAG(${CMAKE_CXX_FLAGS} COMPILER_SUPPORTS_CXX_FLAGS)
-
-if(NOT COMPILER_SUPPORTS_CXX_FLAGS)
-    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} does not support cxx flags ${CMAKE_CXX_FLAGS}")
-endif()
-
-#-------------------------------------------------------------------------------------------------------------------------------------------
-# Build products
-
-# - Collect sources - not ideal because you have to keep running CMake to pick up changes
 file(GLOB_RECURSE LAR_RECO_ND_SRCS RELATIVE ${PROJECT_SOURCE_DIR} "src/*.cc")
-
-# - Add library and properties
 add_library(${PROJECT_NAME} SHARED ${LAR_RECO_ND_SRCS})
-set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_VERSION} SOVERSION ${${PROJECT_NAME}_SOVERSION})
 
-# - Executable
-add_executable(PandoraInterface ${PROJECT_SOURCE_DIR}/test/PandoraInterface.cxx)
-if(PANDORA_MONITORING)
-    include_directories(${ROOT_INCLUDE_DIRS})
-    if(USE_EDEPSIM)
-        target_link_libraries(PandoraInterface ${ROOT_LIBRARIES} EDepSim::edepsim_io)
-    else()
-        target_link_libraries(PandoraInterface ${ROOT_LIBRARIES})
-    endif()
+target_include_directories(PandoraInterface PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include)
+
+target_compile_options(PandoraInterface PRIVATE
+    -Wall
+    -Wextra
+    -Werror
+    -pedantic
+    -Wno-long-long
+    -Wno-sign-compare
+    -Wshadow
+    -fno-strict-aliasing
+    -std=c++17
+)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    PandoraPFA::PandoraSDK
+    PandoraPFA::LArContent
+)
+target_link_libraries(PandoraInterface PRIVATE
+    ${PROJECT_NAME}
+    PandoraPFA::PandoraSDK
+    PandoraPFA::LArContent
+)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
+
+if(APPLE)
+    set(CMAKE_INSTALL_RPATH "@executable_path/../lib")
+    set_target_properties(PandoraInterface PROPERTIES
+        BUILD_RPATH "${CMAKE_BINARY_DIR}"
+        INSTALL_RPATH "@executable_path/../lib"
+    )
+else()
+    set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
+    set_target_properties(PandoraInterface PROPERTIES
+        BUILD_RPATH "${CMAKE_BINARY_DIR}"
+        INSTALL_RPATH "$ORIGIN/../lib"
+    )
 endif()
-target_link_libraries(PandoraInterface ${PROJECT_NAME})
 
-# - Optional documents
-option(LArRecoND_BUILD_DOCS "Build documentation for ${PROJECT_NAME}" OFF)
+if(PANDORA_LIBTORCH)
+    target_link_libraries(PandoraInterface PRIVATE PandoraPFA::LArDLContent)
+    target_compile_definitions(PandoraInterface PRIVATE -DLIBTORCH_DL=1)
+    target_link_libraries(${PROJECT_NAME} PRIVATE PandoraPFA::LArDLContent)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE -DLIBTORCH_DL=1)
+endif()
+
+if(PANDORA_MONITORIN)
+    if(USE_EDEPSIM)
+        target_link_libraries(PandoraInterface PRIVATE
+            PandoraPFA::PandoraMonitoring
+            ROOT::Eve
+            ROOT::Geom
+            ROOT::RGL
+            ROOT::EG
+            EDepSim::edepsim_io
+        )
+    else()
+        target_link_libraries(PandoraInterface PRIVATE
+                PandoraPFA::PandoraMonitoring
+                ROOT::Eve
+                ROOT::Geom
+                ROOT::RGL
+                ROOT::EG
+        )
+    endif()
+    target_compile_definitions(PandoraInterface PRIVATE -DMONITORING=1)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE -DMONITORING=1)
+endif(
+
+# Optional documents
 if(LArRecoND_BUILD_DOCS)
     add_subdirectory(doc)
 endif()
 
-#-------------------------------------------------------------------------------------------------------------------------------------------
-# Install products
-
-# - library
+# Installation
 install(TARGETS ${PROJECT_NAME} DESTINATION lib COMPONENT Runtime)
-
-# - headers
-install(DIRECTORY include/ DESTINATION include COMPONENT Development FILES_MATCHING PATTERN "*.h")
-
-# - executable
-install(TARGETS PandoraInterface DESTINATION bin PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-
-#-------------------------------------------------------------------------------------------------------------------------------------------
-# display some variables and write them to cache
-PANDORA_DISPLAY_STD_VARIABLES()
+install(DIRECTORY include/ DESTINATION include COMPONENT Development FILES_MATCHING PATTERN "*.h")install(TARGETS PandoraInterface DESTINATION bin PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
