@@ -48,11 +48,24 @@ StatusCode CheatingRockMuonRemovalAlgorithm::Run()
     // Process the hits
     for (const CaloHit *const pCaloHit : *pCaloHitList)
     {
-        const MCParticle *const pMCParticle = MCParticleHelper::GetMainMCParticle(pCaloHit);
-        if (this->IsRockMuon(this->GetPandora(), pMCParticle))
-            pRockMuonCaloHitList.push_back(pCaloHit);
-        else
-            pNeutrinoCaloHitList.push_back(pCaloHit);
+        try {
+            const MCParticle *const pMCParticle = MCParticleHelper::GetMainMCParticle(pCaloHit);
+
+            if (!pMCParticle)
+                throw std::runtime_error("CaloHit with no associated MCParticle");
+
+            if (this->IsRockMuon(this->GetPandora(), pMCParticle))
+                pRockMuonCaloHitList.push_back(pCaloHit);
+            else
+                pNeutrinoCaloHitList.push_back(pCaloHit);
+        }
+        catch (StatusCodeException &statusCodeException)
+        {
+            if (statusCodeException.GetStatusCode() != pandora::STATUS_CODE_NOT_INITIALIZED)
+                throw;
+            else
+                std::cout << "CaloHit with no associated MCParticle, skipping..." << std::endl;
+        }
     }
 
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::SaveList(*this, pRockMuonCaloHitList, m_rockMuonCaloHitListName));
