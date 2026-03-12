@@ -14,6 +14,8 @@
 #include "TGeoMatrix.h"
 #include "TGeoShape.h"
 #include "TGeoVolume.h"
+#include <Objects/CartesianVector.h>
+#include <Pandora/PandoraInternal.h>
 
 #ifdef USE_EDEPSIM
 #include "TG4PrimaryVertex.h"
@@ -170,7 +172,11 @@ void CreateGeometry(const Parameters &parameters, const Pandora *const pPrimaryP
             pSimGeom->CdUp();
         }
     }
+
     std::cout << "Created " << nodePaths.size() << " TPCs" << std::endl;
+
+    LoadDetectorGaps(pPrimaryPandora, parameters, geom, nullptr, nullptr, 0);
+    std::cout << "Created " << pPrimaryPandora->GetGeometry()->GetDetectorGapList().size() << " gaps" << std::endl;
 
     fileSource->Close();
 }
@@ -275,6 +281,105 @@ void MakePandoraTPC(const pandora::Pandora *const pPrimaryPandora, const Paramet
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
+void LoadDetectorGaps(const pandora::Pandora *const pPrimaryPandora, const Parameters &/*parameters*/, LArNDGeomSimple &/*geom*/,
+    const std::unique_ptr<TGeoHMatrix> &/*pVolMatrix*/, const TGeoNode */*pTargetNode*/, const unsigned int /*tpcNumber*/)
+{
+    if (pPrimaryPandora->GetGeometry()->GetLArTPCMap().empty())
+    {
+        std::cout << "LoadDetectorGaps - no TPCs found in geometry, not loading gaps" << std::endl;
+        return;
+    }
+
+    if (pPrimaryPandora->GetGeometry()->GetDetectorGapList().size() > 0)
+    {
+        std::cout << "LoadDetectorGaps - gaps already found in geometry, not loading gaps" << std::endl;
+        return;
+    }
+
+    // Find the absolute bounds of the whole detector,
+    // and collect all the unique X and Z boundaries of the modules.
+    // TODO:....should we also check Y?
+    float globalMinX = std::numeric_limits<float>::max();
+    float globalMaxX = -std::numeric_limits<float>::max();
+    float globalMinY = std::numeric_limits<float>::max();
+    float globalMaxY = -std::numeric_limits<float>::max();
+    float globalMinZ = std::numeric_limits<float>::max();
+    float globalMaxZ = -std::numeric_limits<float>::max();
+
+    std::vector<float> minXs, maxXs, minZs, maxZs;
+
+    const auto &larTPCMap = pPrimaryPandora->GetGeometry()->GetLArTPCMap();
+    for (const auto &[id, larTPC] : larTPCMap)
+    {
+        const float halfX = 0.5f * larTPC->GetWidthX();
+        const float halfY = 0.5f * larTPC->GetWidthY();
+        const float halfZ = 0.5f * larTPC->GetWidthZ();
+
+        minXs.push_back(larTPC->GetCenterX() - halfX);
+        maxXs.push_back(larTPC->GetCenterX() + halfX);
+        minZs.push_back(larTPC->GetCenterZ() - halfZ);
+        maxZs.push_back(larTPC->GetCenterZ() + halfZ);
+
+        globalMinX = std::min(globalMinX, larTPC->GetCenterX() - halfX);
+        globalMaxX = std::max(globalMaxX, larTPC->GetCenterX() + halfX);
+        globalMinY = std::min(globalMinY, larTPC->GetCenterY() - halfY);
+        globalMaxY = std::max(globalMaxY, larTPC->GetCenterY() + halfY);
+        globalMinZ = std::min(globalMinZ, larTPC->GetCenterZ() - halfZ);
+        globalMaxZ = std::max(globalMaxZ, larTPC->GetCenterZ() + halfZ);
+    }
+
+    // Sort and remove duplicates (within tolerances)
+    auto extractUnique = [](std::vector<float>& vec) {
+        std::sort(vec.begin(), vec.end());
+        vec.erase(std::unique(vec.begin(), vec.end(), [](float a, float b) {
+            return std::fabs(a - b) < 0.1f;
+        }), vec.end());
+    };
+
+    extractUnique(minXs); extractUnique(maxXs);
+    extractUnique(minZs); extractUnique(maxZs);
+
+    // Utility lambda to create a box gap.
+    auto createGap = [&](float x1, float x2, float y1, float y2, float z1, float z2) {
+        PandoraApi::Geometry::BoxGap::Parameters params;
+        params.m_vertex = CartesianVector(x1, y1, z1);
+        params.m_side1 = CartesianVector(x2 - x1, 0.0f, 0.0f);
+        params.m_side2 = CartesianVector(0.0f, y2 - y1, 0.0f);
+        params.m_side3 = CartesianVector(0.0f, 0.0f, z2 - z1);
+
+        try {
+            PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::Geometry::BoxGap::Create(*pPrimaryPandora, params));
+        } catch (...) {
+            std::cout << "LoadDetectorGaps - unable to create gap." << std::endl;
+        }
+    };
+
+    // Build full-length X gaps.
+    // I.e. gaps that go the full length in X.
+    for (size_t i = 0; i < maxXs.size() && i + 1 < minXs.size(); ++i) {
+        const float gapWidth = minXs[i+1] - maxXs[i];
+        if (gapWidth > 0.f && gapWidth < 30.0f) {
+            createGap(maxXs[i], minXs[i+1], globalMinY, globalMaxY, globalMinZ, globalMaxZ);
+        }
+    }
+
+    // Build segmented Z gaps (i.e. gaps that are segmented in X according to the active volumes, but cover the full length in Z).
+    // We want to cover the full detector, but not have any overlaps.
+    for (size_t iz = 0; iz < maxZs.size() && iz + 1 < minZs.size(); ++iz) {
+        const float gapWidth = minZs[iz+1] - maxZs[iz];
+        if (gapWidth > 0.f && gapWidth < 30.0f) {
+
+            // Loop over the active X-widths
+            for (size_t ix = 0; ix < minXs.size(); ++ix) {
+                // The active volume width is from minXs[ix] to maxXs[ix]
+                createGap(minXs[ix], maxXs[ix], globalMinY, globalMaxY, maxZs[iz], minZs[iz+1]);
+            }
+        }
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
 void ProcessEvents(const Parameters &parameters, const Pandora *const pPrimaryPandora, const LArNDGeomSimple &geom)
 {
     if (parameters.m_dataFormat == Parameters::LArNDFormat::EDepSim)
@@ -370,7 +475,7 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
             const float voxelX = (*larsp->m_x)[isp];
             const float voxelY = (*larsp->m_y)[isp];
             const float voxelZ = (*larsp->m_z)[isp];
-            const float voxelE = (*larsp->m_charge)[isp];
+            const float voxelE = (*larsp->m_E)[isp];
 
             // Skip this hit if its coordinates or energy are NaNs
             if (std::isnan(voxelX) || std::isnan(voxelY) || std::isnan(voxelZ) || std::isnan(voxelE))

@@ -180,6 +180,21 @@ void MakePandoraTPC(const pandora::Pandora *const pPrimaryPandora, const Paramet
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 /**
+ *  @brief  Create and register all the detector gaps in pandora, based on the loaded geometry.
+ *
+ *  @param  pPrimaryPandora The address of the primary pandora instance
+ *  @param  parameters The application parameters
+ *  @param  geom Simple representation of the geometry for assigning TPC numbers
+ *  @param  pVolMatrix matrix required to convert TPC coordinates to world
+ *  @param  targetNode pointer to the TPC geometry node
+ *  @param  tpcNumber the number for the TPC volume
+ */
+void LoadDetectorGaps(const pandora::Pandora *const pPrimaryPandora, const Parameters &parameters, LArNDGeomSimple &geom,
+    const std::unique_ptr<TGeoHMatrix> &pVolMatrix, const TGeoNode *targetNode, const unsigned int tpcNumber);
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+/**
  *  @brief  Process events using the supplied pandora instance
  *
  *  @param  parameters The application parameters
