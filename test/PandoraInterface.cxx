@@ -15,6 +15,7 @@
 #include "TGeoShape.h"
 #include "TGeoVolume.h"
 #include <Objects/CartesianVector.h>
+#include <Pandora/PandoraEnumeratedTypes.h>
 #include <Pandora/PandoraInternal.h>
 
 #ifdef USE_EDEPSIM
@@ -102,6 +103,9 @@ int main(int argc, char *argv[])
             PandoraApi::SetLArTransformationPlugin(*pPrimaryPandora, new lar_content::LArRotationalTransformationPlugin));
         PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ReadSettings(*pPrimaryPandora, parameters.m_settingsFile));
 
+        // INFO: Delayed after geometry creation, to ensure transformation plugins are setup, to enable easier 3D -> 2D projections.
+        LoadDetectorGaps(pPrimaryPandora);
+
         ProcessEvents(parameters, pPrimaryPandora, simpleGeom);
     }
     catch (const StatusCodeException &statusCodeException)
@@ -174,9 +178,6 @@ void CreateGeometry(const Parameters &parameters, const Pandora *const pPrimaryP
     }
 
     std::cout << "Created " << nodePaths.size() << " TPCs" << std::endl;
-
-    LoadDetectorGaps(pPrimaryPandora, parameters, geom, nullptr, nullptr, 0);
-    std::cout << "Created " << pPrimaryPandora->GetGeometry()->GetDetectorGapList().size() << " gaps" << std::endl;
 
     fileSource->Close();
 }
@@ -281,8 +282,7 @@ void MakePandoraTPC(const pandora::Pandora *const pPrimaryPandora, const Paramet
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void LoadDetectorGaps(const pandora::Pandora *const pPrimaryPandora, const Parameters &/*parameters*/, LArNDGeomSimple &/*geom*/,
-    const std::unique_ptr<TGeoHMatrix> &/*pVolMatrix*/, const TGeoNode */*pTargetNode*/, const unsigned int /*tpcNumber*/)
+void LoadDetectorGaps(const pandora::Pandora *const pPrimaryPandora)
 {
     if (pPrimaryPandora->GetGeometry()->GetLArTPCMap().empty())
     {
@@ -339,19 +339,72 @@ void LoadDetectorGaps(const pandora::Pandora *const pPrimaryPandora, const Param
     extractUnique(minXs); extractUnique(maxXs);
     extractUnique(minZs); extractUnique(maxZs);
 
-    // Utility lambda to create a box gap.
-    auto createGap = [&](float x1, float x2, float y1, float y2, float z1, float z2) {
-        PandoraApi::Geometry::BoxGap::Parameters params;
-        params.m_vertex = CartesianVector(x1, y1, z1);
-        params.m_side1 = CartesianVector(x2 - x1, 0.0f, 0.0f);
-        params.m_side2 = CartesianVector(0.0f, y2 - y1, 0.0f);
-        params.m_side3 = CartesianVector(0.0f, 0.0f, z2 - z1);
+    // Utility lambda to create a 2D LineGap
+    auto createLineGap = [&](const pandora::HitType view, const float startX, const float endX, const float startZ, const float endZ) {
+        PandoraApi::Geometry::LineGap::Parameters lineParams;
+        lineParams.m_lineGapType = view == pandora::TPC_VIEW_U ? LineGapType::TPC_WIRE_GAP_VIEW_U :
+                                    view == pandora::TPC_VIEW_V ? LineGapType::TPC_WIRE_GAP_VIEW_V :
+                                    view == pandora::TPC_VIEW_W ? LineGapType::TPC_WIRE_GAP_VIEW_W :
+                                                                    LineGapType::TPC_DRIFT_GAP;
+        lineParams.m_lineStartX = std::min(startX, endX);
+        lineParams.m_lineEndX = std::max(startX, endX);
+        lineParams.m_lineStartZ = std::min(startZ, endZ);
+        lineParams.m_lineEndZ = std::max(startZ, endZ);
 
         try {
-            PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::Geometry::BoxGap::Create(*pPrimaryPandora, params));
+            PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::Geometry::LineGap::Create(*pPrimaryPandora, lineParams));
         } catch (...) {
-            std::cout << "LoadDetectorGaps - unable to create gap." << std::endl;
+            std::cout << "LoadDetectorGaps - unable to create LineGap for view " << view << std::endl;
         }
+    };
+
+    // Utility lambda to create a 3D BoxGap and auto-project its 2D LineGaps
+    auto createGap = [&](const float x1, const float x2, const float y1, const float y2, const float z1, const float z2) {
+        // First, create the 3D BoxGap.
+        PandoraApi::Geometry::BoxGap::Parameters boxParams;
+        boxParams.m_vertex = CartesianVector(x1, y1, z1);
+        boxParams.m_side1 = CartesianVector(x2 - x1, 0.0f, 0.0f);
+        boxParams.m_side2 = CartesianVector(0.0f, y2 - y1, 0.0f);
+        boxParams.m_side3 = CartesianVector(0.0f, 0.0f, z2 - z1);
+
+        try {
+            PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::Geometry::BoxGap::Create(*pPrimaryPandora, boxParams));
+        } catch (...) {
+            std::cout << "LoadDetectorGaps - unable to create BoxGap." << std::endl;
+        }
+
+        // Now we check if we want to project this into 2D.
+        const float dx = std::fabs(x2 - x1);
+        const float dy = std::fabs(y2 - y1);
+        const float dz = std::fabs(z2 - z1);
+
+        if (dz >= dx || dz >= dy)
+            return;
+
+        // Project Z-gaps into U, V, and W LineGaps
+        const pandora::LArTransformationPlugin *pTrans = pPrimaryPandora->GetPlugins()->GetLArTransformationPlugin();
+
+        const std::vector<std::pair<float, float>> yzCorners = {
+            {y1, z1}, {y1, z2}, {y2, z1}, {y2, z2}
+        };
+
+        float minU = std::numeric_limits<float>::max(), maxU = -std::numeric_limits<float>::max();
+        float minV = std::numeric_limits<float>::max(), maxV = -std::numeric_limits<float>::max();
+        float minW = std::numeric_limits<float>::max(), maxW = -std::numeric_limits<float>::max();
+
+        for (const auto& corner : yzCorners) {
+            const float u = pTrans->YZtoU(corner.first, corner.second);
+            const float v = pTrans->YZtoV(corner.first, corner.second);
+            const float w = pTrans->YZtoW(corner.first, corner.second);
+
+            minU = std::min(minU, u); maxU = std::max(maxU, u);
+            minV = std::min(minV, v); maxV = std::max(maxV, v);
+            minW = std::min(minW, w); maxW = std::max(maxW, w);
+        }
+
+        createLineGap(pandora::TPC_VIEW_U, x1, x2, minU, maxU);
+        createLineGap(pandora::TPC_VIEW_V, x1, x2, minV, maxV);
+        createLineGap(pandora::TPC_VIEW_W, x1, x2, minW, maxW);
     };
 
     // Build full-length X gaps.
@@ -376,6 +429,8 @@ void LoadDetectorGaps(const pandora::Pandora *const pPrimaryPandora, const Param
             }
         }
     }
+
+    std::cout << "Created " << pPrimaryPandora->GetGeometry()->GetDetectorGapList().size() << " gaps" << std::endl;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
