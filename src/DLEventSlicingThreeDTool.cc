@@ -39,6 +39,9 @@ void DLEventSlicingThreeDTool::RunSlicing(const Algorithm *const pAlgorithm, con
     PANDORA_THROW_RESULT_IF_AND_IF(STATUS_CODE_SUCCESS, STATUS_CODE_NOT_INITIALIZED, !=,
         PandoraContentApi::GetList(*pAlgorithm, threeDClusterListName, pThreeDClusterList));
 
+    if (!pThreeDClusterList)
+        throw StatusCodeException(STATUS_CODE_NOT_FOUND);
+
     // Populate a map of HitIndex to each Hit.
     std::map<intptr_t, CaloHitList> hitIndexToCaloHitListMap;
     std::map<HitType, int> hitTypeToHitCountMap;
@@ -49,13 +52,13 @@ void DLEventSlicingThreeDTool::RunSlicing(const Algorithm *const pAlgorithm, con
         PANDORA_THROW_RESULT_IF_AND_IF(STATUS_CODE_SUCCESS, STATUS_CODE_NOT_INITIALIZED, !=,
             PandoraContentApi::GetList(*pAlgorithm, hitListNamePair.second, pCaloHitList));
 
+        if (!pCaloHitList)
+            throw StatusCodeException(STATUS_CODE_NOT_FOUND);
+
         for (const CaloHit *const pCaloHit : *pCaloHitList)
         {
-            const auto pParentCaloHit =  static_cast<const CaloHit *>(pCaloHit->GetParentAddress());
+            const auto pParentCaloHit = static_cast<const CaloHit *>(pCaloHit->GetParentAddress());
             const int hitIndex((intptr_t)pParentCaloHit->GetParentAddress());
-
-            if (hitIndexToCaloHitListMap.count(hitIndex))
-                throw StatusCodeException(STATUS_CODE_ALREADY_PRESENT);
 
             hitIndexToCaloHitListMap[hitIndex].push_back(pCaloHit);
 
@@ -65,12 +68,6 @@ void DLEventSlicingThreeDTool::RunSlicing(const Algorithm *const pAlgorithm, con
             ++hitTypeToHitCountMap[pCaloHit->GetHitType()];
         }
     }
-
-    std::cout << "DLEventSlicingThreeDTool::RunSlicing - hit counts: " << std::endl;
-    std::cout << "  U hits: " << hitTypeToHitCountMap[TPC_VIEW_U] << std::endl;
-    std::cout << "  V hits: " << hitTypeToHitCountMap[TPC_VIEW_V] << std::endl;
-    std::cout << "  W hits: " << hitTypeToHitCountMap[TPC_VIEW_W] << std::endl;
-    std::cout << "  3D hits: " << hitTypeToHitCountMap[TPC_3D] << std::endl;
 
     // For every 3D cluster, get all the associated 3D hits, find the
     // corresponding 2D hits and populate the slice list for all 4 views.
@@ -84,7 +81,8 @@ void DLEventSlicingThreeDTool::RunSlicing(const Algorithm *const pAlgorithm, con
 
         for (const CaloHit *const pClusterHit : caloHitList3D)
         {
-            const int hitIndex((intptr_t)pClusterHit->GetParentAddress());
+            const auto pParentCaloHit = static_cast<const CaloHit *>(pClusterHit->GetParentAddress());
+            const int hitIndex((intptr_t)pParentCaloHit->GetParentAddress());
 
             if (!hitIndexToCaloHitListMap.count(hitIndex))
                 throw StatusCodeException(STATUS_CODE_NOT_FOUND);
@@ -104,7 +102,7 @@ void DLEventSlicingThreeDTool::RunSlicing(const Algorithm *const pAlgorithm, con
             }
         }
 
-        std::cout << "DLEventSlicingThreeDTool::RunSlicing - slice has " << slice.m_caloHitListU.size() << " U hits, "
+        std::cout << "DLEventSlicingThreeDTool::RunSlicing - Slice has " << slice.m_caloHitListU.size() << " U hits, "
                   << slice.m_caloHitListV.size() << " V hits, " << slice.m_caloHitListW.size() << " W hits and "
                   << slice.m_caloHitList3D.size() << " 3D hits." << std::endl;
 

@@ -39,8 +39,7 @@
         </tool>
         <algorithm type = "LArListDeletion" description = "SlicingListDeletion">
             <PfoListNames>TrackParticles3D ShowerParticles3D</PfoListNames>
-            <ClusterListNames>ClustersU ClustersV ClustersW TrackClusters3D ShowerClusters3D</ClusterListNames>
-<!--            <VertexListNames>CandidateVertices3D</VertexListNames> -->
+            <ClusterListNames>ClustersU ClustersV ClustersW TrackClusters3D ShowerClusters3D DLSlicingClusters3D</ClusterListNames>
         </algorithm>
     </algorithm>
     <algorithm type = "LArListChanging">
