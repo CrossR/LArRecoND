@@ -35,6 +35,7 @@
         <InputClusterListName3D>DLSlicingClusters3D</InputClusterListName3D>
         <OutputClusterListName>SliceClusters</OutputClusterListName>
         <OutputPfoListName>SliceParticles</OutputPfoListName>
+        <EvaluateSlices>true</EvaluateSlices>
         <tool type = "LArDLEventSlicingThreeD" description = "SliceCreation">
         </tool>
         <algorithm type = "LArListDeletion" description = "SlicingListDeletion">

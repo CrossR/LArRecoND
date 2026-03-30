@@ -37,6 +37,8 @@ private:
     pandora::StatusCode Run();
     pandora::StatusCode ReadSettings(const pandora::TiXmlHandle xmlHandle);
 
+    void EvaluateSlices(const Slice3DList &sliceList);
+
     EventSlicingThreeDBaseTool *m_pEventSlicingTool; ///< The address of the event slicing tool
     std::string m_slicingListDeletionAlgorithm;      ///< The name of the slicing list deletion algorithm
 
@@ -45,6 +47,10 @@ private:
 
     std::string m_sliceClusterListName; ///< The name of the output slice cluster list
     std::string m_slicePfoListName;     ///< The name of the output slice pfo list
+
+    bool m_evaluateSlices{false}; ///< Flag to indicate whether to evaluate slices
+    std::string m_analysisTreeName{"SlicingThreeDAnalysis"}; ///< The name of the analysis tree
+    std::string m_analysisFileName{"SlicingThreeDAnalysis.root"}; ///< The name of the analysis file
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------

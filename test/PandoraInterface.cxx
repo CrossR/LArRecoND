@@ -506,6 +506,10 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
             const float voxelZ = (*larsp->m_z)[isp];
             const float voxelE = (*larsp->m_E)[isp];
 
+            // Set the event level information...
+            if (isp == 0)
+                PandoraApi::SetEventInformation(*pPrimaryPandora, larsp->m_run, larsp->m_subrun, larsp->m_event);
+
             // Skip this hit if its coordinates or energy are NaNs
             if (std::isnan(voxelX) || std::isnan(voxelY) || std::isnan(voxelZ) || std::isnan(voxelE))
             {
