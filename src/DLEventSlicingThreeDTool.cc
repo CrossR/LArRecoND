@@ -41,6 +41,8 @@ void DLEventSlicingThreeDTool::RunSlicing(const Algorithm *const pAlgorithm, con
 
     // Populate a map of HitIndex to each Hit.
     std::map<intptr_t, CaloHitList> hitIndexToCaloHitListMap;
+    std::map<HitType, int> hitTypeToHitCountMap;
+
     for (const auto &hitListNamePair : caloHitListNames)
     {
         const CaloHitList *pCaloHitList(nullptr);
@@ -49,14 +51,26 @@ void DLEventSlicingThreeDTool::RunSlicing(const Algorithm *const pAlgorithm, con
 
         for (const CaloHit *const pCaloHit : *pCaloHitList)
         {
-            const int hitIndex((intptr_t)pCaloHit->GetParentAddress());
+            const auto pParentCaloHit =  static_cast<const CaloHit *>(pCaloHit->GetParentAddress());
+            const int hitIndex((intptr_t)pParentCaloHit->GetParentAddress());
 
             if (hitIndexToCaloHitListMap.count(hitIndex))
                 throw StatusCodeException(STATUS_CODE_ALREADY_PRESENT);
 
             hitIndexToCaloHitListMap[hitIndex].push_back(pCaloHit);
+
+            if (!hitTypeToHitCountMap.count(pCaloHit->GetHitType()))
+                hitTypeToHitCountMap[pCaloHit->GetHitType()] = 0;
+
+            ++hitTypeToHitCountMap[pCaloHit->GetHitType()];
         }
     }
+
+    std::cout << "DLEventSlicingThreeDTool::RunSlicing - hit counts: " << std::endl;
+    std::cout << "  U hits: " << hitTypeToHitCountMap[TPC_VIEW_U] << std::endl;
+    std::cout << "  V hits: " << hitTypeToHitCountMap[TPC_VIEW_V] << std::endl;
+    std::cout << "  W hits: " << hitTypeToHitCountMap[TPC_VIEW_W] << std::endl;
+    std::cout << "  3D hits: " << hitTypeToHitCountMap[TPC_3D] << std::endl;
 
     // For every 3D cluster, get all the associated 3D hits, find the
     // corresponding 2D hits and populate the slice list for all 4 views.

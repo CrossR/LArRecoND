@@ -32,16 +32,10 @@
         <InputClusterListNameU>ClustersU</InputClusterListNameU>
         <InputClusterListNameV>ClustersV</InputClusterListNameV>
         <InputClusterListNameW>ClustersW</InputClusterListNameW>
+        <InputClusterListName3D>DLSlicingClusters3D</InputClusterListName3D>
         <OutputClusterListName>SliceClusters</OutputClusterListName>
         <OutputPfoListName>SliceParticles</OutputPfoListName>
-        <tool type = "LArEventSlicingThreeD" description = "SliceCreation">
-            <TrackPfoListName>TrackParticles3D</TrackPfoListName>
-            <ShowerPfoListName>ShowerParticles3D</ShowerPfoListName>
-            <!-- Need to make the slicing much harsher than the FD -->
-            <MaxHitSeparation>10</MaxHitSeparation>
-            <MaxConeLength>50.0</MaxConeLength>
-            <ConeLengthMultiplier>3</ConeLengthMultiplier>
-            <MaxInterceptDistance>30.0</MaxInterceptDistance>
+        <tool type = "LArDLEventSlicingThreeD" description = "SliceCreation">
         </tool>
         <algorithm type = "LArListDeletion" description = "SlicingListDeletion">
             <PfoListNames>TrackParticles3D ShowerParticles3D</PfoListNames>
