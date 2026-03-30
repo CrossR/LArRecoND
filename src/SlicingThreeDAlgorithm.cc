@@ -27,6 +27,18 @@ SlicingThreeDAlgorithm::SlicingThreeDAlgorithm() :
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
+SlicingThreeDAlgorithm::~SlicingThreeDAlgorithm()
+{
+    if (m_evaluateSlices)
+    {
+        std::cout << "SlicingThreeDAlgorithm::~SlicingThreeDAlgorithm: Saving analysis tree to file " << m_analysisFileName << " with tree name " << m_analysisTreeName << std::endl;
+        PANDORA_MONITORING_API(SaveTree(this->GetPandora(), m_analysisTreeName.c_str(), m_analysisFileName.c_str(), "UPDATE"));
+        std::cout << "SlicingThreeDAlgorithm::~SlicingThreeDAlgorithm: Finished saving analysis tree" << std::endl;
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
 StatusCode SlicingThreeDAlgorithm::Run()
 {
     Slice3DList sliceList;
@@ -114,7 +126,6 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList, const 
     }
 
     // Get the current MC particle list
-    std::cout << "Getting MC particle list for slicing evaluation..." << std::endl;
     const MCParticleList *pMCParticleList(nullptr);
     if (PandoraContentApi::GetCurrentList(*this, pMCParticleList) != STATUS_CODE_SUCCESS)
     {
@@ -127,12 +138,10 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList, const 
         std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Failed to get current MC particle list or it is empty" << std::endl;
         return;
     }
-    std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Successfully retrieved MC particle list with " << pMCParticleList->size() << " particles" << std::endl;
 
     // Get the current calo hit list
-    std::cout << "Getting calo hit list for slicing evaluation..." << std::endl;
     const CaloHitList *pCaloHitList(nullptr);
-    if (PandoraContentApi::GetCurrentList(*this, pCaloHitList, m_caloHitListNames[TPC_3D]) != STATUS_CODE_SUCCESS)
+    if (PandoraContentApi::GetList(*this, m_caloHitListNames[TPC_3D], pCaloHitList) != STATUS_CODE_SUCCESS)
     {
         std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Failed to get current calo hit list" << std::endl;
         return;
@@ -143,14 +152,11 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList, const 
         std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Failed to get current calo hit list or it is empty" << std::endl;
         return;
     }
-    std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Successfully retrieved calo hit list with " << pCaloHitList->size() << " hits" << std::endl;
 
     // Pull out event info...
-    std::cout << "Getting event info for slicing evaluation..." << std::endl;
     const unsigned int runNum(this->GetPandora().GetRun());
     const unsigned int subrunNum(this->GetPandora().GetSubrun());
     const unsigned int eventNum(this->GetPandora().GetEvent());
-    std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Evaluating slices for run " << runNum << ", subrun " << subrunNum << ", event " << eventNum << std::endl;
 
     // List of all found true neutrinos.
     // Split into in detector and rock muons.
@@ -310,6 +316,8 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList, const 
         // Finally, increment the slice index for the next slice.
         sliceIndex++;
     }
+
+    std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Evaluated " << sliceIndex << " slices for this event" << std::endl;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

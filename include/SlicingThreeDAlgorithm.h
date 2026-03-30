@@ -32,6 +32,7 @@ public:
      *  @brief  Default constructor
      */
     SlicingThreeDAlgorithm();
+    virtual ~SlicingThreeDAlgorithm();
 
 private:
     pandora::StatusCode Run();
