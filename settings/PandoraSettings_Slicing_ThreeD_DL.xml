@@ -1,0 +1,55 @@
+<pandora>
+    <!-- GLOBAL SETTINGS -->
+    <IsMonitoringEnabled>false</IsMonitoringEnabled>
+    <ShouldDisplayAlgorithmInfo>false</ShouldDisplayAlgorithmInfo>
+    <SingleHitTypeClusteringMode>true</SingleHitTypeClusteringMode>
+
+    <!-- ALGORITHM SETTINGS -->
+    <algorithm type = "LArPreProcessingThreeD">
+        <OutputCaloHitListNameU>CaloHitListU</OutputCaloHitListNameU>
+        <OutputCaloHitListNameV>CaloHitListV</OutputCaloHitListNameV>
+        <OutputCaloHitListNameW>CaloHitListW</OutputCaloHitListNameW>
+        <OutputCaloHitListName3D>CaloHitList3D</OutputCaloHitListName3D>
+        <FilteredCaloHitListName>CaloHitList2D</FilteredCaloHitListName>
+        <CurrentCaloHitListReplacement>CaloHitList2D</CurrentCaloHitListReplacement>
+    </algorithm>
+
+    <!-- DL Slicing -->
+    <algorithm type = "LArDLSlicing">
+        <InputCaloHitListName>CaloHitList3D</InputCaloHitListName>
+        <OutputClusterListName>DLSlicingClusters3D</OutputClusterListName>
+        <ScalingFactor>400.0</ScalingFactor>
+        <ModelFileName>torchscript_instance_segmentation_model_149.pt</ModelFileName>
+        <DistanceThresholds>0.0050 0.0200 0.0400 0.0600 0.0800 0.1000 0.1200 0.1400 0.1600 0.1800 0.2000 0.2300 0.2500 0.2800 0.3000 0.3500 0.4000 0.4700 0.5500 0.7000 1.5000</DistanceThresholds>
+    </algorithm>
+
+    <!-- SliceCreation -->
+    <algorithm type = "LArSlicingThreeD">
+        <InputCaloHitListNameU>CaloHitListU</InputCaloHitListNameU>
+        <InputCaloHitListNameV>CaloHitListV</InputCaloHitListNameV>
+        <InputCaloHitListNameW>CaloHitListW</InputCaloHitListNameW>
+        <InputCaloHitListName3D>CaloHitList3D</InputCaloHitListName3D>
+        <InputClusterListNameU>ClustersU</InputClusterListNameU>
+        <InputClusterListNameV>ClustersV</InputClusterListNameV>
+        <InputClusterListNameW>ClustersW</InputClusterListNameW>
+        <OutputClusterListName>SliceClusters</OutputClusterListName>
+        <OutputPfoListName>SliceParticles</OutputPfoListName>
+        <tool type = "LArEventSlicingThreeD" description = "SliceCreation">
+            <TrackPfoListName>TrackParticles3D</TrackPfoListName>
+            <ShowerPfoListName>ShowerParticles3D</ShowerPfoListName>
+            <!-- Need to make the slicing much harsher than the FD -->
+            <MaxHitSeparation>10</MaxHitSeparation>
+            <MaxConeLength>50.0</MaxConeLength>
+            <ConeLengthMultiplier>3</ConeLengthMultiplier>
+            <MaxInterceptDistance>30.0</MaxInterceptDistance>
+        </tool>
+        <algorithm type = "LArListDeletion" description = "SlicingListDeletion">
+            <PfoListNames>TrackParticles3D ShowerParticles3D</PfoListNames>
+            <ClusterListNames>ClustersU ClustersV ClustersW TrackClusters3D ShowerClusters3D</ClusterListNames>
+<!--            <VertexListNames>CandidateVertices3D</VertexListNames> -->
+        </algorithm>
+    </algorithm>
+    <algorithm type = "LArListChanging">
+        <PfoListName>SliceParticles</PfoListName>
+    </algorithm>
+</pandora>
