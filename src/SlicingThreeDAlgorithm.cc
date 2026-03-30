@@ -11,6 +11,7 @@
 #include "larpandoracontent/LArHelpers/LArGeometryHelper.h"
 #include "larpandoracontent/LArHelpers/LArMCParticleHelper.h"
 #include "larpandoracontent/LArObjects/LArCaloHit.h"
+#include <memory>
 
 #include "SlicingThreeDAlgorithm.h"
 
@@ -29,8 +30,11 @@ SlicingThreeDAlgorithm::SlicingThreeDAlgorithm() :
 StatusCode SlicingThreeDAlgorithm::Run()
 {
     Slice3DList sliceList;
+    const auto startTime(std::chrono::high_resolution_clock::now());
     m_pEventSlicingTool->RunSlicing(this, m_caloHitListNames, m_clusterListNames, sliceList);
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::RunDaughterAlgorithm(*this, m_slicingListDeletionAlgorithm));
+    const auto endTime(std::chrono::high_resolution_clock::now());
+    const auto duration(std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count());
 
     if (sliceList.empty())
         return STATUS_CODE_SUCCESS;
@@ -44,7 +48,7 @@ StatusCode SlicingThreeDAlgorithm::Run()
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::CreateTemporaryListAndSetCurrent(*this, pPfoList, pfoListName));
 
     if (m_evaluateSlices)
-        this->EvaluateSlices(sliceList);
+        this->EvaluateSlices(sliceList, duration);
 
     for (const Slice3D &slice : sliceList)
     {
@@ -101,7 +105,7 @@ StatusCode SlicingThreeDAlgorithm::Run()
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
+void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList, const long long slicingDuration)
 {
     if (sliceList.empty())
     {
@@ -235,6 +239,7 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
         // of every neutrino that contributed to this slice.
         std::vector<unsigned int> eventNumSlice, subrunNumSlice, runNumSlice;
         std::vector<int> sliceIndexSlice;
+        std::vector<long long> slicingDurationSlice;
         std::vector<float> puritySlice, completenessSlice, isRockMuonSlice, isMainNuSlice;
         std::vector<float> trueNuSize, trueNuEnergy, sliceSize, sliceMatchedHits, sliceMissedHits;
 
@@ -275,12 +280,12 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
             subrunNumSlice.push_back(subrunNum);
             eventNumSlice.push_back(eventNum);
             sliceIndexSlice.push_back(sliceIndex);
+            slicingDurationSlice.push_back(slicingDuration);
             trueNuSize.push_back(trueNuHits);
             trueNuEnergy.push_back(nu->GetEnergy());
             sliceSize.push_back(nHitsInSlice);
             sliceMatchedHits.push_back(matchedHits);
             sliceMissedHits.push_back(missedHits);
-
         }
 
         // Add the results to a ROOT file.
@@ -288,6 +293,7 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
         PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "subrun", &subrunNumSlice));
         PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "event", &eventNumSlice));
         PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "sliceIndex", &sliceIndexSlice));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "slicingDuration", &slicingDurationSlice));
         PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "completeness", &completenessSlice));
         PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "purity", &puritySlice));
         PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), m_analysisTreeName.c_str(), "isRockMuon", &isRockMuonSlice));

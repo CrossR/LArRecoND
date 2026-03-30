@@ -58,6 +58,7 @@
 #include <random>
 #include <string>
 #include <vector>
+#include <regex>
 
 using namespace pandora;
 using namespace lar_nd_reco;
@@ -496,6 +497,24 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
             CreateSPMCParticles(*larspmc, pPrimaryPandora, parameters);
         }
 
+        // Set the event level information...
+        unsigned int run(0);
+        unsigned int subrun(0);
+        const unsigned int event(larsp->m_event);
+
+        // INFO: For now...we don't have run/subrun info in the inputs. So pull a unique ID out of the filename.
+        std::regex fileNameRegex(".*\\.(\\d+)\\.FLOW.*");
+        std::smatch matches;
+        if (std::regex_match(parameters.m_inputFileName, matches, fileNameRegex) && matches.size() > 1)
+        {
+            run = std::stoi(matches[1].str());
+            subrun = run; // Duplicate for now.
+        }
+
+        std::cout << "Event info: run " << run << ", subrun " << subrun << ", event " << event << std::endl;
+        PandoraApi::SetEventInformation(*pPrimaryPandora, run, subrun, event);
+        std::cout << pPrimaryPandora->GetRun() << ", " << pPrimaryPandora->GetSubrun() << ", " << pPrimaryPandora->GetEvent() << std::endl;
+
         int hitCounter(0);
 
         // Loop over the space points and make them into caloHits
@@ -505,10 +524,6 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
             const float voxelY = (*larsp->m_y)[isp];
             const float voxelZ = (*larsp->m_z)[isp];
             const float voxelE = (*larsp->m_E)[isp];
-
-            // Set the event level information...
-            if (isp == 0)
-                PandoraApi::SetEventInformation(*pPrimaryPandora, larsp->m_run, larsp->m_subrun, larsp->m_event);
 
             // Skip this hit if its coordinates or energy are NaNs
             if (std::isnan(voxelX) || std::isnan(voxelY) || std::isnan(voxelZ) || std::isnan(voxelE))
