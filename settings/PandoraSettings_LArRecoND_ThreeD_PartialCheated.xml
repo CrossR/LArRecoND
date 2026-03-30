@@ -14,12 +14,11 @@
         <CurrentCaloHitListReplacement>CaloHitList2D</CurrentCaloHitListReplacement>
     </algorithm>
 
-    <!-- EVENT DISPLAY
     <algorithm type = "LArVisualMonitoring">
-        <CaloHitListNames>CaloHitListU CaloHitListV CaloHitListW CaloHitList3D</CaloHitListNames>
+        <!-- <CaloHitListNames>CaloHitListU CaloHitListV CaloHitListW CaloHitList3D</CaloHitListNames> -->
+        <ShowCurrentCaloHits>true</ShowCurrentCaloHits>
         <ShowDetector>true</ShowDetector>
     </algorithm>
-    -->
 
     <algorithm type = "LArMasterThreeD">
         <CRSettingsFile>PandoraSettings_LArRecoND_RockMuon_Cheat.xml</CRSettingsFile>

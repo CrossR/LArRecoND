@@ -373,38 +373,12 @@ void LoadDetectorGaps(const pandora::Pandora *const pPrimaryPandora)
             std::cout << "LoadDetectorGaps - unable to create BoxGap." << std::endl;
         }
 
-        // Now we check if we want to project this into 2D.
-        const float dx = std::fabs(x2 - x1);
-        const float dy = std::fabs(y2 - y1);
-        const float dz = std::fabs(z2 - z1);
-
-        if (dz >= dx || dz >= dy)
-            return;
-
-        // Project Z-gaps into U, V, and W LineGaps
         const pandora::LArTransformationPlugin *pTrans = pPrimaryPandora->GetPlugins()->GetLArTransformationPlugin();
 
-        const std::vector<std::pair<float, float>> yzCorners = {
-            {y1, z1}, {y1, z2}, {y2, z1}, {y2, z2}
-        };
-
-        float minU = std::numeric_limits<float>::max(), maxU = -std::numeric_limits<float>::max();
-        float minV = std::numeric_limits<float>::max(), maxV = -std::numeric_limits<float>::max();
-        float minW = std::numeric_limits<float>::max(), maxW = -std::numeric_limits<float>::max();
-
-        for (const auto& corner : yzCorners) {
-            const float u = pTrans->YZtoU(corner.first, corner.second);
-            const float v = pTrans->YZtoV(corner.first, corner.second);
-            const float w = pTrans->YZtoW(corner.first, corner.second);
-
-            minU = std::min(minU, u); maxU = std::max(maxU, u);
-            minV = std::min(minV, v); maxV = std::max(maxV, v);
-            minW = std::min(minW, w); maxW = std::max(maxW, w);
-        }
-
-        createLineGap(pandora::TPC_VIEW_U, x1, x2, minU, maxU);
-        createLineGap(pandora::TPC_VIEW_V, x1, x2, minV, maxV);
-        createLineGap(pandora::TPC_VIEW_W, x1, x2, minW, maxW);
+        // Project gap into U, V, and W LineGaps
+        createLineGap(pandora::TPC_VIEW_U, x1, x2, pTrans->YZtoU(0, z1), pTrans->YZtoU(0, z2));
+        createLineGap(pandora::TPC_VIEW_V, x1, x2, pTrans->YZtoV(0, z1), pTrans->YZtoV(0, z2));
+        createLineGap(pandora::TPC_VIEW_W, x1, x2, pTrans->YZtoW(0, z1), pTrans->YZtoW(0, z2));
     };
 
     // Build full-length X gaps.
@@ -564,7 +538,7 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
             caloHitParameters.m_hitRegion = pandora::SINGLE_REGION;
             caloHitParameters.m_layer = 0;
             caloHitParameters.m_isInOuterSamplingLayer = false;
-            caloHitParameters.m_pParentAddress = (void *)(static_cast<uintptr_t>(++hitCounter));
+            caloHitParameters.m_pParentAddress = (void *)(static_cast<uintptr_t>(hitCounter));
             caloHitParameters.m_larTPCVolumeId = tpcID < 0 ? 0 : tpcID;
             caloHitParameters.m_daughterVolumeId = 0;
 
@@ -609,7 +583,7 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
                 // U view
                 lar_content::LArCaloHitParameters caloHitPars_UView(caloHitParameters);
                 caloHitPars_UView.m_hitType = pandora::TPC_VIEW_U;
-                caloHitPars_UView.m_pParentAddress = (void *)(intptr_t(++hitCounter));
+                caloHitPars_UView.m_pParentAddress = (void *)(intptr_t(hitCounter));
                 const float upos_cm(pPrimaryPandora->GetPlugins()->GetLArTransformationPlugin()->YZtoU(y0_cm, z0_cm));
                 caloHitPars_UView.m_positionVector = pandora::CartesianVector(x0_cm, 0.f, upos_cm);
 
@@ -622,7 +596,7 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
                 // V view
                 lar_content::LArCaloHitParameters caloHitPars_VView(caloHitParameters);
                 caloHitPars_VView.m_hitType = pandora::TPC_VIEW_V;
-                caloHitPars_VView.m_pParentAddress = (void *)(intptr_t(++hitCounter));
+                caloHitPars_VView.m_pParentAddress = (void *)(intptr_t(hitCounter));
                 const float vpos_cm(pPrimaryPandora->GetPlugins()->GetLArTransformationPlugin()->YZtoV(y0_cm, z0_cm));
                 caloHitPars_VView.m_positionVector = pandora::CartesianVector(x0_cm, 0.f, vpos_cm);
                 PANDORA_THROW_RESULT_IF(
@@ -633,7 +607,7 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
                 // W view
                 lar_content::LArCaloHitParameters caloHitPars_WView(caloHitParameters);
                 caloHitPars_WView.m_hitType = pandora::TPC_VIEW_W;
-                caloHitPars_WView.m_pParentAddress = (void *)(intptr_t(++hitCounter));
+                caloHitPars_WView.m_pParentAddress = (void *)(intptr_t(hitCounter));
                 const float wpos_cm(pPrimaryPandora->GetPlugins()->GetLArTransformationPlugin()->YZtoW(y0_cm, z0_cm));
                 caloHitPars_WView.m_positionVector = pandora::CartesianVector(x0_cm, 0.f, wpos_cm);
 
@@ -643,6 +617,9 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
                     PandoraApi::SetCaloHitToMCParticleRelationship(
                         *pPrimaryPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
             }
+
+            // Increment hit counter for unique ID assignment
+            hitCounter++;
 
         } // end space point loop
 
