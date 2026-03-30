@@ -11,9 +11,10 @@
 #include "larpandoracontent/LArHelpers/LArGeometryHelper.h"
 #include "larpandoracontent/LArHelpers/LArMCParticleHelper.h"
 #include "larpandoracontent/LArObjects/LArCaloHit.h"
-#include <memory>
 
 #include "SlicingThreeDAlgorithm.h"
+
+#include <chrono>
 
 using namespace pandora;
 
