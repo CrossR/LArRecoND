@@ -99,7 +99,7 @@ if(PANDORA_LIBTORCH)
     target_compile_definitions(${PROJECT_NAME} PRIVATE -DLIBTORCH_DL=1)
 endif()
 
-if(PANDORA_MONITORIN)
+if(PANDORA_MONITORING)
     if(USE_EDEPSIM)
         target_link_libraries(PandoraInterface PRIVATE
             PandoraPFA::PandoraMonitoring
