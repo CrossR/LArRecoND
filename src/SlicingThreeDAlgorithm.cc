@@ -31,11 +31,7 @@ SlicingThreeDAlgorithm::SlicingThreeDAlgorithm() :
 SlicingThreeDAlgorithm::~SlicingThreeDAlgorithm()
 {
     if (m_evaluateSlices)
-    {
-        std::cout << "SlicingThreeDAlgorithm::~SlicingThreeDAlgorithm: Saving analysis tree to file " << m_analysisFileName << " with tree name " << m_analysisTreeName << std::endl;
         PANDORA_MONITORING_API(SaveTree(this->GetPandora(), m_analysisTreeName.c_str(), m_analysisFileName.c_str(), "UPDATE"));
-        std::cout << "SlicingThreeDAlgorithm::~SlicingThreeDAlgorithm: Finished saving analysis tree" << std::endl;
-    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -47,7 +43,7 @@ StatusCode SlicingThreeDAlgorithm::Run()
     m_pEventSlicingTool->RunSlicing(this, m_caloHitListNames, m_clusterListNames, sliceList);
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::RunDaughterAlgorithm(*this, m_slicingListDeletionAlgorithm));
     const auto endTime(std::chrono::high_resolution_clock::now());
-    const auto duration(std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count());
+    const float duration(std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count());
 
     if (sliceList.empty())
         return STATUS_CODE_SUCCESS;
@@ -118,7 +114,7 @@ StatusCode SlicingThreeDAlgorithm::Run()
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList, const long long slicingDuration)
+void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList, const float slicingDuration)
 {
     if (sliceList.empty())
     {
@@ -191,13 +187,8 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList, const 
 
         try {
             if (!LArMCParticleHelper::IsNeutrino(largestContributor))
-            {
-                std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Found a CaloHit with no neutrino parent" << std::endl;
                 continue;
-            }
         } catch (const StatusCodeException &e) {
-            std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Caught exception while checking if largest contributor is a neutrino" << std::endl;
-            std::cout << "Back-trace: " << e.GetBackTrace() << std::endl;
             continue;
         }
 
@@ -225,10 +216,7 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList, const 
         {
             const auto it(caloHitToNuMap.find(pCaloHit));
             if (it == caloHitToNuMap.end())
-            {
-                std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: CaloHit not found in caloHitToNuMap" << std::endl;
                 continue;
-            }
 
             nuContributionMap[it->second] += pCaloHit->GetInputEnergy();
         }
@@ -244,9 +232,9 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList, const 
         // Finally, we can store a "This slice is dominated by this neutrino" flag, to get
         // the completeness and purity of the main contributor, whilst also storing the completeness and purity
         // of every neutrino that contributed to this slice.
-        std::vector<unsigned int> eventNumSlice, subrunNumSlice, runNumSlice;
+        std::vector<int> eventNumSlice, subrunNumSlice, runNumSlice;
         std::vector<int> sliceIndexSlice;
-        std::vector<long long> slicingDurationSlice;
+        std::vector<float> slicingDurationSlice;
         std::vector<float> puritySlice, completenessSlice, isRockMuonSlice, isMainNuSlice;
         std::vector<float> trueNuSize, trueNuEnergy, sliceSize, sliceMatchedHits, sliceMissedHits;
 
@@ -265,10 +253,7 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList, const 
             {
                 const auto it(caloHitToNuMap.find(pCaloHit));
                 if (it == caloHitToNuMap.end())
-                {
-                    std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: CaloHit not found in caloHitToNuMap" << std::endl;
                     continue;
-                }
 
                 if (it->second == nu)
                     matchedHits++;
