@@ -187,10 +187,13 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList, const 
                 largestContributor = parent;
         }
 
-        try {
+        try
+        {
             if (!LArMCParticleHelper::IsNeutrino(largestContributor))
                 continue;
-        } catch (const StatusCodeException &e) {
+        }
+        catch (const StatusCodeException &e)
+        {
             continue;
         }
 
@@ -224,9 +227,9 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList, const 
         }
 
         // Find the neutrino with the largest contribution.
-        const auto maxNuIt(std::max_element(nuContributionMap.begin(), nuContributionMap.end(),
-            [](const auto &a, const auto &b) { return a.second < b.second; }));
-        const MCParticle* maxNu = maxNuIt->first;
+        const auto maxNuIt(std::max_element(
+            nuContributionMap.begin(), nuContributionMap.end(), [](const auto &a, const auto &b) { return a.second < b.second; }));
+        const MCParticle *maxNu = maxNuIt->first;
 
         // Now, we know the main neutrino for this slice.
         // Lets loop over every MC particle that contributed to this slice, and store every individual
@@ -336,11 +339,14 @@ StatusCode SlicingThreeDAlgorithm::ReadSettings(const TiXmlHandle xmlHandle)
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "InputClusterListNameU", clusterListNameU));
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "InputClusterListNameV", clusterListNameV));
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "InputClusterListNameW", clusterListNameW));
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "InputClusterListName3D", clusterListName3D));
+    PANDORA_RETURN_RESULT_IF_AND_IF(
+        STATUS_CODE_SUCCESS, STATUS_CODE_NOT_FOUND, !=, XmlHelper::ReadValue(xmlHandle, "InputClusterListName3D", clusterListName3D));
     m_clusterListNames[TPC_VIEW_U] = clusterListNameU;
     m_clusterListNames[TPC_VIEW_V] = clusterListNameV;
     m_clusterListNames[TPC_VIEW_W] = clusterListNameW;
-    m_clusterListNames[TPC_3D] = clusterListName3D;
+
+    if (!clusterListName3D.empty())
+        m_clusterListNames[TPC_3D] = clusterListName3D;
 
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "OutputClusterListName", m_sliceClusterListName));
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "OutputPfoListName", m_slicePfoListName));
