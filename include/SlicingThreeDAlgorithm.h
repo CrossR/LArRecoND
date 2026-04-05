@@ -52,7 +52,6 @@ private:
     bool m_evaluateSlices{false}; ///< Flag to indicate whether to evaluate slices
     std::string m_analysisTreeName{"SlicingThreeDAnalysis"}; ///< The name of the analysis tree
     std::string m_analysisFileName{"SlicingThreeDAnalysis.root"}; ///< The name of the analysis file
-    int m_count{-1}; ///< The count of events processed, used for monitoring.
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------

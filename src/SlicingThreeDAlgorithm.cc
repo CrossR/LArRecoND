@@ -116,8 +116,6 @@ StatusCode SlicingThreeDAlgorithm::Run()
 
 void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList, const float slicingDuration)
 {
-    ++m_count;
-
     if (sliceList.empty())
     {
         std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: No slices to evaluate" << std::endl;
@@ -155,7 +153,7 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList, const 
     // Pull out event info...
     const unsigned int runNum(this->GetPandora().GetRun());
     const unsigned int subrunNum(this->GetPandora().GetSubrun());
-    // const unsigned int eventNum(this->GetPandora().GetEvent());
+    const unsigned int eventNum(this->GetPandora().GetEvent());
 
     // List of all found true neutrinos.
     // Split into in detector and rock muons.
@@ -275,7 +273,7 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList, const 
             // Store some higher level information about the slice + MC.
             runNumSlice.push_back(runNum);
             subrunNumSlice.push_back(subrunNum);
-            eventNumSlice.push_back(m_count);
+            eventNumSlice.push_back(eventNum);
             sliceIndexSlice.push_back(sliceIndex);
             slicingDurationSlice.push_back(slicingDuration);
             trueNuSize.push_back(trueNuHits);
