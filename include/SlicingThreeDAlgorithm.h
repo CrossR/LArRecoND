@@ -38,7 +38,7 @@ private:
     pandora::StatusCode Run();
     pandora::StatusCode ReadSettings(const pandora::TiXmlHandle xmlHandle);
 
-    void EvaluateSlices(const Slice3DList &sliceList, const float slicingDuration = 0.0);
+    void EvaluateSlices(const Slice3DList &sliceList);
 
     EventSlicingThreeDBaseTool *m_pEventSlicingTool; ///< The address of the event slicing tool
     std::string m_slicingListDeletionAlgorithm;      ///< The name of the slicing list deletion algorithm

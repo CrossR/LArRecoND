@@ -39,11 +39,8 @@ SlicingThreeDAlgorithm::~SlicingThreeDAlgorithm()
 StatusCode SlicingThreeDAlgorithm::Run()
 {
     Slice3DList sliceList;
-    const auto startTime(std::chrono::high_resolution_clock::now());
     m_pEventSlicingTool->RunSlicing(this, m_caloHitListNames, m_clusterListNames, sliceList);
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::RunDaughterAlgorithm(*this, m_slicingListDeletionAlgorithm));
-    const auto endTime(std::chrono::high_resolution_clock::now());
-    const float duration(std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count());
 
     if (sliceList.empty())
         return STATUS_CODE_SUCCESS;
@@ -57,7 +54,7 @@ StatusCode SlicingThreeDAlgorithm::Run()
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::CreateTemporaryListAndSetCurrent(*this, pPfoList, pfoListName));
 
     if (m_evaluateSlices)
-        this->EvaluateSlices(sliceList, duration);
+        this->EvaluateSlices(sliceList);
 
     for (const Slice3D &slice : sliceList)
     {
@@ -114,7 +111,7 @@ StatusCode SlicingThreeDAlgorithm::Run()
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList, const float slicingDuration)
+void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
 {
     if (sliceList.empty())
     {
@@ -275,7 +272,6 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList, const 
             subrunNumSlice.push_back(subrunNum);
             eventNumSlice.push_back(eventNum);
             sliceIndexSlice.push_back(sliceIndex);
-            slicingDurationSlice.push_back(slicingDuration);
             trueNuSize.push_back(trueNuHits);
             trueNuEnergy.push_back(nu->GetEnergy());
             sliceSize.push_back(nHitsInSlice);
