@@ -29,6 +29,8 @@
 #include "larpandoracontent/LArUtility/PfoMopUpBaseAlgorithm.h"
 #include <larpandoracontent/LArControlFlow/MasterAlgorithm.h>
 
+#include <chrono>
+
 #ifdef LIBTORCH_DL
 #include "larpandoradlcontent/LArDLContent.h"
 #endif
@@ -153,7 +155,11 @@ StatusCode MasterThreeDAlgorithm::RunSlicing(const VolumeIdToHitListMap &volumeI
 
         const PfoList *pSlicePfos(nullptr);
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles(m_pSlicingWorkerInstance));
+        const auto startTime(std::chrono::high_resolution_clock::now());
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ProcessEvent(*m_pSlicingWorkerInstance));
+        const auto endTime(std::chrono::high_resolution_clock::now());
+        const auto duration(std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count());
+        std::cout << "Slicing took " << duration << " mseconds" << std::endl;
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::GetCurrentPfoList(*m_pSlicingWorkerInstance, pSlicePfos));
 
         if (m_visualizeOverallRecoStatus)
