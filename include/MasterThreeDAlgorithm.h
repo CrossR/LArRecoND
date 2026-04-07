@@ -37,6 +37,14 @@ protected:
     pandora::StatusCode Run() override;
 
     /**
+     *  @brief  Run the cosmic-ray reconstruction worker instances
+     *
+     *  @param  volumeIdToHitListMap the volume id to hit list map
+     *  @param  pfoToLArTPCMap the pfo to lar tpc map
+     */
+    pandora::StatusCode RunCosmicRayReconstruction(const VolumeIdToHitListMap &volumeIdToHitListMap, PfoToLArTPCMap &pfoToLArTPCMap) const;
+
+    /**
      *  @brief  Run cosmic-ray hit removal, freeing hits in ambiguous pfos for further processing
      *
      *  @param  ambiguousPfos the list of ambiguous cosmic-ray pfos
