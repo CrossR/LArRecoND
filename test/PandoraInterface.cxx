@@ -523,7 +523,7 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
             const float voxelX = (*larsp->m_x)[isp];
             const float voxelY = (*larsp->m_y)[isp];
             const float voxelZ = (*larsp->m_z)[isp];
-            const float voxelE = (*larsp->m_E)[isp];
+            const float voxelE = (*larsp->m_charge)[isp];
 
             // Skip this hit if its coordinates or energy are NaNs
             if (std::isnan(voxelX) || std::isnan(voxelY) || std::isnan(voxelZ) || std::isnan(voxelE))
