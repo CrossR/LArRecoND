@@ -21,6 +21,7 @@
 #include "CreateTwoDClustersFromThreeDAlgorithm.h"
 #include "CutClusterCharacterisationThreeDAlgorithm.h"
 #include "DLEventSlicingThreeDTool.h"
+#include "DLVertexingThreeDAlgorithm.h"
 #include "EventSlicingThreeDTool.h"
 #include "HierarchyAnalysisAlgorithm.h"
 #include "LArNDContent.h"
@@ -45,6 +46,7 @@
     d("LArCutClusterCharacterisationThreeD",    CutClusterCharacterisationThreeDAlgorithm)                                         \
     d("LArCandidateVertexCreationThreeD",       CandidateVertexCreationThreeDAlgorithm)                                            \
     d("LArHierarchyAnalysis",                   HierarchyAnalysisAlgorithm)                                                        \
+    d("LArDLVertexingThreeD",                   DLVertexingThreeDAlgorithm)                                                        \
     d("LArCheatingRockMuonRemoval",             CheatingRockMuonRemovalAlgorithm)
 
 #define LAR_ND_ALGORITHM_TOOL_LIST(d)                                                                                              \
