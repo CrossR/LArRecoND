@@ -91,6 +91,7 @@ StatusCode SlicingThreeDAlgorithm::Run()
         pfoParameters.m_mass = 0.f;
         pfoParameters.m_momentum = CartesianVector(0.f, 0.f, 0.f);
         pfoParameters.m_particleId = 0;
+        pfoParameters.m_vertexList = slice.m_vertexList;
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::ParticleFlowObject::Create(*this, pfoParameters, pSlicePfo));
     }
 

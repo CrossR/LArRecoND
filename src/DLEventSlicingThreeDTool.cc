@@ -42,6 +42,14 @@ void DLEventSlicingThreeDTool::RunSlicing(const Algorithm *const pAlgorithm, con
     if (!pThreeDClusterList)
         throw StatusCodeException(STATUS_CODE_NOT_FOUND);
 
+    // And the 3D vertex seeds...
+    const VertexList *pThreeDVertexList(nullptr);
+    PANDORA_THROW_RESULT_IF_AND_IF(STATUS_CODE_SUCCESS, STATUS_CODE_NOT_INITIALIZED, !=,
+        PandoraContentApi::GetList(*pAlgorithm, m_inputVertexListName3D, pThreeDVertexList));
+
+    if (!pThreeDVertexList)
+        throw StatusCodeException(STATUS_CODE_NOT_FOUND);
+
     // Populate a map of HitIndex to each Hit.
     std::map<intptr_t, CaloHitList> hitIndexToCaloHitListMap;
     std::map<HitType, int> hitTypeToHitCountMap;
@@ -67,6 +75,39 @@ void DLEventSlicingThreeDTool::RunSlicing(const Algorithm *const pAlgorithm, con
 
             ++hitTypeToHitCountMap[pCaloHit->GetHitType()];
         }
+    }
+
+    // Build up a map of slice index to the candidate vertex indicies that fall within that slice.
+    std::map<unsigned int, VertexList> sliceIndexToCandidateVertexIndicesMap;
+    unsigned int vertexIdx{0};
+    for (const auto &vertex : *pThreeDVertexList)
+    {
+        const auto vertexPos = vertex->GetPosition();
+
+        // Loop through the slices and find the first one that contains this vertex.
+        bool vertexAssignedToSlice{false};
+        for (unsigned int sliceIdx = 0; sliceIdx < slice3DList.size(); ++sliceIdx)
+        {
+            for (const auto &caloHit : slice3DList[sliceIdx].m_caloHitList3D)
+            {
+                const auto hitPos = caloHit->GetPositionVector();
+                if (hitPos == vertexPos)
+                {
+                    sliceIndexToCandidateVertexIndicesMap[sliceIdx].push_back(vertex);
+                    vertexAssignedToSlice = true;
+                    break;
+                }
+            }
+
+            if (vertexAssignedToSlice)
+                break;
+        }
+
+        if (!vertexAssignedToSlice)
+            std::cout << "DLEventSlicingThreeDTool::RunSlicing - Warning: Vertex at position " << vertexPos
+                      << " was not assigned to any slice!" << std::endl;
+
+        ++vertexIdx;
     }
 
     // For every 3D cluster, get all the associated 3D hits, find the
@@ -102,6 +143,9 @@ void DLEventSlicingThreeDTool::RunSlicing(const Algorithm *const pAlgorithm, con
             }
         }
 
+        for (const auto &vertex : sliceIndexToCandidateVertexIndicesMap[slice3DList.size()])
+            slice.m_vertexList.push_back(vertex);
+
         std::cout << "DLEventSlicingThreeDTool::RunSlicing - Slice has " << slice.m_caloHitListU.size() << " U hits, "
                   << slice.m_caloHitListV.size() << " V hits, " << slice.m_caloHitListW.size() << " W hits and "
                   << slice.m_caloHitList3D.size() << " 3D hits." << std::endl;
@@ -112,8 +156,10 @@ void DLEventSlicingThreeDTool::RunSlicing(const Algorithm *const pAlgorithm, con
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-StatusCode DLEventSlicingThreeDTool::ReadSettings(const TiXmlHandle /*xmlHandle*/)
+StatusCode DLEventSlicingThreeDTool::ReadSettings(const TiXmlHandle xmlHandle)
 {
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "InputVertexListName3D", m_inputVertexListName3D));
+
     return STATUS_CODE_SUCCESS;
 }
 
