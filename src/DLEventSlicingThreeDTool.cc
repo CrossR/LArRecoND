@@ -86,9 +86,13 @@ void DLEventSlicingThreeDTool::RunSlicing(const Algorithm *const pAlgorithm, con
 
         // Loop through the slices and find the first one that contains this vertex.
         bool vertexAssignedToSlice{false};
-        for (unsigned int sliceIdx = 0; sliceIdx < slice3DList.size(); ++sliceIdx)
+        unsigned int sliceIdx{0};
+        for (const auto &slice : *pThreeDClusterList)
         {
-            for (const auto &caloHit : slice3DList[sliceIdx].m_caloHitList3D)
+            CaloHitList caloHitList3D;
+            LArClusterHelper::GetAllHits(slice, caloHitList3D);
+
+            for (const auto &caloHit : caloHitList3D)
             {
                 const auto hitPos = caloHit->GetPositionVector();
                 if (hitPos == vertexPos)
@@ -101,11 +105,9 @@ void DLEventSlicingThreeDTool::RunSlicing(const Algorithm *const pAlgorithm, con
 
             if (vertexAssignedToSlice)
                 break;
-        }
 
-        if (!vertexAssignedToSlice)
-            std::cout << "DLEventSlicingThreeDTool::RunSlicing - Warning: Vertex at position " << vertexPos
-                      << " was not assigned to any slice!" << std::endl;
+            ++sliceIdx;
+        }
 
         ++vertexIdx;
     }

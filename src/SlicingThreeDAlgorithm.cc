@@ -36,6 +36,21 @@ SlicingThreeDAlgorithm::~SlicingThreeDAlgorithm()
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
+const Vertex *CreateVertexCopy(const Algorithm &algorithm, const Vertex *const pInputVertex)
+{
+    PandoraContentApi::Vertex::Parameters vertexParameters;
+    vertexParameters.m_position = pInputVertex->GetPosition();
+    vertexParameters.m_vertexLabel = pInputVertex->GetVertexLabel();
+    vertexParameters.m_vertexType = pInputVertex->GetVertexType();
+
+    const Vertex *pNewVertex(nullptr);
+    PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::Vertex::Create(algorithm, vertexParameters, pNewVertex));
+
+    return pNewVertex;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
 StatusCode SlicingThreeDAlgorithm::Run()
 {
     Slice3DList sliceList;
@@ -52,6 +67,10 @@ StatusCode SlicingThreeDAlgorithm::Run()
     std::string pfoListName;
     const PfoList *pPfoList(nullptr);
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::CreateTemporaryListAndSetCurrent(*this, pPfoList, pfoListName));
+
+    std::string vertexListName;
+    const VertexList *pVertexList(nullptr);
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::CreateTemporaryListAndSetCurrent(*this, pVertexList, vertexListName));
 
     if (m_evaluateSlices)
         this->EvaluateSlices(sliceList);
@@ -91,7 +110,10 @@ StatusCode SlicingThreeDAlgorithm::Run()
         pfoParameters.m_mass = 0.f;
         pfoParameters.m_momentum = CartesianVector(0.f, 0.f, 0.f);
         pfoParameters.m_particleId = 0;
-        pfoParameters.m_vertexList = slice.m_vertexList;
+
+        for (const auto &vertex : slice.m_vertexList)
+            pfoParameters.m_vertexList.push_back(CreateVertexCopy(*this, vertex));
+
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::ParticleFlowObject::Create(*this, pfoParameters, pSlicePfo));
     }
 
@@ -106,6 +128,9 @@ StatusCode SlicingThreeDAlgorithm::Run()
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::SaveList<ParticleFlowObject>(*this, m_slicePfoListName));
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::ReplaceCurrentList<ParticleFlowObject>(*this, m_slicePfoListName));
     }
+
+    if (!pVertexList->empty())
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::SaveList<Vertex>(*this, m_slicePfoListName + "Vertices"));
 
     return STATUS_CODE_SUCCESS;
 }

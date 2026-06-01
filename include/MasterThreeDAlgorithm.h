@@ -59,7 +59,16 @@ protected:
      *
      *  @return whether slicing could be run
      */
-    pandora::StatusCode RunSlicing(const VolumeIdToHitListMap &volumeIdToHitListMap, SliceVector &sliceVector) const;
+    pandora::StatusCode RunSlicing(const VolumeIdToHitListMap &volumeIdToHitListMap, SliceVector &sliceVector);
+
+    /**
+     *  @brief  Process each slice under different reconstruction hypotheses
+     *
+     *  @param  sliceVector the slice vector
+     *  @param  nuSliceHypotheses to receive the vector of slice neutrino hypotheses
+     *  @param  crSliceHypotheses to receive the vector of slice cosmic-ray hypotheses
+     */
+    pandora::StatusCode RunSliceReconstruction(SliceVector &sliceVector, SliceHypotheses &nuSliceHypotheses, SliceHypotheses &crSliceHypotheses) const;
 
     /**
      *  @brief  Recreate a specified pfo in the current pandora instance
@@ -112,6 +121,9 @@ protected:
     pandora::StatusCode GetVolumeIdToHitListMap(VolumeIdToHitListMap &volumeIdToHitListMap) const;
 
     pandora::StatusCode ReadSettings(const pandora::TiXmlHandle xmlHandle) override;
+
+    // TODO: Remove! RunSlicing can also be made const once more after this is gone.
+    pandora::VertexList m_sliceCandidateVertices; ///< The list of candidate slice vertices identified during slicing, for use in slice reconstruction
 };
 
 } // namespace lar_content

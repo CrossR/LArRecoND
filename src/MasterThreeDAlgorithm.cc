@@ -124,7 +124,7 @@ StatusCode MasterThreeDAlgorithm::RunCosmicRayHitRemoval(const PfoList &ambiguou
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-StatusCode MasterThreeDAlgorithm::RunSlicing(const VolumeIdToHitListMap &volumeIdToHitListMap, SliceVector &sliceVector) const
+StatusCode MasterThreeDAlgorithm::RunSlicing(const VolumeIdToHitListMap &volumeIdToHitListMap, SliceVector &sliceVector)
 {
     std::cout << "There are " << volumeIdToHitListMap.size() << " volumes" << std::endl;
     for (const VolumeIdToHitListMap::value_type &mapEntry : volumeIdToHitListMap)
@@ -168,6 +168,8 @@ StatusCode MasterThreeDAlgorithm::RunSlicing(const VolumeIdToHitListMap &volumeI
             PANDORA_MONITORING_API(ViewEvent(this->GetPandora()));
         }
 
+        VertexList sliceVertexList;
+
         for (const Pfo *const pSlicePfo : *pSlicePfos)
         {
             sliceVector.push_back(CaloHitList());
@@ -175,11 +177,131 @@ StatusCode MasterThreeDAlgorithm::RunSlicing(const VolumeIdToHitListMap &volumeI
             LArPfoHelper::GetCaloHits(pSlicePfo, TPC_VIEW_V, sliceVector.back());
             LArPfoHelper::GetCaloHits(pSlicePfo, TPC_VIEW_W, sliceVector.back());
             LArPfoHelper::GetCaloHits(pSlicePfo, TPC_3D, sliceVector.back());
+
+            if (pSlicePfo->GetVertexList().size() > 0)
+                std::copy(pSlicePfo->GetVertexList().begin(), pSlicePfo->GetVertexList().end(), std::back_inserter(sliceVertexList));
         }
+
+        // TODO: What is the best way to do this...
+        // For PoC, lets store in a member variable and copy over to the slice
+        // workers in RunSliceReconstruction, but may want to consider a more
+        // elegant solution...
+        m_sliceCandidateVertices = sliceVertexList;
     }
 
     if (m_printOverallRecoStatus)
         std::cout << "Identified " << sliceVector.size() << " slice(s)" << std::endl;
+
+    return STATUS_CODE_SUCCESS;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+StatusCode CopyCandidateVertices(const VertexList &candidateVertices, const Pandora &pandora)
+{
+    for (const Vertex *const pVertex : candidateVertices)
+    {
+            PandoraContentApi::Vertex::Parameters vertexParameters;
+            vertexParameters.m_position = pVertex->GetPosition();
+            vertexParameters.m_vertexLabel = pVertex->GetVertexLabel();
+            vertexParameters.m_vertexType = pVertex->GetVertexType();
+            PandoraContentApi::Vertex::Create(pandora, vertexParameters);
+    }
+
+    std::cout << "Copied " << candidateVertices.size() << " candidate vertices to worker instance" << std::endl;
+
+    return STATUS_CODE_SUCCESS;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+StatusCode MasterThreeDAlgorithm::RunSliceReconstruction(SliceVector &sliceVector, SliceHypotheses &nuSliceHypotheses, SliceHypotheses &crSliceHypotheses) const
+{
+    SliceVector selectedSliceVector;
+    if (m_shouldRunSlicing && !m_sliceSelectionToolVector.empty())
+    {
+        SliceVector inputSliceVector(sliceVector);
+        for (SliceSelectionBaseTool *const pSliceSelectionTool : m_sliceSelectionToolVector)
+        {
+            pSliceSelectionTool->SelectSlices(this, inputSliceVector, selectedSliceVector);
+            inputSliceVector = selectedSliceVector;
+        }
+    }
+    else
+    {
+        selectedSliceVector = std::move(sliceVector);
+    }
+
+    unsigned int sliceCounter(0);
+
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles(m_pSliceNuWorkerInstance));
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles(m_pSliceCRWorkerInstance));
+
+    for (const CaloHitList &sliceHits : selectedSliceVector)
+    {
+        for (const CaloHit *const pSliceCaloHit : sliceHits)
+        {
+            // ATTN Must ensure we copy the hit actually owned by master instance; access differs with/without slicing enabled
+            const CaloHit *const pCaloHitInMaster(m_shouldRunSlicing ? static_cast<const CaloHit *>(pSliceCaloHit->GetParentAddress()) : pSliceCaloHit);
+
+            if (m_shouldRunNeutrinoRecoOption)
+                PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->Copy(m_pSliceNuWorkerInstance, pCaloHitInMaster));
+
+            if (m_shouldRunCosmicRecoOption)
+                PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->Copy(m_pSliceCRWorkerInstance, pCaloHitInMaster));
+        }
+
+        if (m_shouldRunNeutrinoRecoOption)
+        {
+            if (m_printOverallRecoStatus)
+                std::cout << "Running nu worker instance for slice " << (sliceCounter + 1) << " of " << selectedSliceVector.size() << std::endl;
+
+            if (m_sliceCandidateVertices.size() > 0)
+            {
+                CopyCandidateVertices(m_sliceCandidateVertices, *m_pSliceNuWorkerInstance);
+            }
+
+            const PfoList *pSliceNuPfos(nullptr);
+            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ProcessEvent(*m_pSliceNuWorkerInstance));
+            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::GetCurrentPfoList(*m_pSliceNuWorkerInstance, pSliceNuPfos));
+            nuSliceHypotheses.push_back(*pSliceNuPfos);
+
+            for (const ParticleFlowObject *const pPfo : *pSliceNuPfos)
+            {
+                PandoraContentApi::ParticleFlowObject::Metadata metadata;
+                metadata.m_propertiesToAdd["SliceIndex"] = sliceCounter;
+                PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::ParticleFlowObject::AlterMetadata(*this, pPfo, metadata));
+            }
+        }
+
+        if (m_shouldRunCosmicRecoOption)
+        {
+            if (m_printOverallRecoStatus)
+                std::cout << "Running cr worker instance for slice " << (sliceCounter + 1) << " of " << selectedSliceVector.size() << std::endl;
+
+            const PfoList *pSliceCRPfos(nullptr);
+            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ProcessEvent(*m_pSliceCRWorkerInstance));
+            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::GetCurrentPfoList(*m_pSliceCRWorkerInstance, pSliceCRPfos));
+            crSliceHypotheses.push_back(*pSliceCRPfos);
+
+            for (const ParticleFlowObject *const pPfo : *pSliceCRPfos)
+            {
+                PandoraContentApi::ParticleFlowObject::Metadata metadata;
+                metadata.m_propertiesToAdd["SliceIndex"] = sliceCounter;
+                PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::ParticleFlowObject::AlterMetadata(*this, pPfo, metadata));
+            }
+        }
+
+        ++sliceCounter;
+    }
+
+    // ATTN: If we swapped these objects at the start, be sure to swap them back in case we ever want to use sliceVector
+    // after this function
+    if (!(m_shouldRunSlicing && !m_sliceSelectionToolVector.empty()))
+        sliceVector = std::move(selectedSliceVector);
+
+    if (m_shouldRunNeutrinoRecoOption && m_shouldRunCosmicRecoOption && (nuSliceHypotheses.size() != crSliceHypotheses.size()))
+        throw StatusCodeException(STATUS_CODE_INVALID_PARAMETER);
 
     return STATUS_CODE_SUCCESS;
 }
@@ -421,7 +543,8 @@ StatusCode MasterThreeDAlgorithm::InitializeWorkerInstances()
         if (m_shouldRunSlicing)
         {
             m_pSlicingWorkerInstance = this->CreateWorkerInstance(larTPCMap, gapList, m_slicingSettingsFile, "SlicingWorker");
-            PandoraApi::SetEventInformation(*m_pSlicingWorkerInstance, this->GetPandora().GetRun(), this->GetPandora().GetSubrun(), this->GetPandora().GetEvent());
+            PandoraApi::SetEventInformation(
+                *m_pSlicingWorkerInstance, this->GetPandora().GetRun(), this->GetPandora().GetSubrun(), this->GetPandora().GetEvent());
         }
 
         if (m_shouldRunNeutrinoRecoOption)
@@ -477,7 +600,6 @@ StatusCode MasterThreeDAlgorithm::RunCosmicRayReconstruction(const VolumeIdToHit
 
     return STATUS_CODE_SUCCESS;
 }
-
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
