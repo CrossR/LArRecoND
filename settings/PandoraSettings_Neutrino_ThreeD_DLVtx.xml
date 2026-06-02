@@ -14,6 +14,23 @@
         <CurrentCaloHitListReplacement>CaloHitList2D</CurrentCaloHitListReplacement>
     </algorithm>
 
+    <algorithm type = "LArVisualMonitoring">
+        <CaloHitListNames>CaloHitListU CaloHitListV CaloHitListW CaloHitList3D</CaloHitListNames>
+        <ShowCurrentVertices>true</ShowCurrentVertices>
+        <ShowDetector>true</ShowDetector>
+        <DisplayEvent>true</DisplayEvent>
+    </algorithm>
+
+    <!-- DL 3D Vertexing -->
+    <algorithm type = "LArDLVertexingThreeD">
+        <InputCaloHitListName>CaloHitList3D</InputCaloHitListName>
+        <InputVertexContextKey>DLSlicingVertices3D</InputVertexContextKey>
+        <OutputVertexListName>NeutrinoVertices3D</OutputVertexListName>
+        <ScalingFactor>400.0</ScalingFactor>
+        <ModelFileName>vertexing_zoom/torchscript_nu_vertexing_model_499.pt</ModelFileName>
+        <DistanceThresholds>0.003 0.007 0.011 0.014 0.018 0.022 0.026 0.029 0.033 0.037 0.040 0.044 0.047 0.051 0.054 0.058 0.062 0.066 0.070 0.076 1.500</DistanceThresholds>
+    </algorithm>
+
     <!-- Use 3D hits to make the 2D clusters -->
     <algorithm type = "LArSimpleClusterCreationThreeD">
         <InputCaloHitListNameU>CaloHitListU</InputCaloHitListNameU>

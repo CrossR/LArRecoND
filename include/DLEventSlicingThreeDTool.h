@@ -51,7 +51,7 @@ private:
 
     pandora::StatusCode ReadSettings(const pandora::TiXmlHandle xmlHandle);
 
-    std::string m_inputVertexListName3D; ///< Name of the input vertex list that was used to seed the slicing.
+    std::string m_inputVertexContextKey; ///< Event-context key containing 3D candidate vertices used to seed slicing.
 
 };
 

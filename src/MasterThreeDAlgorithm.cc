@@ -124,7 +124,7 @@ StatusCode MasterThreeDAlgorithm::RunCosmicRayHitRemoval(const PfoList &ambiguou
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-StatusCode MasterThreeDAlgorithm::RunSlicing(const VolumeIdToHitListMap &volumeIdToHitListMap, SliceVector &sliceVector)
+StatusCode MasterThreeDAlgorithm::RunSlicing(const VolumeIdToHitListMap &volumeIdToHitListMap, SliceVector &sliceVector) const
 {
     std::cout << "There are " << volumeIdToHitListMap.size() << " volumes" << std::endl;
     for (const VolumeIdToHitListMap::value_type &mapEntry : volumeIdToHitListMap)
@@ -157,6 +157,7 @@ StatusCode MasterThreeDAlgorithm::RunSlicing(const VolumeIdToHitListMap &volumeI
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles(m_pSlicingWorkerInstance));
         const auto startTime(std::chrono::high_resolution_clock::now());
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ProcessEvent(*m_pSlicingWorkerInstance));
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyEventContextFromWorkerInstance(m_pSlicingWorkerInstance));
         const auto endTime(std::chrono::high_resolution_clock::now());
         const auto duration(std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count());
         std::cout << "Slicing took " << duration << " mseconds" << std::endl;
@@ -177,38 +178,11 @@ StatusCode MasterThreeDAlgorithm::RunSlicing(const VolumeIdToHitListMap &volumeI
             LArPfoHelper::GetCaloHits(pSlicePfo, TPC_VIEW_V, sliceVector.back());
             LArPfoHelper::GetCaloHits(pSlicePfo, TPC_VIEW_W, sliceVector.back());
             LArPfoHelper::GetCaloHits(pSlicePfo, TPC_3D, sliceVector.back());
-
-            if (pSlicePfo->GetVertexList().size() > 0)
-                std::copy(pSlicePfo->GetVertexList().begin(), pSlicePfo->GetVertexList().end(), std::back_inserter(sliceVertexList));
         }
-
-        // TODO: What is the best way to do this...
-        // For PoC, lets store in a member variable and copy over to the slice
-        // workers in RunSliceReconstruction, but may want to consider a more
-        // elegant solution...
-        m_sliceCandidateVertices = sliceVertexList;
     }
 
     if (m_printOverallRecoStatus)
         std::cout << "Identified " << sliceVector.size() << " slice(s)" << std::endl;
-
-    return STATUS_CODE_SUCCESS;
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-StatusCode CopyCandidateVertices(const VertexList &candidateVertices, const Pandora &pandora)
-{
-    for (const Vertex *const pVertex : candidateVertices)
-    {
-            PandoraContentApi::Vertex::Parameters vertexParameters;
-            vertexParameters.m_position = pVertex->GetPosition();
-            vertexParameters.m_vertexLabel = pVertex->GetVertexLabel();
-            vertexParameters.m_vertexType = pVertex->GetVertexType();
-            PandoraContentApi::Vertex::Create(pandora, vertexParameters);
-    }
-
-    std::cout << "Copied " << candidateVertices.size() << " candidate vertices to worker instance" << std::endl;
 
     return STATUS_CODE_SUCCESS;
 }
@@ -256,10 +230,7 @@ StatusCode MasterThreeDAlgorithm::RunSliceReconstruction(SliceVector &sliceVecto
             if (m_printOverallRecoStatus)
                 std::cout << "Running nu worker instance for slice " << (sliceCounter + 1) << " of " << selectedSliceVector.size() << std::endl;
 
-            if (m_sliceCandidateVertices.size() > 0)
-            {
-                CopyCandidateVertices(m_sliceCandidateVertices, *m_pSliceNuWorkerInstance);
-            }
+            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyEventContextToWorkerInstance(m_pSliceNuWorkerInstance));
 
             const PfoList *pSliceNuPfos(nullptr);
             PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ProcessEvent(*m_pSliceNuWorkerInstance));
@@ -278,6 +249,8 @@ StatusCode MasterThreeDAlgorithm::RunSliceReconstruction(SliceVector &sliceVecto
         {
             if (m_printOverallRecoStatus)
                 std::cout << "Running cr worker instance for slice " << (sliceCounter + 1) << " of " << selectedSliceVector.size() << std::endl;
+
+            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyEventContextToWorkerInstance(m_pSliceCRWorkerInstance));
 
             const PfoList *pSliceCRPfos(nullptr);
             PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ProcessEvent(*m_pSliceCRWorkerInstance));

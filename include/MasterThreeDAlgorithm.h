@@ -59,7 +59,7 @@ protected:
      *
      *  @return whether slicing could be run
      */
-    pandora::StatusCode RunSlicing(const VolumeIdToHitListMap &volumeIdToHitListMap, SliceVector &sliceVector);
+    pandora::StatusCode RunSlicing(const VolumeIdToHitListMap &volumeIdToHitListMap, SliceVector &sliceVector) const;
 
     /**
      *  @brief  Process each slice under different reconstruction hypotheses
@@ -121,9 +121,6 @@ protected:
     pandora::StatusCode GetVolumeIdToHitListMap(VolumeIdToHitListMap &volumeIdToHitListMap) const;
 
     pandora::StatusCode ReadSettings(const pandora::TiXmlHandle xmlHandle) override;
-
-    // TODO: Remove! RunSlicing can also be made const once more after this is gone.
-    pandora::VertexList m_sliceCandidateVertices; ///< The list of candidate slice vertices identified during slicing, for use in slice reconstruction
 };
 
 } // namespace lar_content
