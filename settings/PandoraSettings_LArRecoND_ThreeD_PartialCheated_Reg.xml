@@ -22,7 +22,7 @@
 
     <algorithm type = "LArMasterThreeD">
         <CRSettingsFile>PandoraSettings_LArRecoND_RockMuon_Cheat.xml</CRSettingsFile>
-        <NuSettingsFile>PandoraSettings_Neutrino_ThreeD_DLVtx.xml</NuSettingsFile>
+        <NuSettingsFile>PandoraSettings_Neutrino_ThreeD_DLVtx_Old.xml</NuSettingsFile>
         <SlicingSettingsFile>PandoraSettings_Slicing_ThreeD.xml</SlicingSettingsFile>
         <StitchingTools>
             <tool type = "LArCheatingStitching" />
