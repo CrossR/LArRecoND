@@ -14,13 +14,6 @@
         <CurrentCaloHitListReplacement>CaloHitList2D</CurrentCaloHitListReplacement>
     </algorithm>
 
-    <algorithm type = "LArVisualMonitoring">
-        <CaloHitListNames>CaloHitListU CaloHitListV CaloHitListW CaloHitList3D</CaloHitListNames>
-        <ShowCurrentVertices>true</ShowCurrentVertices>
-        <ShowDetector>true</ShowDetector>
-        <DisplayEvent>true</DisplayEvent>
-    </algorithm>
-
     <!-- DL 3D Vertexing -->
     <algorithm type = "LArDLVertexingThreeD">
         <InputCaloHitListName>CaloHitList3D</InputCaloHitListName>
@@ -112,7 +105,7 @@
     </algorithm>
 -->
     <!-- Deep Learning (DL) vertexing -->
-    <algorithm type = "LArDLVertexing">
+    <!-- <algorithm type = "LArDLVertexing">
         <TrainingMode>false</TrainingMode>
         <OutputVertexListName>NeutrinoVertices3D_Pass1</OutputVertexListName>
         <CaloHitListNames>CaloHitListU CaloHitListV CaloHitListW</CaloHitListNames>
@@ -140,7 +133,7 @@
         <DriftStep>0.3</DriftStep>
         <VolumeType>dune_nd</VolumeType>
         <Visualise>false</Visualise>
-    </algorithm>
+    </algorithm> -->
 
     <algorithm type = "LArCutClusterCharacterisation">
         <InputClusterListNames>ClustersU ClustersV ClustersW</InputClusterListNames>
