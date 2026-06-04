@@ -23,8 +23,6 @@
 namespace lar_content
 {
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-
 /**
  *  @brief  DLEventSlicingThreeDTool class
  */
@@ -51,7 +49,7 @@ private:
 
     pandora::StatusCode ReadSettings(const pandora::TiXmlHandle xmlHandle);
 
-    std::string m_inputVertexContextKey; ///< Event-context key containing 3D candidate vertices used to seed slicing.
+    std::string m_inputVertexListName3D; ///< The name of the input 3D vertex list
 
 };
 

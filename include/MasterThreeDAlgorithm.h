@@ -62,15 +62,6 @@ protected:
     pandora::StatusCode RunSlicing(const VolumeIdToHitListMap &volumeIdToHitListMap, SliceVector &sliceVector) const;
 
     /**
-     *  @brief  Process each slice under different reconstruction hypotheses
-     *
-     *  @param  sliceVector the slice vector
-     *  @param  nuSliceHypotheses to receive the vector of slice neutrino hypotheses
-     *  @param  crSliceHypotheses to receive the vector of slice cosmic-ray hypotheses
-     */
-    pandora::StatusCode RunSliceReconstruction(SliceVector &sliceVector, SliceHypotheses &nuSliceHypotheses, SliceHypotheses &crSliceHypotheses) const;
-
-    /**
      *  @brief  Recreate a specified pfo in the current pandora instance
      *
      *  @param  pInputPfo the input pfo

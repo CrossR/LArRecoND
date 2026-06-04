@@ -157,7 +157,6 @@ StatusCode MasterThreeDAlgorithm::RunSlicing(const VolumeIdToHitListMap &volumeI
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles(m_pSlicingWorkerInstance));
         const auto startTime(std::chrono::high_resolution_clock::now());
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ProcessEvent(*m_pSlicingWorkerInstance));
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyEventContextFromWorkerInstance(m_pSlicingWorkerInstance));
         const auto endTime(std::chrono::high_resolution_clock::now());
         const auto duration(std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count());
         std::cout << "Slicing took " << duration << " mseconds" << std::endl;
@@ -183,98 +182,6 @@ StatusCode MasterThreeDAlgorithm::RunSlicing(const VolumeIdToHitListMap &volumeI
 
     if (m_printOverallRecoStatus)
         std::cout << "Identified " << sliceVector.size() << " slice(s)" << std::endl;
-
-    return STATUS_CODE_SUCCESS;
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-StatusCode MasterThreeDAlgorithm::RunSliceReconstruction(SliceVector &sliceVector, SliceHypotheses &nuSliceHypotheses, SliceHypotheses &crSliceHypotheses) const
-{
-    SliceVector selectedSliceVector;
-    if (m_shouldRunSlicing && !m_sliceSelectionToolVector.empty())
-    {
-        SliceVector inputSliceVector(sliceVector);
-        for (SliceSelectionBaseTool *const pSliceSelectionTool : m_sliceSelectionToolVector)
-        {
-            pSliceSelectionTool->SelectSlices(this, inputSliceVector, selectedSliceVector);
-            inputSliceVector = selectedSliceVector;
-        }
-    }
-    else
-    {
-        selectedSliceVector = std::move(sliceVector);
-    }
-
-    unsigned int sliceCounter(0);
-
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles(m_pSliceNuWorkerInstance));
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles(m_pSliceCRWorkerInstance));
-
-    for (const CaloHitList &sliceHits : selectedSliceVector)
-    {
-        for (const CaloHit *const pSliceCaloHit : sliceHits)
-        {
-            // ATTN Must ensure we copy the hit actually owned by master instance; access differs with/without slicing enabled
-            const CaloHit *const pCaloHitInMaster(m_shouldRunSlicing ? static_cast<const CaloHit *>(pSliceCaloHit->GetParentAddress()) : pSliceCaloHit);
-
-            if (m_shouldRunNeutrinoRecoOption)
-                PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->Copy(m_pSliceNuWorkerInstance, pCaloHitInMaster));
-
-            if (m_shouldRunCosmicRecoOption)
-                PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->Copy(m_pSliceCRWorkerInstance, pCaloHitInMaster));
-        }
-
-        if (m_shouldRunNeutrinoRecoOption)
-        {
-            if (m_printOverallRecoStatus)
-                std::cout << "Running nu worker instance for slice " << (sliceCounter + 1) << " of " << selectedSliceVector.size() << std::endl;
-
-            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyEventContextToWorkerInstance(m_pSliceNuWorkerInstance));
-
-            const PfoList *pSliceNuPfos(nullptr);
-            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ProcessEvent(*m_pSliceNuWorkerInstance));
-            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::GetCurrentPfoList(*m_pSliceNuWorkerInstance, pSliceNuPfos));
-            nuSliceHypotheses.push_back(*pSliceNuPfos);
-
-            for (const ParticleFlowObject *const pPfo : *pSliceNuPfos)
-            {
-                PandoraContentApi::ParticleFlowObject::Metadata metadata;
-                metadata.m_propertiesToAdd["SliceIndex"] = sliceCounter;
-                PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::ParticleFlowObject::AlterMetadata(*this, pPfo, metadata));
-            }
-        }
-
-        if (m_shouldRunCosmicRecoOption)
-        {
-            if (m_printOverallRecoStatus)
-                std::cout << "Running cr worker instance for slice " << (sliceCounter + 1) << " of " << selectedSliceVector.size() << std::endl;
-
-            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyEventContextToWorkerInstance(m_pSliceCRWorkerInstance));
-
-            const PfoList *pSliceCRPfos(nullptr);
-            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ProcessEvent(*m_pSliceCRWorkerInstance));
-            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::GetCurrentPfoList(*m_pSliceCRWorkerInstance, pSliceCRPfos));
-            crSliceHypotheses.push_back(*pSliceCRPfos);
-
-            for (const ParticleFlowObject *const pPfo : *pSliceCRPfos)
-            {
-                PandoraContentApi::ParticleFlowObject::Metadata metadata;
-                metadata.m_propertiesToAdd["SliceIndex"] = sliceCounter;
-                PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::ParticleFlowObject::AlterMetadata(*this, pPfo, metadata));
-            }
-        }
-
-        ++sliceCounter;
-    }
-
-    // ATTN: If we swapped these objects at the start, be sure to swap them back in case we ever want to use sliceVector
-    // after this function
-    if (!(m_shouldRunSlicing && !m_sliceSelectionToolVector.empty()))
-        sliceVector = std::move(selectedSliceVector);
-
-    if (m_shouldRunNeutrinoRecoOption && m_shouldRunCosmicRecoOption && (nuSliceHypotheses.size() != crSliceHypotheses.size()))
-        throw StatusCodeException(STATUS_CODE_INVALID_PARAMETER);
 
     return STATUS_CODE_SUCCESS;
 }
