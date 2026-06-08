@@ -16,8 +16,18 @@
 
     <!-- DL 3D Vertexing -->
     <algorithm type = "LArDLVertexingThreeD">
+        <Pass>1</Pass>
         <InputCaloHitListName>CaloHitList3D</InputCaloHitListName>
-        <InputVertexContextKey>DLSlicingVertices3D</InputVertexContextKey>
+        <OutputVertexListName>NeutrinoVertices3D_Pass1</OutputVertexListName>
+        <ScalingFactor>400.0</ScalingFactor>
+        <ModelFileName>vertexing_no_zoom/torchscript_nu_vertexing_model_499.pt</ModelFileName>
+        <DistanceThresholds>0.0050 0.0200 0.0400 0.0600 0.0800 0.1000 0.1200 0.1400 0.1600 0.1800 0.2000 0.2300 0.2500 0.2800 0.3000 0.3500 0.4000 0.4700 0.5500 0.7000 1.5000</DistanceThresholds>
+    </algorithm>
+
+    <algorithm type = "LArDLVertexingThreeD">
+        <Pass>2</Pass>
+        <InputCaloHitListName>CaloHitList3D</InputCaloHitListName>
+        <InputVertexListName>NeutrinoVertices3D_Pass1</InputVertexListName>
         <OutputVertexListName>NeutrinoVertices3D</OutputVertexListName>
         <ScalingFactor>400.0</ScalingFactor>
         <ModelFileName>vertexing_zoom/torchscript_nu_vertexing_model_499.pt</ModelFileName>
