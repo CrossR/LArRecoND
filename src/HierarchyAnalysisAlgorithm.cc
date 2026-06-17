@@ -12,6 +12,7 @@
 
 #include "larpandoracontent/LArHelpers/LArClusterHelper.h"
 #include "larpandoracontent/LArHelpers/LArPfoHelper.h"
+#include <larpandoracontent/LArHelpers/LArMCParticleHelper.h>
 
 #include "TFile.h"
 #include "TTree.h"
@@ -174,6 +175,10 @@ void HierarchyAnalysisAlgorithm::SetEventRunMCIdInfo()
     else
         // Use the algorithm run count number
         m_event = m_count;
+
+    m_run = this->GetPandora().GetRun();
+    m_subRun = this->GetPandora().GetSubrun();
+    m_event = this->GetPandora().GetEvent();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -573,23 +578,17 @@ const HierarchyAnalysisAlgorithm::RecoMCMatch HierarchyAnalysisAlgorithm::GetRec
 {
     int nSharedHits{0};
     float completeness{0.f}, purity{0.f};
-    bool foundMatch{false};
 
     const MCParticle *pRootNu{nullptr}, *pLeadingMC{nullptr};
 
     // Loop over the root (neutrino) MC particles
     for (const MCParticle *const pMCRoot : rootMCParticles)
     {
-        if (foundMatch)
-            break;
-
         // Loop over the possible matches
         const LArHierarchyHelper::MCMatchesVector &matches{matchInfo.GetMatches(pMCRoot)};
 
         for (const LArHierarchyHelper::MCMatches &match : matches)
         {
-            if (foundMatch)
-                break;
             // MC node
             const LArHierarchyHelper::MCHierarchy::Node *pMCNode{match.GetMC()};
 
@@ -599,17 +598,19 @@ const HierarchyAnalysisAlgorithm::RecoMCMatch HierarchyAnalysisAlgorithm::GetRec
             // See if the current recoNode is in the reco matches vector
             if (std::find(nodeVector.begin(), nodeVector.end(), pRecoNode) != nodeVector.end())
             {
-                foundMatch = true;
+                // If this a better match the the previous, swap to it.  Best
+                // here is defined as the match that overlaps the most hits with
+                // the reco node.
+                if (match.GetSharedHits(pRecoNode) > nSharedHits)
+                {
+                    nSharedHits = match.GetSharedHits(pRecoNode);
+                    completeness = match.GetCompleteness(pRecoNode);
+                    purity = match.GetPurity(pRecoNode);
+                    pRootNu = pMCRoot;
+                    pLeadingMC = pMCNode->GetLeadingMCParticle();
+                }
 
-                // Parent neutrino
-                pRootNu = pMCRoot;
-                // Best matched leading MC particle
-                pLeadingMC = pMCNode->GetLeadingMCParticle();
-                // Match quality
-                nSharedHits = match.GetSharedHits(pRecoNode);
-                completeness = match.GetCompleteness(pRecoNode);
-                purity = match.GetPurity(pRecoNode);
-
+                // We can move back to the root MC particle loop since we found a match for this recoNode.
                 break;
 
             } // Find recoNode
