@@ -609,10 +609,6 @@ const HierarchyAnalysisAlgorithm::RecoMCMatch HierarchyAnalysisAlgorithm::GetRec
                     pRootNu = pMCRoot;
                     pLeadingMC = pMCNode->GetLeadingMCParticle();
                 }
-
-                // We can move back to the root MC particle loop since we found a match for this recoNode.
-                break;
-
             } // Find recoNode
         } // Match loop
     } // Root MC particles
