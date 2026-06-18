@@ -125,6 +125,13 @@
         <Visualise>false</Visualise>
     </algorithm>
 
+    <algorithm type = "LArDLVertexingMetrics">
+        <InputCaloHitListName>CaloHitList3D</InputCaloHitListName>
+        <InputVertexListName>NeutrinoVertices3D</InputVertexListName>
+        <OutputTreeFileName>threeDVertexMetrics.root</OutputTreeFileName>
+        <OutputTreeName>threeDVertexMetrics</OutputTreeName>
+    </algorithm>
+
     <algorithm type = "LArCutClusterCharacterisation">
         <InputClusterListNames>ClustersU ClustersV ClustersW</InputClusterListNames>
         <ZeroMode>true</ZeroMode>
