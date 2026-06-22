@@ -125,13 +125,6 @@
         <Visualise>false</Visualise>
     </algorithm>
 
-    <algorithm type = "LArDLVertexingMetrics">
-        <InputCaloHitListName>CaloHitList3D</InputCaloHitListName>
-        <InputVertexListName>NeutrinoVertices3D</InputVertexListName>
-        <OutputTreeFileName>threeDVertexMetrics.root</OutputTreeFileName>
-        <OutputTreeName>threeDVertexMetrics</OutputTreeName>
-    </algorithm>
-
     <algorithm type = "LArCutClusterCharacterisation">
         <InputClusterListNames>ClustersU ClustersV ClustersW</InputClusterListNames>
         <ZeroMode>true</ZeroMode>
@@ -457,6 +450,13 @@
     <algorithm type = "LArTrackParticleBuilding">
         <PfoListName>TrackParticles3D</PfoListName>
         <VertexListName>DaughterVertices3D</VertexListName>
+    </algorithm>
+
+    <algorithm type = "LArDLVertexingMetrics">
+        <InputCaloHitListName>CaloHitList3D</InputCaloHitListName>
+        <InputVertexListName>NeutrinoVertices3D</InputVertexListName>
+        <OutputTreeFileName>threeDVertexMetrics.root</OutputTreeFileName>
+        <OutputTreeName>threeDVertexMetrics</OutputTreeName>
     </algorithm>
 
     <!-- Output list management -->
