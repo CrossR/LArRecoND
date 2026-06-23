@@ -89,7 +89,7 @@
     </algorithm>
 
     <!-- VertexAlgorithms -->
-    <!-- <algorithm type = "LArCutClusterCharacterisation">
+    <algorithm type = "LArCutClusterCharacterisation">
         <InputClusterListNames>ClustersU ClustersV ClustersW</InputClusterListNames>
         <MaxShowerLengthCut>500.</MaxShowerLengthCut>
         <VertexDistanceRatioCut>500.</VertexDistanceRatioCut>
@@ -102,11 +102,11 @@
         <ReplaceCurrentVertexList>true</ReplaceCurrentVertexList>
         <EnableCrossingCandidates>false</EnableCrossingCandidates>
         <ReducedCandidates>true</ReducedCandidates>
-    </algorithm> -->
+    </algorithm>
     <!-- We have made the 2D clusters, so remove 3D for now to make hits available later -->
-    <!-- <algorithm type = "LArListDeletion" description = "3DClusterDeletion">
+    <algorithm type = "LArListDeletion" description = "3DClusterDeletion">
         <ClusterListNames>Clusters3D</ClusterListNames>
-    </algorithm> -->
+    </algorithm>
 <!--
     <algorithm type = "LArVisualMonitoring">
         <VertexListNames>CandidateVertices3D</VertexListNames>
