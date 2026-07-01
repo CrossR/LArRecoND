@@ -169,7 +169,7 @@
 <!--        <MaxShowerLengthCut>500.</MaxShowerLengthCut> -->
         <VertexDistanceRatioCut>500.</VertexDistanceRatioCut>
         <SlidingFitWindow>10</SlidingFitWindow>
-        <ShowerWidthRatioCut>2.0</ShowerWidthRatioCut> 
+        <ShowerWidthRatioCut>2.0</ShowerWidthRatioCut>
     </algorithm>
     <algorithm type = "LArListDeletion">
         <PfoListNames>ShowerParticles3D</PfoListNames>
@@ -302,7 +302,7 @@
         <DaughterListNames>ClustersU ClustersV ClustersW</DaughterListNames>
         <AddHitsAsIsolated>true</AddHitsAsIsolated>
     </algorithm>
-    
+
     <algorithm type = "LArBdtPfoCharacterisation">
         <TrackPfoListName>TrackParticles3D</TrackPfoListName>
         <ShowerPfoListName>ShowerParticles3D</ShowerPfoListName>
@@ -442,6 +442,13 @@
     <algorithm type = "LArTrackParticleBuilding">
         <PfoListName>TrackParticles3D</PfoListName>
         <VertexListName>DaughterVertices3D</VertexListName>
+    </algorithm>
+
+    <algorithm type = "LArDLVertexingMetrics">
+        <InputCaloHitListName>CaloHitList3D</InputCaloHitListName>
+        <InputVertexListName>NeutrinoVertices3D</InputVertexListName>
+        <OutputTreeFileName>threeDVertexMetrics.root</OutputTreeFileName>
+        <OutputTreeName>threeDVertexMetrics</OutputTreeName>
     </algorithm>
 
     <!-- Output list management -->
