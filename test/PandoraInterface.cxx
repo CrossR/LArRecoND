@@ -104,8 +104,8 @@ int main(int argc, char *argv[])
             PandoraApi::SetLArTransformationPlugin(*pPrimaryPandora, new lar_content::LArRotationalTransformationPlugin));
         PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ReadSettings(*pPrimaryPandora, parameters.m_settingsFile));
 
-        // INFO: Delayed after geometry creation, to ensure transformation plugins are setup, to enable easier 3D -> 2D projections.
-        LoadDetectorGaps(pPrimaryPandora);
+        // // INFO: Delayed after geometry creation, to ensure transformation plugins are setup, to enable easier 3D -> 2D projections.
+        // LoadDetectorGaps(pPrimaryPandora);
 
         ProcessEvents(parameters, pPrimaryPandora, simpleGeom);
     }
