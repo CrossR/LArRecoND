@@ -44,7 +44,7 @@ void CheatingStitchingTool::Run(const MasterAlgorithm *const pAlgorithm, const P
     for (const ParticleFlowObject *const pPfo : *pPfoList)
     {
         CaloHitList allHits;
-        LArPfoHelper::GetAllCaloHits(pPfo, allHits);
+        LArPfoHelper::GetAllCaloHits2D(pPfo, allHits);
         std::map<const MCParticle *, unsigned int> mcParticleToHitCountMap;
 
         for (const CaloHit *const pCaloHit : allHits)
