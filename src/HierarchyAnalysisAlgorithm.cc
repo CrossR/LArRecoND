@@ -12,7 +12,6 @@
 
 #include "larpandoracontent/LArHelpers/LArClusterHelper.h"
 #include "larpandoracontent/LArHelpers/LArPfoHelper.h"
-#include <larpandoracontent/LArHelpers/LArMCParticleHelper.h>
 
 #include "TFile.h"
 #include "TTree.h"
@@ -175,10 +174,6 @@ void HierarchyAnalysisAlgorithm::SetEventRunMCIdInfo()
     else
         // Use the algorithm run count number
         m_event = m_count;
-
-    m_run = this->GetPandora().GetRun();
-    m_subRun = this->GetPandora().GetSubrun();
-    m_event = this->GetPandora().GetEvent();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -399,7 +394,7 @@ void HierarchyAnalysisAlgorithm::EventAnalysisOutput(const LArHierarchyHelper::M
                     }
                 }
 
-                // Find best-matched MC particle for this reconstructed cluster
+                // Find best-matched MC particle for this reconstructed PFO cluster
                 const HierarchyAnalysisAlgorithm::RecoMCMatch bestMatch = GetRecoMCMatch(pPfo, pRecoNode, matchInfo, rootMCParticles);
 
                 // Best matched MC particle
@@ -642,7 +637,6 @@ const HierarchyAnalysisAlgorithm::RecoMCMatch HierarchyAnalysisAlgorithm::GetRec
                     pRootNu = pMCRoot;
                     pLeadingMC = pMCNode->GetLeadingMCParticle();
                 }
-
             } // Find recoNode
         } // Match loop
     } // Root MC particles
