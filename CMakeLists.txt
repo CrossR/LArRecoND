@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
-project(LArRecoND VERSION 01.03.00 LANGUAGES CXX)
+project(LArRecoND VERSION 01.05.00 LANGUAGES CXX)
 
 # Automatically add the path of the linked libraries to the RPATH
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-# Apply the RPATH settings to the executable in the build tree, not just the installed one
-# set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+# Don't replace the build-tree RPATH with the install-tree RPATH
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 
 # Enforce out-of-source builds, a good practice from the original file
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
@@ -22,37 +22,30 @@ option(PANDORA_MONITORING "Build with PandoraMonitoring support" ON)
 option(LArRecoND_BUILD_DOCS "Build documentation for ${PROJECT_NAME}" OFF)
 
 # Dependencies
-# Build Options
-option(PANDORA_LIBTORCH "Build with LibTorch-dependent libraries" OFF)
-option(PANDORA_MONITORING "Build with PandoraMonitoring support" ON)
-option(LArRecoND_BUILD_DOCS "Build documentation for ${PROJECT_NAME}" OFF)
-find_package(PandoraSDK 04.00.02 REQUIRED)
-find_package(LArContent 04.17.02 REQUIRED)
+if (NOT TARGET PandoraPFA::PandoraSDK)
+    find_package(PandoraSDK 05.00.00 REQUIRED)
+endif()
+if (NOT TARGET PandoraPFA::LArContent)
+    find_package(LArContent 05.00.00 REQUIRED)
+endif()
 
 if(PANDORA_LIBTORCH)
-    find_package(LArDLContent 04.17.02 REQUIRED)
+    find_package(LArDLContent 05.00.00 REQUIRED)
 endif()
 
 if(PANDORA_MONITORING)
-    find_package(PandoraMonitoring 04.00.02 REQUIRED)
+    if (NOT TARGET PandoraPFA::PandoraMonitoring)
+        find_package(PandoraMonitoring 05.00.00 REQUIRED)
+    endif()
     find_package(ROOT 6.18.04 REQUIRED COMPONENTS Eve Geom RGL EG)
 endif()
 
 if(USE_EDEPSIM)
-  find_package(EDepSim)
-  add_definitions("-DUSE_EDEPSIM")
+    find_package(EDepSim)
 endif()
 
-# --- Executable ---
-add_executable(PandoraInterface test/PandoraInterface.cxx)
-
-file(GLOB_RECURSE LAR_RECO_ND_SRCS RELATIVE ${PROJECT_SOURCE_DIR} "src/*.cc")
-add_library(${PROJECT_NAME} SHARED ${LAR_RECO_ND_SRCS})
-
-target_include_directories(PandoraInterface PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include)
-
-target_compile_options(PandoraInterface PRIVATE
+# Common compile options
+set(LAR_RECO_COMPILE_OPTIONS
     -Wall
     -Wextra
     -Werror
@@ -61,65 +54,89 @@ target_compile_options(PandoraInterface PRIVATE
     -Wno-sign-compare
     -Wshadow
     -fno-strict-aliasing
-    -std=c++17
 )
+
+# Build products
+file(GLOB_RECURSE LAR_RECO_ND_SRCS CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/src/*.cc")
+
+add_library(${PROJECT_NAME} SHARED ${LAR_RECO_ND_SRCS})
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+)
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
+
+target_compile_options(${PROJECT_NAME} PRIVATE ${LAR_RECO_COMPILE_OPTIONS})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     PandoraPFA::PandoraSDK
     PandoraPFA::LArContent
 )
-target_link_libraries(PandoraInterface PRIVATE
-    ${PROJECT_NAME}
-    PandoraPFA::PandoraSDK
-    PandoraPFA::LArContent
-)
-
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    VERSION ${PROJECT_VERSION}
-    SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
-
-if(APPLE)
-    set(CMAKE_INSTALL_RPATH "@executable_path/../lib")
-    set_target_properties(PandoraInterface PROPERTIES
-        BUILD_RPATH "${CMAKE_BINARY_DIR}"
-        INSTALL_RPATH "@executable_path/../lib"
-    )
-else()
-    set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
-    set_target_properties(PandoraInterface PROPERTIES
-        BUILD_RPATH "${CMAKE_BINARY_DIR}"
-        INSTALL_RPATH "$ORIGIN/../lib"
-    )
-endif()
 
 if(PANDORA_LIBTORCH)
-    target_link_libraries(PandoraInterface PRIVATE PandoraPFA::LArDLContent)
-    target_compile_definitions(PandoraInterface PRIVATE -DLIBTORCH_DL=1)
     target_link_libraries(${PROJECT_NAME} PRIVATE PandoraPFA::LArDLContent)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE -DLIBTORCH_DL=1)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE LIBTORCH_DL=1)
 endif()
 
 if(PANDORA_MONITORING)
-    if(USE_EDEPSIM)
-        target_link_libraries(PandoraInterface PRIVATE
+    target_link_libraries(${PROJECT_NAME} PRIVATE PandoraPFA::PandoraMonitoring)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE MONITORING)
+endif()
+
+if(USE_EDEPSIM)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE USE_EDEPSIM)
+endif()
+
+# Executables
+set(LAR_RECO_EXECUTABLES
+    PandoraInterface
+    PandoraOuterface
+)
+
+foreach(executable_name IN LISTS LAR_RECO_EXECUTABLES)
+    add_executable(${executable_name} test/${executable_name}.cxx)
+
+    set_target_properties(${executable_name} PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED ON
+        BUILD_RPATH "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+    )
+
+    target_compile_options(${executable_name} PRIVATE ${LAR_RECO_COMPILE_OPTIONS})
+
+    target_link_libraries(${executable_name} PRIVATE
+        ${PROJECT_NAME}
+        PandoraPFA::PandoraSDK
+        PandoraPFA::LArContent
+    )
+
+    if(PANDORA_LIBTORCH)
+        target_link_libraries(${executable_name} PRIVATE PandoraPFA::LArDLContent)
+        target_compile_definitions(${executable_name} PRIVATE LIBTORCH_DL=1)
+    endif()
+
+    if(PANDORA_MONITORING)
+        target_link_libraries(${executable_name} PRIVATE
             PandoraPFA::PandoraMonitoring
             ROOT::Eve
             ROOT::Geom
             ROOT::RGL
             ROOT::EG
-            EDepSim::edepsim_io
         )
-    else()
-        target_link_libraries(PandoraInterface PRIVATE
-                PandoraPFA::PandoraMonitoring
-                ROOT::Eve
-                ROOT::Geom
-                ROOT::RGL
-                ROOT::EG
-        )
+        target_compile_definitions(${executable_name} PRIVATE MONITORING)
     endif()
-    target_compile_definitions(PandoraInterface PRIVATE -DMONITORING=1)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE -DMONITORING=1)
+
+    if(USE_EDEPSIM)
+        target_compile_definitions(${executable_name} PRIVATE USE_EDEPSIM)
+    endif()
+endforeach()
+
+if(PANDORA_MONITORING AND USE_EDEPSIM)
+    target_link_libraries(PandoraInterface PRIVATE EDepSim::edepsim_io)
 endif()
 
 # Optional documents
@@ -128,6 +145,8 @@ if(LArRecoND_BUILD_DOCS)
 endif()
 
 # Installation
-install(TARGETS ${PROJECT_NAME} DESTINATION lib COMPONENT Runtime)
 install(DIRECTORY include/ DESTINATION include COMPONENT Development FILES_MATCHING PATTERN "*.h")
-install(TARGETS PandoraInterface DESTINATION bin PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(TARGETS ${PROJECT_NAME} DESTINATION lib COMPONENT Runtime)
+foreach(executable_name IN LISTS LAR_RECO_EXECUTABLES)
+    install(TARGETS ${executable_name} DESTINATION bin PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+endforeach()

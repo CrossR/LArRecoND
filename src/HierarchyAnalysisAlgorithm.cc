@@ -608,7 +608,7 @@ const HierarchyAnalysisAlgorithm::RecoMCMatch HierarchyAnalysisAlgorithm::GetRec
 
                 // Get all the reco hits for the passed PFO only, not the whole reco node
                 CaloHitList pfoHits;
-                LArPfoHelper::GetAllCaloHits(pPfo, pfoHits);
+                LArPfoHelper::GetAllCaloHits2D(pPfo, pfoHits);
 
                 // Get the selected hits of the reco node, such that each reco hit has a corresponding MC hit
                 CaloHitList selectedRecoHits = match.GetSelectedRecoHits(pRecoNode);
