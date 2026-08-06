@@ -5,6 +5,7 @@
  *
  *  $Log: $
  */
+#include <ndlar/hdf5/types.hpp>
 #ifndef PANDORA_ND_INTERFACE_H
 #define PANDORA_ND_INTERFACE_H 1
 
@@ -12,6 +13,10 @@
 
 #ifdef USE_EDEPSIM
 #include "TG4Event.h"
+#endif
+
+#ifdef USE_NDLAR_HDF5_READER
+#include "ndlar/interface.hpp"
 #endif
 
 #include "TGeoManager.h"
@@ -54,7 +59,8 @@ public:
         SP = 0,
         SPMC = 1,
         EDepSim = 2,
-        SED = 3
+        SED = 3,
+        HDF5 = 4
     };
 
     LArNDFormat m_dataFormat; ///< The expected input data format
@@ -217,6 +223,29 @@ void ProcessSPEvents(const Parameters &parameters, const pandora::Pandora *const
  *  @param  parameters The application parameters
  */
 void CreateSPMCParticles(const LArSPMC &larspmc, const pandora::Pandora *const pPrimaryPandora, const Parameters &parameters);
+
+#ifdef USE_NDLAR_HDF5_READER
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ *  @brief  Process events using the supplied pandora instance, assuming HFD5 format
+ *
+ *  @param  parameters The application parameters
+ *  @param  pPrimaryPandora The address of the primary pandora instance
+ */
+void ProcessHDF5Events(const Parameters &parameters, const pandora::Pandora *const pPrimaryPandora, const LArNDGeomSimple &geom);
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ *  @brief  Create MC particles from the Geant4 trajectories, assuming HDF5 format
+ *
+ *  @param  eventProducts The HDF5 event products
+ *  @param  pPrimaryPandora The address of the primary pandora instance
+ *  @param  parameters The application parameters
+ */
+void CreateHDF5MCParticles(const ndlar::hdf5::EventProducts &eventProducts, const pandora::Pandora *const pPrimaryPandora, const Parameters &parameters);
+#endif
 
 #ifdef USE_EDEPSIM
 //------------------------------------------------------------------------------------------------------------------------------------------

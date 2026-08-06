@@ -50,6 +50,10 @@
 #include "TApplication.h"
 #endif
 
+#ifdef USE_NDLAR_HDF5_READER
+#include "ndlar/interface.hpp"
+#endif
+
 #include <algorithm>
 #include <cmath>
 #include <getopt.h>
@@ -422,6 +426,14 @@ void ProcessEvents(const Parameters &parameters, const Pandora *const pPrimaryPa
     {
         ProcessSEDEvents(parameters, pPrimaryPandora, geom);
     }
+    else if (parameters.m_dataFormat == Parameters::LArNDFormat::HDF5)
+    {
+#ifdef USE_NDLAR_HDF5_READER
+        ProcessHDF5Events(parameters, pPrimaryPandora, geom);
+#else
+        std::cerr << "HDF5 data format requested, but ndlar_hdf5_reader is not available." << std::endl;
+#endif
+    }
     else
     {
         ProcessSPEvents(parameters, pPrimaryPandora, geom);
@@ -693,6 +705,12 @@ void CreateSPMCParticles(const LArSPMC &larspmc, const pandora::Pandora *const p
         mcNeutrinoParameters.m_mcParticleType = pandora::MC_3D;
         mcNeutrinoParameters.m_pParentAddress = (void *)((intptr_t)vertexID);
 
+        mcNeutrinoParameters.m_isCC = false;
+        mcNeutrinoParameters.m_visibleEnergy = 0.f;
+        mcNeutrinoParameters.m_endDirection = pandora::CartesianVector(0.f, 0.f, 0.f);
+        mcNeutrinoParameters.m_nTrajPoints = 0;
+        mcNeutrinoParameters.m_trajPoints = pandora::CartesianPointVector();
+
         PANDORA_THROW_RESULT_IF(
             pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::MCParticle::Create(*pPrimaryPandora, mcNeutrinoParameters, mcParticleFactory));
     }
@@ -753,6 +771,12 @@ void CreateSPMCParticles(const LArSPMC &larspmc, const pandora::Pandora *const p
 
         // Process ID
         mcParticleParameters.m_process = lar_content::MC_PROC_UNKNOWN;
+
+        mcParticleParameters.m_isCC = false;
+        mcParticleParameters.m_visibleEnergy = 0.f;
+        mcParticleParameters.m_endDirection = pandora::CartesianVector(0.f, 0.f, 0.f);
+        mcParticleParameters.m_nTrajPoints = 0;
+        mcParticleParameters.m_trajPoints = pandora::CartesianPointVector();
 
         // Create MCParticle
         try
@@ -961,6 +985,11 @@ MCParticleEnergyMap CreateEDepSimMCParticles(const TG4Event &event, const pandor
                 mcNeutrinoParameters.m_particleId = neutrinoPDG;
                 mcNeutrinoParameters.m_mcParticleType = pandora::MC_3D;
                 mcNeutrinoParameters.m_pParentAddress = (void *)((intptr_t)neutrinoID);
+                mcNeutrinoParameters.m_isCC = false;
+                mcNeutrinoParameters.m_visibleEnergy = 0.f;
+                mcNeutrinoParameters.m_endDirection = pandora::CartesianVector(0.f, 0.f, 0.f);
+                mcNeutrinoParameters.m_nTrajPoints = 0;
+                mcNeutrinoParameters.m_trajPoints = pandora::CartesianPointVector();
 
                 PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=,
                     PandoraApi::MCParticle::Create(*pPrimaryPandora, mcNeutrinoParameters, mcParticleFactory));
@@ -1227,6 +1256,12 @@ void CreateSEDMCParticles(const LArSED &larsed, const pandora::Pandora *const pP
         mcNeutrinoParameters.m_mcParticleType = pandora::MC_3D;
         mcNeutrinoParameters.m_pParentAddress = (void *)((intptr_t)neutrinoID);
 
+        mcNeutrinoParameters.m_isCC = false;
+        mcNeutrinoParameters.m_visibleEnergy = 0.f;
+        mcNeutrinoParameters.m_endDirection = pandora::CartesianVector(0.f, 0.f, 0.f);
+        mcNeutrinoParameters.m_nTrajPoints = 0;
+        mcNeutrinoParameters.m_trajPoints = pandora::CartesianPointVector();
+
         PANDORA_THROW_RESULT_IF(
             pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::MCParticle::Create(*pPrimaryPandora, mcNeutrinoParameters, mcParticleFactory));
     }
@@ -1273,6 +1308,12 @@ void CreateSEDMCParticles(const LArSED &larsed, const pandora::Pandora *const pP
         // Process ID
         mcParticleParameters.m_process = lar_content::MC_PROC_UNKNOWN;
 
+        mcParticleParameters.m_isCC = false;
+        mcParticleParameters.m_visibleEnergy = 0.f;
+        mcParticleParameters.m_endDirection = pandora::CartesianVector(0.f, 0.f, 0.f);
+        mcParticleParameters.m_nTrajPoints = 0;
+        mcParticleParameters.m_trajPoints = pandora::CartesianPointVector();
+
         // Create MCParticle
         PANDORA_THROW_RESULT_IF(
             pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::MCParticle::Create(*pPrimaryPandora, mcParticleParameters, mcParticleFactory));
@@ -1292,6 +1333,362 @@ void CreateSEDMCParticles(const LArSED &larsed, const pandora::Pandora *const pP
         }
     }
 }
+
+#ifdef USE_NDLAR_HDF5_READER
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+void ProcessHDF5Events(const Parameters &parameters, const Pandora *const pPrimaryPandora, const LArNDGeomSimple &geom)
+{
+    std::cout << "About to process HDF5 events" << std::endl;
+
+    // Initalise the HDF5 event provider
+    ndlar::hdf5::HDF5EventProvider hdf5Provider(parameters.m_inputFileName);
+
+    // Factory for creating LArCaloHits
+    lar_content::LArCaloHitFactory m_larCaloHitFactory;
+
+    // Voxel width
+    const float voxelWidth(parameters.m_voxelWidth);
+
+    // Total number of entries in the TTree
+    const int nEntries(hdf5Provider.get_num_events());
+
+    // Starting event
+    const int startEvt = parameters.m_nEventsToSkip > 0 ? parameters.m_nEventsToSkip : 0;
+    // Number of events to process, up to nEntries
+    const int nProcess = parameters.m_nEventsToProcess > 0 ? parameters.m_nEventsToProcess : nEntries;
+    // End event, up to nEntries
+    const int endEvt = (startEvt + nProcess) < nEntries ? startEvt + nProcess : nEntries;
+
+    std::cout << "Start event is " << startEvt << " and end event is " << endEvt - 1 << std::endl;
+
+    for (int iEvt = startEvt; iEvt < endEvt; iEvt++)
+    {
+        if (parameters.m_shouldDisplayEventNumber)
+            std::cout << std::endl << "   PROCESSING EVENT: " << iEvt << std::endl << std::endl;
+
+        auto eventProducts = hdf5Provider.get_event(iEvt);
+
+        // Stop processing the event if we have too many space points: reco takes too long
+        const int nSP = eventProducts.hit_x.size();
+        if (parameters.m_maxMergedVoxels > 0 && nSP > parameters.m_maxMergedVoxels)
+        {
+            std::cout << "SKIPPING EVENT: number of space points " << nSP << " > " << parameters.m_maxMergedVoxels << std::endl;
+            continue;
+        }
+        // Also stop processing the event if it has too few hits (we can't make CaloHits for essentially empty events)
+        if (nSP < parameters.m_minNSpacePoints)
+        {
+            std::cout << "SKIPPING EVENT: number of space points " << nSP << " < " << parameters.m_minNSpacePoints << std::endl;
+            continue;
+        }
+
+        // Some truth information first
+        if (eventProducts.mcp_pdg.size() > 0)
+        {
+            CreateHDF5MCParticles(eventProducts, pPrimaryPandora, parameters);
+        }
+
+        // Set the event level information...
+        unsigned int run(0);
+        unsigned int subrun(0);
+        const unsigned int event(iEvt);
+
+        // INFO: For now...we don't have run/subrun info in the inputs. So pull a unique ID out of the filename.
+        std::regex fileNameRegex(".*\\.(\\d+)\\.FLOW.*");
+        std::smatch matches;
+        if (std::regex_match(parameters.m_inputFileName, matches, fileNameRegex) && matches.size() > 1)
+        {
+            run = std::stoi(matches[1].str());
+            subrun = run; // Duplicate for now.
+        }
+
+        std::cout << "Event info: run " << run << ", subrun " << subrun << ", event " << event << std::endl;
+        PandoraApi::SetEventInformation(*pPrimaryPandora, run, subrun, event);
+        std::cout << pPrimaryPandora->GetRun() << ", " << pPrimaryPandora->GetSubrun() << ", " << pPrimaryPandora->GetEvent() << std::endl;
+
+        int hitCounter(0);
+
+        // Loop over the space points and make them into caloHits
+        for (size_t isp = 0; isp < nSP; ++isp)
+        {
+            const float voxelX = eventProducts.hit_x[isp];
+            const float voxelY = eventProducts.hit_y[isp];
+            const float voxelZ = eventProducts.hit_z[isp];
+            const float voxelE = eventProducts.hit_charge[isp];
+
+            // Skip this hit if its coordinates or energy are NaNs
+            if (std::isnan(voxelX) || std::isnan(voxelY) || std::isnan(voxelZ) || std::isnan(voxelE))
+            {
+                std::cout << "Ignoring hit " << isp << " which contains NaNs: (" << voxelX << ", " << voxelY << ", " << voxelZ
+                          << "), E = " << voxelE << std::endl;
+                continue;
+            }
+
+            const pandora::CartesianVector voxelPos(voxelX, voxelY, voxelZ);
+            const float MipE{0.00075};
+            const float voxelMipEquivalentE = voxelE / MipE;
+            const int tpcID(geom.GetTPCNumber(voxelPos));
+            lar_content::LArCaloHitParameters caloHitParameters;
+            caloHitParameters.m_positionVector = voxelPos;
+            caloHitParameters.m_expectedDirection = pandora::CartesianVector(0.f, 0.f, 1.f);
+            caloHitParameters.m_cellNormalVector = pandora::CartesianVector(0.f, 0.f, 1.f);
+            caloHitParameters.m_cellGeometry = pandora::RECTANGULAR;
+            caloHitParameters.m_cellSize0 = voxelWidth;
+            caloHitParameters.m_cellSize1 = voxelWidth;
+            caloHitParameters.m_cellThickness = voxelWidth;
+            caloHitParameters.m_nCellRadiationLengths = 1.f;
+            caloHitParameters.m_nCellInteractionLengths = 1.f;
+            caloHitParameters.m_time = 0.f;
+            caloHitParameters.m_inputEnergy = voxelE;
+            caloHitParameters.m_mipEquivalentEnergy = voxelMipEquivalentE;
+            caloHitParameters.m_electromagneticEnergy = voxelE;
+            caloHitParameters.m_hadronicEnergy = voxelE;
+            caloHitParameters.m_isDigital = false;
+            caloHitParameters.m_hitType = pandora::TPC_3D;
+            caloHitParameters.m_hitRegion = pandora::SINGLE_REGION;
+            caloHitParameters.m_layer = 0;
+            caloHitParameters.m_isInOuterSamplingLayer = false;
+            caloHitParameters.m_pParentAddress = (void *)(static_cast<uintptr_t>(hitCounter));
+            caloHitParameters.m_larTPCVolumeId = tpcID < 0 ? 0 : tpcID;
+            caloHitParameters.m_daughterVolumeId = 0;
+
+            // Only used for truth
+            long trackID{0};
+            float energyFrac{0.f};
+
+            // Set calo hit to MCParticle relation using trackID
+            if (eventProducts.mcp_id.size() > 0)
+            {
+                const std::vector<float> mcContribs = eventProducts.hit_packetFrac[isp];
+                const int biggestContribIndex = std::distance(mcContribs.begin(), std::max_element(mcContribs.begin(), mcContribs.end()));
+                const std::vector<long long> hitPartIDVect = eventProducts.hit_particleID[isp];
+                trackID = (hitPartIDVect.size() > biggestContribIndex) ? hitPartIDVect[biggestContribIndex] : 0;
+
+                // Due to the merging of hits, the contributions can sometimes add up to more than 1.
+                // Normalise first
+                const float sum = std::accumulate(mcContribs.begin(), mcContribs.end(), 0.f);
+                energyFrac = (biggestContribIndex < mcContribs.size() && std::abs(sum) > 0.0) ? mcContribs[biggestContribIndex] / sum : 0.f;
+                // Make sure the energy fraction is not larger than 1
+                if (energyFrac > 1.f + std::numeric_limits<float>::epsilon())
+                    energyFrac = 1.f;
+
+                if (std::find(eventProducts.mcp_id.begin(), eventProducts.mcp_id.end(), trackID) == eventProducts.mcp_id.end())
+                    std::cout << "Problem? Could not find MC particle with file ID " << trackID << std::endl;
+            }
+
+            if (parameters.m_use3D)
+                PANDORA_THROW_RESULT_IF(
+                    pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::CaloHit::Create(*pPrimaryPandora, caloHitParameters, m_larCaloHitFactory));
+
+            if (eventProducts.mcp_id.size() > 0)
+                PandoraApi::SetCaloHitToMCParticleRelationship(*pPrimaryPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
+
+            if (parameters.m_useLArTPC)
+            {
+                // Create LArCaloHits for U, V and W views assuming x is the common drift coordinate
+                const float x0_cm(voxelPos.GetX());
+                const float y0_cm(voxelPos.GetY());
+                const float z0_cm(voxelPos.GetZ());
+
+                // U view
+                lar_content::LArCaloHitParameters caloHitPars_UView(caloHitParameters);
+                caloHitPars_UView.m_hitType = pandora::TPC_VIEW_U;
+                caloHitPars_UView.m_pParentAddress = (void *)(intptr_t(hitCounter));
+                const float upos_cm(pPrimaryPandora->GetPlugins()->GetLArTransformationPlugin()->YZtoU(y0_cm, z0_cm));
+                caloHitPars_UView.m_positionVector = pandora::CartesianVector(x0_cm, 0.f, upos_cm);
+
+                PANDORA_THROW_RESULT_IF(
+                    pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::CaloHit::Create(*pPrimaryPandora, caloHitPars_UView, m_larCaloHitFactory));
+                if (eventProducts.mcp_id.size() > 0)
+                    PandoraApi::SetCaloHitToMCParticleRelationship(
+                        *pPrimaryPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
+
+                // V view
+                lar_content::LArCaloHitParameters caloHitPars_VView(caloHitParameters);
+                caloHitPars_VView.m_hitType = pandora::TPC_VIEW_V;
+                caloHitPars_VView.m_pParentAddress = (void *)(intptr_t(hitCounter));
+                const float vpos_cm(pPrimaryPandora->GetPlugins()->GetLArTransformationPlugin()->YZtoV(y0_cm, z0_cm));
+                caloHitPars_VView.m_positionVector = pandora::CartesianVector(x0_cm, 0.f, vpos_cm);
+                PANDORA_THROW_RESULT_IF(
+                    pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::CaloHit::Create(*pPrimaryPandora, caloHitPars_VView, m_larCaloHitFactory));
+                if (eventProducts.mcp_id.size() > 0)
+                    PandoraApi::SetCaloHitToMCParticleRelationship(
+                        *pPrimaryPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
+                // W view
+                lar_content::LArCaloHitParameters caloHitPars_WView(caloHitParameters);
+                caloHitPars_WView.m_hitType = pandora::TPC_VIEW_W;
+                caloHitPars_WView.m_pParentAddress = (void *)(intptr_t(hitCounter));
+                const float wpos_cm(pPrimaryPandora->GetPlugins()->GetLArTransformationPlugin()->YZtoW(y0_cm, z0_cm));
+                caloHitPars_WView.m_positionVector = pandora::CartesianVector(x0_cm, 0.f, wpos_cm);
+
+                PANDORA_THROW_RESULT_IF(
+                    pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::CaloHit::Create(*pPrimaryPandora, caloHitPars_WView, m_larCaloHitFactory));
+                if (eventProducts.mcp_id.size() > 0)
+                    PandoraApi::SetCaloHitToMCParticleRelationship(
+                        *pPrimaryPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
+            }
+
+            // Increment hit counter for unique ID assignment
+            hitCounter++;
+
+        } // end space point loop
+
+        hdf5Provider.clear_caches();
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ProcessEvent(*pPrimaryPandora));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::Reset(*pPrimaryPandora));
+    } // end event loop
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+void CreateHDF5MCParticles(const ndlar::hdf5::EventProducts &eventProducts, const pandora::Pandora *const pPrimaryPandora, const Parameters &parameters)
+{
+    lar_content::LArMCParticleFactory mcParticleFactory;
+
+    const int nNeutrinos(eventProducts.nuPDG.size());
+    std::cout << "Read in " << nNeutrinos << " true neutrinos" << std::endl;
+
+    // Create MC neutrinos. Keep track of the vertex ID's of the neutrinos
+    std::map<long, int> vertexIdToIndex;
+
+    for (size_t i = 0; i < nNeutrinos; ++i)
+    {
+        // Unique vertex ID for the neutrino
+        const long vertexID = eventProducts.nuID[i];
+        // Store the vertex ID for this neutrino entry
+        vertexIdToIndex[vertexID] = i;
+
+        const int neutrinoPDG = eventProducts.nuPDG[i];
+        const std::string reaction = GetNuanceReaction(eventProducts.ccnc[i], eventProducts.mode[i]);
+        const int nuanceCode = GetNuanceCode(reaction);
+        const float nuVtxX = eventProducts.nuvtxx[i] * parameters.m_lengthScale;
+        const float nuVtxY = eventProducts.nuvtxy[i] * parameters.m_lengthScale;
+        const float nuVtxZ = eventProducts.nuvtxz[i] * parameters.m_lengthScale;
+
+        const float nuE = eventProducts.nue[i] * parameters.m_energyScale;
+        const float nuPx = eventProducts.nupx[i];
+        const float nuPy = eventProducts.nupy[i];
+        const float nuPz = eventProducts.nupz[i];
+
+        lar_content::LArMCParticleParameters mcNeutrinoParameters;
+        mcNeutrinoParameters.m_nuanceCode = nuanceCode;
+        mcNeutrinoParameters.m_process = lar_content::MC_PROC_INCIDENT_NU;
+
+        mcNeutrinoParameters.m_energy = nuE;
+        mcNeutrinoParameters.m_momentum = pandora::CartesianVector(nuPx, nuPy, nuPz);
+        mcNeutrinoParameters.m_vertex = pandora::CartesianVector(nuVtxX, nuVtxY, nuVtxZ);
+        mcNeutrinoParameters.m_endpoint = pandora::CartesianVector(nuVtxX, nuVtxY, nuVtxZ);
+
+        mcNeutrinoParameters.m_particleId = neutrinoPDG;
+        mcNeutrinoParameters.m_mcParticleType = pandora::MC_3D;
+        mcNeutrinoParameters.m_pParentAddress = (void *)((intptr_t)vertexID);
+
+        mcNeutrinoParameters.m_isCC = false;
+        mcNeutrinoParameters.m_visibleEnergy = 0.f;
+        mcNeutrinoParameters.m_endDirection = pandora::CartesianVector(0.f, 0.f, 0.f);
+        mcNeutrinoParameters.m_nTrajPoints = 0;
+        mcNeutrinoParameters.m_trajPoints = pandora::CartesianPointVector();
+
+        PANDORA_THROW_RESULT_IF(
+            pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::MCParticle::Create(*pPrimaryPandora, mcNeutrinoParameters, mcParticleFactory));
+    }
+
+    // Create a map for associating the unique (file-based) MC IDs with their corresponding (vertex_id, mcp_idLocal) pairs.
+    // This is needed to find the unique ID for parent MC particles, where we only know their vertex_id & mcp_idLocal's.
+    // The "mcp_mother" local ID doesn't have a corresponding unique "mcp_file_mother" stored in the input ROOT file.
+    // We need to do this before creating the MC particles since the ancestry could be stored in any order
+    std::map<std::pair<long, long>, long> mcIDMap;
+
+    for (size_t i = 0; i < eventProducts.mcp_id.size(); ++i)
+    {
+        // Store the corresponding unique (file-based) MC ID for each <vertex_id, mcp_idLocal> key pair
+        const long mcpID = eventProducts.mcp_id[i];
+        const long mcpVertexID = eventProducts.mcp_nuid[i];
+        const long mcpIDLocal = eventProducts.mcp_idLocal[i];
+        mcIDMap[std::make_pair(mcpVertexID, mcpIDLocal)] = mcpID;
+    }
+
+    // Create MC particles
+    for (size_t i = 0; i < eventProducts.mcp_id.size(); ++i)
+    {
+        // LArMCParticle parameters
+        lar_content::LArMCParticleParameters mcParticleParameters;
+
+        // Initial momentum and energy in GeV
+        const float px = eventProducts.mcp_px[i] * parameters.m_energyScale;
+        const float py = eventProducts.mcp_py[i] * parameters.m_energyScale;
+        const float pz = eventProducts.mcp_pz[i] * parameters.m_energyScale;
+        const float energy = eventProducts.mcp_energy[i] * parameters.m_energyScale;
+        mcParticleParameters.m_energy = energy;
+        mcParticleParameters.m_momentum = pandora::CartesianVector(px, py, pz);
+
+        // Particle codes
+        mcParticleParameters.m_particleId = eventProducts.mcp_pdg[i];
+        mcParticleParameters.m_mcParticleType = pandora::MC_3D;
+
+        // Neutrino info
+        const long mcpVertexID = eventProducts.mcp_nuid[i];
+        const int nuIndex = vertexIdToIndex[mcpVertexID];
+        const std::string reaction = GetNuanceReaction((eventProducts.ccnc)[nuIndex], (eventProducts.mode)[nuIndex]);
+        mcParticleParameters.m_nuanceCode = GetNuanceCode(reaction);
+
+        // Unique file-based ID for this MC particle
+        const long mcpID = eventProducts.mcp_id[i];
+        mcParticleParameters.m_pParentAddress = (void *)((intptr_t)mcpID);
+
+        // Start and end points in cm
+        const float startx = eventProducts.mcp_startx[i] * parameters.m_lengthScale;
+        const float starty = eventProducts.mcp_starty[i] * parameters.m_lengthScale;
+        const float startz = eventProducts.mcp_startz[i] * parameters.m_lengthScale;
+        mcParticleParameters.m_vertex = pandora::CartesianVector(startx, starty, startz);
+
+        const float endx = eventProducts.mcp_endx[i] * parameters.m_lengthScale;
+        const float endy = eventProducts.mcp_endy[i] * parameters.m_lengthScale;
+        const float endz = eventProducts.mcp_endz[i] * parameters.m_lengthScale;
+        mcParticleParameters.m_endpoint = pandora::CartesianVector(endx, endy, endz);
+
+        // Process ID
+        mcParticleParameters.m_process = lar_content::MC_PROC_UNKNOWN;
+
+        mcParticleParameters.m_isCC = false;
+        mcParticleParameters.m_visibleEnergy = 0.f;
+        mcParticleParameters.m_endDirection = pandora::CartesianVector(0.f, 0.f, 0.f);
+        mcParticleParameters.m_nTrajPoints = 0;
+        mcParticleParameters.m_trajPoints = pandora::CartesianPointVector();
+
+        // Create MCParticle
+        try
+        {
+            PANDORA_THROW_RESULT_IF(
+                pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::MCParticle::Create(*pPrimaryPandora, mcParticleParameters, mcParticleFactory));
+        }
+        catch (const pandora::StatusCodeException &)
+        {
+            std::cout << "Unable to create MCParticle " << i << " : invalid info supplied, e.g. non-unique trackID or NaNs" << std::endl;
+            continue;
+        }
+
+        // Set parent relationship. For the parent, use its <vertex_id, mcp_idLocal> pair to get its unique ID
+        const long mcpMotherID = eventProducts.mcp_mother[i];
+        const std::pair<long, long> parentPair = std::make_pair(mcpVertexID, mcpMotherID);
+        const long mcpParentID = (mcIDMap.find(parentPair) != mcIDMap.end()) ? mcIDMap.at(parentPair) : mcpMotherID;
+
+        if (mcpParentID == -1) // link to mc neutrino
+        {
+            PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=,
+                PandoraApi::SetMCParentDaughterRelationship(*pPrimaryPandora, (void *)((intptr_t)mcpVertexID), (void *)((intptr_t)mcpID)));
+        }
+        else
+        {
+            PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=,
+                PandoraApi::SetMCParentDaughterRelationship(*pPrimaryPandora, (void *)((intptr_t)mcpParentID), (void *)((intptr_t)mcpID)));
+        }
+    }
+}
+#endif
+
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -2223,6 +2620,23 @@ bool ProcessFormatOption(const std::string &formatOption, const std::string &inp
         // Set geometry volume name
         parameters.m_geometryVolName = geomVolName.empty() ? "volArgonCubeCryostat_PV" : geomVolName;
         // Set the sensitive detector name if not set
+        parameters.m_sensitiveDetName = sensDetName.empty() ? "volTPCActive" : sensDetName;
+        // All lengths are already in cm, so don't rescale
+        parameters.m_lengthScale = 1.0f;
+        // All energies are already in GeV, so don't rescale
+        parameters.m_energyScale = 1.0f;
+    }
+    else if (chosenFormatOption == "hdf5")
+    {
+        // Space point ROOT format (data = default or MC)
+        parameters.m_dataFormat = Parameters::LArNDFormat::HDF5;
+        // Set the event input TTree name
+        parameters.m_inputTreeName = inputTreeName.empty() ? "events" : inputTreeName;
+        // Set the TGeoManager name
+        parameters.m_geomManagerName = geomManagerName.empty() ? "Default" : geomManagerName;
+        // Set geometry volume name
+        parameters.m_geometryVolName = geomVolName.empty() ? "volArgonCubeCryostat_PV" : geomVolName;
+        // Set the sensitive detector name
         parameters.m_sensitiveDetName = sensDetName.empty() ? "volTPCActive" : sensDetName;
         // All lengths are already in cm, so don't rescale
         parameters.m_lengthScale = 1.0f;
