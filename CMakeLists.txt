@@ -97,6 +97,9 @@ set(LAR_RECO_EXECUTABLES
     PandoraOuterface
 )
 
+
+find_package(ndlar_hdf5_reader QUIET)
+
 foreach(executable_name IN LISTS LAR_RECO_EXECUTABLES)
     add_executable(${executable_name} test/${executable_name}.cxx)
 
@@ -117,6 +120,12 @@ foreach(executable_name IN LISTS LAR_RECO_EXECUTABLES)
     if(PANDORA_LIBTORCH)
         target_link_libraries(${executable_name} PRIVATE PandoraPFA::LArDLContent)
         target_compile_definitions(${executable_name} PRIVATE LIBTORCH_DL=1)
+    endif()
+
+    if (ndlar_hdf5_reader_FOUND)
+        message(STATUS "Found ndlar_hdf5_reader: ${ndlar_hdf5_reader_DIR}")
+        target_link_libraries(${executable_name} PRIVATE ndlar_hdf5_reader::ndlar_hdf5_reader)
+        target_compile_definitions(${executable_name} PRIVATE USE_NDLAR_HDF5_READER)
     endif()
 
     if(PANDORA_MONITORING)
