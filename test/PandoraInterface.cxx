@@ -426,7 +426,7 @@ void ProcessEvents(const Parameters &parameters, const Pandora *const pPrimaryPa
     {
         ProcessSEDEvents(parameters, pPrimaryPandora, geom);
     }
-    else if (parameters.m_dataFormat == Parameters::LArNDFormat::HDF5)
+    else if (parameters.m_dataFormat == Parameters::LArNDFormat::HDF5_P || parameters.m_dataFormat == Parameters::LArNDFormat::HDF5_F)
     {
 #ifdef USE_NDLAR_HDF5_READER
         ProcessHDF5Events(parameters, pPrimaryPandora, geom);
@@ -1338,12 +1338,18 @@ void CreateSEDMCParticles(const LArSED &larsed, const pandora::Pandora *const pP
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void ProcessHDF5Events(const Parameters &parameters, const Pandora *const pPrimaryPandora, const LArNDGeomSimple &geom)
+void ProcessHDF5Events(
+    const Parameters &parameters, const Pandora *const pPrimaryPandora, const LArNDGeomSimple &geom)
 {
     std::cout << "About to process HDF5 events" << std::endl;
 
     // Initalise the HDF5 event provider
-    ndlar::hdf5::HDF5EventProvider hdf5Provider(parameters.m_inputFileName);
+    ndlar::hdf5::paths::HitType hitType(
+        parameters.m_dataFormat == Parameters::LArNDFormat::HDF5_P ?
+                ndlar::hdf5::paths::HitType::Prompt :
+                ndlar::hdf5::paths::HitType::Final
+    );
+    ndlar::hdf5::HDF5EventProvider hdf5Provider(parameters.m_inputFileName, hitType);
 
     // Factory for creating LArCaloHits
     lar_content::LArCaloHitFactory m_larCaloHitFactory;
@@ -2626,10 +2632,10 @@ bool ProcessFormatOption(const std::string &formatOption, const std::string &inp
         // All energies are already in GeV, so don't rescale
         parameters.m_energyScale = 1.0f;
     }
-    else if (chosenFormatOption == "hdf5")
+    else if (chosenFormatOption == "hdf5" || chosenFormatOption == "hdf5_final")
     {
         // Space point ROOT format (data = default or MC)
-        parameters.m_dataFormat = Parameters::LArNDFormat::HDF5;
+        parameters.m_dataFormat = chosenFormatOption.ends_with("final") ? Parameters::LArNDFormat::HDF5_F : Parameters::LArNDFormat::HDF5_P;
         // Set the event input TTree name
         parameters.m_inputTreeName = inputTreeName.empty() ? "events" : inputTreeName;
         // Set the TGeoManager name

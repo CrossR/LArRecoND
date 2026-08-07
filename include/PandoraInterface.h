@@ -60,7 +60,8 @@ public:
         SPMC = 1,
         EDepSim = 2,
         SED = 3,
-        HDF5 = 4
+        HDF5_P = 4,
+        HDF5_F = 5
     };
 
     LArNDFormat m_dataFormat; ///< The expected input data format
@@ -232,6 +233,7 @@ void CreateSPMCParticles(const LArSPMC &larspmc, const pandora::Pandora *const p
  *
  *  @param  parameters The application parameters
  *  @param  pPrimaryPandora The address of the primary pandora instance
+ *  @param  geom Simple representation of the geometry for assigning TPC numbers
  */
 void ProcessHDF5Events(const Parameters &parameters, const pandora::Pandora *const pPrimaryPandora, const LArNDGeomSimple &geom);
 
