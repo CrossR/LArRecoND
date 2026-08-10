@@ -14,8 +14,8 @@
 #include "TROOT.h"
 
 // Header file for the classes stored in the TTree if any.
-#include <vector>
 #include <iostream>
+#include <vector>
 
 namespace lar_nd_reco
 {

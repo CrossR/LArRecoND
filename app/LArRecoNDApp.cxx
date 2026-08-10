@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
         const std::vector<std::string> instances = mainInfo["Instances"];
 
         // Add the other Pandora instances
-        for (const std::string instanceName : instances)
+        for (const std::string &instanceName : instances)
         {
             std::cout << "Setting up Pandora instance : " << instanceName << std::endl;
             const auto info = jsonConfig[instanceName];
