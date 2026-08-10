@@ -8,12 +8,12 @@
 #ifndef PANDORA_TMS_H
 #define PANDORA_TMS_H 1
 
+#include <vector>
+#include <iostream>
+
 #include "TChain.h"
 #include "TFile.h"
 #include "TROOT.h"
-
-#include <vector>
-#include <iostream>
 
 namespace lar_nd_reco
 {

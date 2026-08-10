@@ -9,15 +9,14 @@
 #ifndef PANDORA_LAR_SPMC_H
 #define PANDORA_LAR_SPMC_H 1
 
-#include "LArSP.h"
+#include <iostream>
+#include <vector>
+
+#include "larrecond/LArObjects/LArSP.h"
 
 #include "TChain.h"
 #include "TFile.h"
 #include "TROOT.h"
-
-// Header file for the classes stored in the TTree if any.
-#include <iostream>
-#include <vector>
 
 namespace lar_nd_reco
 {

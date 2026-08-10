@@ -8,11 +8,11 @@
 #ifndef PANDORA_LARND_EVENT_INPUT_H
 #define PANDORA_LARND_EVENT_INPUT_H 1
 
-#include "LArSP.h"
-#include "LArSPMC.h"
-#include "NDEventInput.h"
-
 #include <memory>
+
+#include "larrecond/LArObjects/LArSP.h"
+#include "larrecond/LArObjects/LArSPMC.h"
+#include "larrecond/LArObjects/NDEventInput.h"
 
 namespace lar_nd_reco
 {

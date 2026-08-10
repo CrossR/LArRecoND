@@ -11,7 +11,7 @@
 #include <larpandoracontent/LArHelpers/LArMCParticleHelper.h>
 #include <larpandoracontent/LArHelpers/LArPfoHelper.h>
 
-#include "CheatingStitchingTool.h"
+#include "larrecond/LArCheating/CheatingStitchingTool.h"
 
 using namespace pandora;
 

@@ -8,10 +8,10 @@
 #ifndef PANDORA_TMS_EVENT_INPUT_H
 #define PANDORA_TMS_EVENT_INPUT_H 1
 
-#include "NDEventInput.h"
-#include "TMS.h"
-
 #include <memory>
+
+#include "larrecond/LArObjects/NDEventInput.h"
+#include "larrecond/LArObjects/TMS.h"
 
 namespace lar_nd_reco
 {

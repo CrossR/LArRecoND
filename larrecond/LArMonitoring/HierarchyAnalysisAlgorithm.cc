@@ -8,10 +8,10 @@
 
 #include "Pandora/AlgorithmHeaders.h"
 
-#include "HierarchyAnalysisAlgorithm.h"
-
 #include "larpandoracontent/LArHelpers/LArClusterHelper.h"
 #include "larpandoracontent/LArHelpers/LArPfoHelper.h"
+
+#include "larrecond/LArMonitoring/HierarchyAnalysisAlgorithm.h"
 
 #include "TFile.h"
 #include "TTree.h"

@@ -10,7 +10,7 @@
 
 #include "larpandoracontent/LArHelpers/LArMCParticleHelper.h"
 
-#include "CheatingEventSlicingThreeDTool.h"
+#include "larrecond/LArCheating/CheatingEventSlicingThreeDTool.h"
 
 using namespace pandora;
 

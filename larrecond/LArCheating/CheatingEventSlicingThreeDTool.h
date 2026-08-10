@@ -8,17 +8,17 @@
 #ifndef LAR_CHEATING_EVENT_SLICING_THREE_D_TOOL_H
 #define LAR_CHEATING_EVENT_SLICING_THREE_D_TOOL_H 1
 
+#include <unordered_map>
+
 #include "Pandora/Algorithm.h"
 #include "Pandora/AlgorithmTool.h"
 
 #include "larpandoracontent/LArObjects/LArPointingCluster.h"
 #include "larpandoracontent/LArObjects/LArThreeDSlidingConeFitResult.h"
 
-#include "EventSlicingThreeDBaseTool.h"
-#include "LArSlice3D.h"
-#include "SlicingThreeDAlgorithm.h"
-
-#include <unordered_map>
+#include "larrecond/LArControlFlow/EventSlicingThreeDBaseTool.h"
+#include "larrecond/LArObjects/LArSlice3D.h"
+#include "larrecond/LArControlFlow/SlicingThreeDAlgorithm.h"
 
 namespace lar_content
 {

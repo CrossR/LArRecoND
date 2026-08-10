@@ -12,8 +12,8 @@
 #include "larpandoracontent/LArHelpers/LArMCParticleHelper.h"
 #include "larpandoracontent/LArHelpers/LArPfoHelper.h"
 
-#include "CheatingRockMuonRemovalAlgorithm.h"
-#include "CheatingRockMuonTaggingTool.h"
+#include "larrecond/LArCheating/CheatingRockMuonRemovalAlgorithm.h"
+#include "larrecond/LArCheating/CheatingRockMuonTaggingTool.h"
 
 using namespace pandora;
 

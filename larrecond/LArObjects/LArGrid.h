@@ -8,9 +8,11 @@
 #ifndef PANDORA_LAR_GRID_H
 #define PANDORA_LAR_GRID_H 1
 
-#include "LArBox.h"
-#include "Pandora/PandoraInputTypes.h"
 #include <array>
+
+#include "Pandora/PandoraInputTypes.h"
+
+#include "larrecond/LArObjects/LArBox.h"
 
 namespace lar_nd_reco
 {

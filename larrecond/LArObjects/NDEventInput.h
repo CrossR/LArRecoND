@@ -9,10 +9,11 @@
 #define PANDORA_ND_EVENT_INPUT_H 1
 
 #include "Pandora/Pandora.h"
+
 #include "larpandoracontent/LArObjects/LArCaloHit.h"
 
-#include "NDParameters.h"
-#include "NDSimpleTPCGeom.h"
+#include "larrecond/LArObjects/NDParameters.h"
+#include "larrecond/LArObjects/NDSimpleTPCGeom.h"
 
 class TFile;
 class TTree;

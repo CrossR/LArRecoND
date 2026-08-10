@@ -6,7 +6,7 @@
  *  $Log: $
  */
 
-#include "LArNDEventInput.h"
+#include <numeric>
 
 #include "Api/PandoraApi.h"
 #include "Managers/PluginManager.h"
@@ -16,9 +16,9 @@
 #include "larpandoracontent/LArPlugins/LArPseudoLayerPlugin.h"
 #include "larpandoracontent/LArPlugins/LArRotationalTransformationPlugin.h"
 
-#include "TTree.h"
+#include "larrecond/LArObjects/LArNDEventInput.h"
 
-#include <numeric>
+#include "TTree.h"
 
 namespace lar_nd_reco
 {

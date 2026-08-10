@@ -8,8 +8,9 @@
 #ifndef PANDORA_LAR_RAY_H
 #define PANDORA_LAR_RAY_H 1
 
-#include "Pandora/PandoraInputTypes.h"
 #include <array>
+
+#include "Pandora/PandoraInputTypes.h"
 
 namespace lar_nd_reco
 {

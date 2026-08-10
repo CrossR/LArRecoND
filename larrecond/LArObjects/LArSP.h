@@ -9,13 +9,12 @@
 #ifndef PANDORA_LAR_SP_H
 #define PANDORA_LAR_SP_H 1
 
+#include <iostream>
+#include <vector>
+
 #include "TChain.h"
 #include "TFile.h"
 #include "TROOT.h"
-
-// Header file for the classes stored in the TTree if any.
-#include <iostream>
-#include <vector>
 
 namespace lar_nd_reco
 {

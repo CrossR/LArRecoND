@@ -8,8 +8,9 @@
 #ifndef PANDORA_LAR_VOXEL_H
 #define PANDORA_LAR_VOXEL_H 1
 
-#include "Pandora/PandoraInputTypes.h"
 #include <vector>
+
+#include "Pandora/PandoraInputTypes.h"
 
 namespace lar_nd_reco
 {

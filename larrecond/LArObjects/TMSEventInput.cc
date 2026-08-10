@@ -6,7 +6,6 @@
  *  $Log: $
  */
 
-#include "TMSEventInput.h"
 
 #include "Api/PandoraApi.h"
 #include "Managers/PluginManager.h"
@@ -15,6 +14,8 @@
 #include "larpandoracontent/LArObjects/LArMCParticle.h"
 #include "larpandoracontent/LArPlugins/LArPseudoLayerPlugin.h"
 #include "larpandoracontent/LArPlugins/LArRotationalTransformationPlugin.h"
+
+#include "larrecond/LArObjects/TMSEventInput.h"
 
 namespace lar_nd_reco
 {

@@ -6,10 +6,11 @@
  *  $Log: $
  */
 
-#include "NDEventInput.h"
-
 #include "Api/PandoraApi.h"
+
 #include "larpandoracontent/LArControlFlow/MultiPandoraApi.h"
+
+#include "larrecond/LArObjects/NDEventInput.h"
 
 #include "TFile.h"
 #include "TTree.h"

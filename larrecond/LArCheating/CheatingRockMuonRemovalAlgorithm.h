@@ -12,8 +12,6 @@
 #include "Pandora/Algorithm.h"
 #include "Pandora/Pandora.h"
 
-#include <unordered_map>
-
 namespace lar_content
 {
 

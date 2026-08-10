@@ -13,7 +13,7 @@
 #include "larpandoracontent/LArHelpers/LArMCParticleHelper.h"
 #include "larpandoracontent/LArHelpers/LArVertexHelper.h"
 
-#include "CheatingRockMuonRemovalAlgorithm.h"
+#include "larrecond/LArCheating/CheatingRockMuonRemovalAlgorithm.h"
 
 using namespace pandora;
 
