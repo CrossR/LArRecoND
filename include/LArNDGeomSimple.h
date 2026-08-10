@@ -48,7 +48,14 @@ public:
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-inline LArNDTPCSimple::LArNDTPCSimple() : m_x_min{0.}, m_x_max{0.}, m_y_min{0.}, m_y_max{0.}, m_z_min{0.}, m_z_max{0.}, m_TPC_ID{-1}
+inline LArNDTPCSimple::LArNDTPCSimple() :
+    m_x_min{0.},
+    m_x_max{0.},
+    m_y_min{0.},
+    m_y_max{0.},
+    m_z_min{0.},
+    m_z_max{0.},
+    m_TPC_ID{-1}
 {
 }
 
@@ -70,7 +77,7 @@ inline LArNDTPCSimple::LArNDTPCSimple(const double x_min, const double x_max, co
 
 inline bool LArNDTPCSimple::IsInTPC(const pandora::CartesianVector &pos) const
 {
-    const double epsilon{1.0e-3};
+    const double epsilon{1.0};
     const double m_x_min_eps{m_x_min - epsilon};
     const double m_x_max_eps{m_x_max + epsilon};
     const double m_y_min_eps{m_y_min - epsilon};
