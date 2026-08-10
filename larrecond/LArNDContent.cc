@@ -12,25 +12,30 @@
 #include "Pandora/AlgorithmTool.h"
 #include "Pandora/Pandora.h"
 
-#include "CheatingEventSlicingThreeDTool.h"
-#include "CheatingRockMuonRemovalAlgorithm.h"
-#include "CheatingRockMuonTaggingTool.h"
-#include "CheatingStitchingTool.h"
+#include "larrecond/LArCheating/CheatingEventSlicingThreeDTool.h"
+#include "larrecond/LArCheating/CheatingRockMuonRemovalAlgorithm.h"
+#include "larrecond/LArCheating/CheatingRockMuonTaggingTool.h"
+#include "larrecond/LArCheating/CheatingStitchingTool.h"
 
-#include "CandidateVertexCreationThreeDAlgorithm.h"
-#include "CreateMainNDListsAlgorithm.h"
-#include "CreateTwoDClustersFromThreeDAlgorithm.h"
-#include "CutClusterCharacterisationThreeDAlgorithm.h"
-#include "EventSlicingThreeDTool.h"
-#include "HierarchyAnalysisAlgorithm.h"
-#include "LArNDContent.h"
-#include "MasterThreeDAlgorithm.h"
-#include "MergeClearTracksThreeDAlgorithm.h"
-#include "PfoThreeDHitAssignmentAlgorithm.h"
-#include "PreProcessingThreeDAlgorithm.h"
-#include "ReplaceHitAndClusterListsAlgorithm.h"
-#include "SimpleClusterCreationThreeDAlgorithm.h"
-#include "SlicingThreeDAlgorithm.h"
+#include "larrecond/LArControlFlow/CreateMainNDListsAlgorithm.h"
+#include "larrecond/LArControlFlow/EventSlicingThreeDTool.h"
+#include "larrecond/LArControlFlow/PreProcessingThreeDAlgorithm.h"
+#include "larrecond/LArControlFlow/SlicingThreeDAlgorithm.h"
+#include "larrecond/LArControlFlow/ReplaceHitAndClusterListsAlgorithm.h"
+#include "larrecond/LArControlFlow/MasterThreeDAlgorithm.h"
+
+#include "larrecond/LArMonitoring/HierarchyAnalysisAlgorithm.h"
+
+#include "larrecond/LArThreeDReco/LArClusterCreation/CreateTwoDClustersFromThreeDAlgorithm.h"
+#include "larrecond/LArThreeDReco/LArClusterCreation/SimpleClusterCreationThreeDAlgorithm.h"
+#include "larrecond/LArThreeDReco/LArTrackReco/MergeClearTracksThreeDAlgorithm.h"
+#include "larrecond/LArThreeDReco/LArHitCreation/PfoThreeDHitAssignmentAlgorithm.h"
+
+#include "larrecond/LArTrackShowerId/CutClusterCharacterisationThreeDAlgorithm.h"
+
+#include "larrecond/LArVertex/CandidateVertexCreationThreeDAlgorithm.h"
+
+#include "larrecond/LArNDContent.h"
 
 // clang-format off
 #define LAR_ND_ALGORITHM_LIST(d)                                                                                                   \
