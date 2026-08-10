@@ -8,12 +8,11 @@
 
 #include "Pandora/AlgorithmHeaders.h"
 
-#include "PreProcessingThreeDAlgorithm.h"
-
 #include "larpandoracontent/LArHelpers/LArClusterHelper.h"
 #include "larpandoracontent/LArObjects/LArCaloHit.h"
-
 #include "larpandoracontent/LArUtility/KDTreeLinkerAlgoT.h"
+
+#include "larrecond/LArControlFlow/PreProcessingThreeDAlgorithm.h"
 
 using namespace pandora;
 

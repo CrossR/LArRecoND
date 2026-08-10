@@ -8,15 +8,15 @@
 #ifndef PANDORA_MAIN_ND_PANDORA_H
 #define PANDORA_MAIN_ND_PANDORA_H 1
 
+#include <map>
+#include <string>
+#include <vector>
+
 #include "Pandora/Pandora.h"
 
 #include "larrecond/LArObjects/NDEventInput.h"
 #include "larrecond/LArObjects/NDParameters.h"
 #include "larrecond/LArObjects/NDSimpleTPCGeom.h"
-
-#include <map>
-#include <string>
-#include <vector>
 
 namespace lar_nd_reco
 {

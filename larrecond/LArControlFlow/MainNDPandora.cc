@@ -6,8 +6,6 @@
  *  $Log: $
  */
 
-#include "MainNDPandora.h"
-
 #include "Api/PandoraApi.h"
 #include "PandoraMonitoringApi.h"
 
@@ -25,6 +23,7 @@
 #include "larrecond/LArObjects/LArNDEventInput.h"
 #include "larrecond/LArHelpers/NDGeometryHelper.h"
 #include "larrecond/LArObjects/TMSEventInput.h"
+#include "larrecond/LArControlFlow/MainNDPandora.h"
 
 using namespace pandora;
 

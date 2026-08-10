@@ -6,13 +6,17 @@
  *  $Log: $
  */
 
+#include "Api/PandoraApi.h"
+#include "Api/PandoraContentApi.h"
+#include "Pandora/AlgorithmHeaders.h"
+
 #include "larpandoracontent/LArHelpers/LArClusterHelper.h"
 #include "larpandoracontent/LArHelpers/LArGeometryHelper.h"
 #include "larpandoracontent/LArHelpers/LArPfoHelper.h"
 #include "larpandoracontent/LArHelpers/LArPointingClusterHelper.h"
-
 #include "larpandoracontent/LArObjects/LArThreeDSlidingConeFitResult.h"
 #include "larpandoracontent/LArObjects/LArThreeDSlidingFitResult.h"
+#include "larpandoracontent/LArUtility/KDTreeLinkerAlgoT.h"
 
 #include "larrecond/LArControlFlow/EventSlicingThreeDTool.h"
 

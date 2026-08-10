@@ -10,9 +10,6 @@
 
 #include "Pandora/AlgorithmHeaders.h"
 
-#include "LArNDContent.h"
-#include "MasterThreeDAlgorithm.h"
-
 #include "larpandoracontent/LArContent.h"
 #include "larpandoracontent/LArHelpers/LArClusterHelper.h"
 #include "larpandoracontent/LArHelpers/LArFileHelper.h"
@@ -31,6 +28,9 @@
 #ifdef LIBTORCH_DL
 #include "larpandoradlcontent/LArDLContent.h"
 #endif
+
+#include "larrecond/LArNDContent.h"
+#include "larrecond/LArControlFlow/MasterThreeDAlgorithm.h"
 
 using namespace pandora;
 

@@ -10,10 +10,9 @@
 #include "Api/PandoraContentApi.h"
 #include "Pandora/AlgorithmHeaders.h"
 
-#include "CreateMainNDListsAlgorithm.h"
-
 #include "larpandoracontent/LArControlFlow/MultiPandoraApi.h"
 
+#include "larrecond/LArControlFlow/CreateMainNDListsAlgorithm.h"
 using namespace pandora;
 
 namespace lar_content

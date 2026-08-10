@@ -8,9 +8,9 @@
 #ifndef LAR_REPLACE_HIT_AND_CLUSTER_LISTS_ALGORITHM_H
 #define LAR_REPLACE_HIT_AND_CLUSTER_LISTS_ALGORITHM_H 1
 
-#include "Pandora/Algorithm.h"
-
 #include <unordered_map>
+
+#include "Pandora/Algorithm.h"
 
 namespace lar_content
 {

@@ -8,14 +8,14 @@
 #ifndef LAR_MASTER_THREE_D_ALGORITHM_H
 #define LAR_MASTER_THREE_D_ALGORITHM_H 1
 
+#include <unordered_map>
+
 #include "Pandora/AlgorithmTool.h"
 #include "Pandora/ExternallyConfiguredAlgorithm.h"
 
 #include "larpandoracontent/LArControlFlow/MasterAlgorithm.h"
 #include "larpandoracontent/LArControlFlow/MultiPandoraApi.h"
 #include "larpandoracontent/LArObjects/LArCaloHit.h"
-
-#include <unordered_map>
 
 namespace lar_content
 {

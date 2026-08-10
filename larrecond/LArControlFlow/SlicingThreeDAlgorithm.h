@@ -9,9 +9,10 @@
 #define LAR_SLICING_THREE_D_ALGORITHM_H 1
 
 #include "Pandora/Algorithm.h"
-//#include "Pandora/AlgorithmTool.h"
-#include "EventSlicingThreeDBaseTool.h"
+
 #include "larpandoracontent/LArControlFlow/SlicingAlgorithm.h"
+
+#include "larrecond/LArControlFlow/EventSlicingThreeDBaseTool.h"
 
 namespace lar_content
 {
