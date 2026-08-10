@@ -14,6 +14,7 @@
 #include "larpandoracontent/LArControlFlow/MultiPandoraApi.h"
 #include "larpandoracontent/LArPlugins/LArPseudoLayerPlugin.h"
 #include "larpandoracontent/LArPlugins/LArRotationalTransformationPlugin.h"
+#include "larpandoracontent/LArHelpers/LArFileHelper.h"
 
 #ifdef LIBTORCH_DL
 #include "larpandoradlcontent/LArDLContent.h"
@@ -194,7 +195,9 @@ void MainNDPandora::ConfigurePandoraInstances()
     std::cout << "ConfigurePandoraInstances" << std::endl;
 
     this->ProcessExternalParameters(m_pMainPandora, m_mainParameters);
-    PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ReadSettings(*m_pMainPandora, m_mainParameters.m_settingsFile));
+
+    std::string settingsFilePath(lar_content::LArFileHelper::FindFileInPath(m_mainParameters.m_settingsFile, "FW_SEARCH_PATH"));
+    PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ReadSettings(*m_pMainPandora, settingsFilePath));
 
     const PandoraInstanceList pandoraList = MultiPandoraApi::GetDaughterPandoraInstanceList(m_pMainPandora);
     for (const auto *pPandora : pandoraList)
