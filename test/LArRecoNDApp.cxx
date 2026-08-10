@@ -8,6 +8,9 @@
 
 #include <iostream>
 
+#include "Helpers/XmlHelper.h"
+#include "Xml/tinyxml.h"
+
 #include "larrecond/LArControlFlow/MainNDPandora.h"
 #include "larrecond/LArObjects/NDParameters.h"
 
@@ -17,18 +20,15 @@
 #include "TApplication.h"
 #endif
 
-#include "json/json.hpp"
-
 using namespace pandora;
 using namespace lar_nd_reco;
-using nlohmann::json;
 
 int main(int argc, char *argv[])
 {
     int errorNo(0);
 
-    const std::string configFileName{(argc > 1) ? argv[1] : "config/LArND_TMS.json"};
-    std::cout << "JSON ConfigFileName = " << configFileName << std::endl;
+    const std::string configFileName{(argc > 1) ? argv[1] : "config/LArND_TMS.xml"};
+    std::cout << "XML ConfigFileName = " << configFileName << std::endl;
 
     try
     {
@@ -38,57 +38,65 @@ int main(int argc, char *argv[])
         pTApplication->SetReturnFromRun(kTRUE);
 #endif
 
-        json jsonConfig;
-        std::ifstream inputStr{configFileName};
-        inputStr >> jsonConfig;
+        TiXmlDocument xmlConfig;
+        if (!xmlConfig.LoadFile(configFileName.c_str()))
+        {
+            std::cerr << "Error: Failed to load XML config file: " << configFileName << std::endl;
+            return 1;
+        }
 
         // Get the main Pandora instance
-        const auto mainInfo = jsonConfig["Main"];
+        const auto mainInfo = xmlConfig.FirstChildElement("Main");
         std::cout << "mainInfo = " << mainInfo << std::endl;
 
         NDParameters mainParameters;
-        mainParameters.m_settingsFile = mainInfo["Settings"];
-        mainParameters.m_nEventsToProcess = mainInfo["EventsToProcess"];
-        mainParameters.m_nEventsToSkip = mainInfo["EventsToSkip"];
-        mainParameters.m_maxNHits = mainInfo["MaxNHits"];
-        mainParameters.m_minNHits = mainInfo["MinNHits"];
-        mainParameters.SetViewOption(mainInfo["ViewOption"]);
-        const bool gotMainRecoOption = mainParameters.SetRecoOption(mainInfo["RecoOption"]);
+        mainParameters.m_settingsFile = mainInfo->Attribute("Settings");
+        mainParameters.m_nEventsToProcess = std::stoi(mainInfo->Attribute("EventsToProcess"));
+        mainParameters.m_nEventsToSkip = std::stoi(mainInfo->Attribute("EventsToSkip"));
+        mainParameters.m_maxNHits = std::stoi(mainInfo->Attribute("MaxNHits"));
+        mainParameters.m_minNHits = std::stoi(mainInfo->Attribute("MinNHits"));
+        mainParameters.SetViewOption(mainInfo->Attribute("ViewOption"));
+        const bool gotMainRecoOption = mainParameters.SetRecoOption(mainInfo->Attribute("RecoOption"));
         if (!gotMainRecoOption)
             return 1;
 
         MainNDPandora mainND("Main", mainParameters);
 
-        const std::vector<std::string> instances = mainInfo["Instances"];
+        std::vector<std::string> instances;
+
+        if (mainInfo->Attribute("Instances"))
+            XmlHelper::ReadVectorOfValues(TiXmlHandle(mainInfo), "Instances", instances);
+        else
+            std::cout << "No additional Pandora instances specified in the XML config file." << std::endl;
 
         // Add the other Pandora instances
         for (const std::string &instanceName : instances)
         {
             std::cout << "Setting up Pandora instance : " << instanceName << std::endl;
-            const auto info = jsonConfig[instanceName];
+            const auto info = xmlConfig.FirstChildElement(instanceName.c_str());
 
             NDParameters NDPars(mainParameters);
-            NDPars.m_volType = NDPars.GetVolEnum(info["VolType"]);
-            NDPars.m_settingsFile = info["Settings"];
-            NDPars.m_inputFileName = info["InputFile"];
-            NDPars.m_inputTreeName = info["InputTree"];
-            NDPars.m_dataFormat = NDPars.GetDataEnum(info["DataFormat"]);
-            NDPars.m_geomFileName = info["GeomFile"];
-            NDPars.m_geomManagerName = info["GeomManager"];
-            NDPars.m_tpcName = info["TPCName"];
-            NDPars.m_lengthScale = info["LengthScale"];
-            NDPars.m_energyScale = info["EnergyScale"];
+            NDPars.m_volType = NDPars.GetVolEnum(info->Attribute("VolType"));
+            NDPars.m_settingsFile = info->Attribute("Settings");
+            NDPars.m_inputFileName = info->Attribute("InputFile");
+            NDPars.m_inputTreeName = info->Attribute("InputTree");
+            NDPars.m_dataFormat = NDPars.GetDataEnum(info->Attribute("DataFormat"));
+            NDPars.m_geomFileName = info->Attribute("GeomFile");
+            NDPars.m_geomManagerName = info->Attribute("GeomManager");
+            NDPars.m_tpcName = info->Attribute("TPCName");
+            NDPars.m_lengthScale = std::stof(info->Attribute("LengthScale"));
+            NDPars.m_energyScale = std::stof(info->Attribute("EnergyScale"));
 
             // This instance may have different reco options compared to the main one
-            if (info.contains("RecoOption"))
+            if (info->Attribute("RecoOption"))
             {
-                const bool gotRecoOption = NDPars.SetRecoOption(info["RecoOption"]);
+                const bool gotRecoOption = NDPars.SetRecoOption(info->Attribute("RecoOption"));
                 if (!gotRecoOption)
                     return 1;
             }
             // Instance may use different projection views as well
-            if (info.contains("ViewOption"))
-                NDPars.SetViewOption(info["ViewOption"]);
+            if (info->Attribute("ViewOption"))
+                NDPars.SetViewOption(info->Attribute("ViewOption"));
 
             // Set the event info using the main Pandora instance.
             // This assumes the input files for each Pandora instance have
