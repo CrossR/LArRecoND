@@ -45,11 +45,8 @@
     d("LArCutClusterCharacterisationThreeD",    CutClusterCharacterisationThreeDAlgorithm)                                         \
     d("LArCandidateVertexCreationThreeD",       CandidateVertexCreationThreeDAlgorithm)                                            \
     d("LArHierarchyAnalysis",                   HierarchyAnalysisAlgorithm)                                                        \
-<<<<<<< HEAD
-    d("LArCreateMainNDLists",                   CreateMainNDListsAlgorithm)
-=======
+    d("LArCreateMainNDLists",                   CreateMainNDListsAlgorithm)                                                        \
     d("LArCheatingRockMuonRemoval",             CheatingRockMuonRemovalAlgorithm)
->>>>>>> fork/CrossR/UpdatedCMake
 
 #define LAR_ND_ALGORITHM_TOOL_LIST(d)                                                                                              \
     d("LArEventSlicingThreeD",                  EventSlicingThreeDTool)                                                            \
