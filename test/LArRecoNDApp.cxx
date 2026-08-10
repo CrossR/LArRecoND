@@ -11,6 +11,8 @@
 #include "Helpers/XmlHelper.h"
 #include "Xml/tinyxml.h"
 
+#include "larpandoracontent/LArHelpers/LArFileHelper.h"
+
 #include "larrecond/LArControlFlow/MainNDPandora.h"
 #include "larrecond/LArObjects/NDParameters.h"
 
@@ -39,7 +41,8 @@ int main(int argc, char *argv[])
 #endif
 
         TiXmlDocument xmlConfig;
-        if (!xmlConfig.LoadFile(configFileName.c_str()))
+        const std::string configFilePath(lar_content::LArFileHelper::FindFileInPath(configFileName, "FW_SEARCH_PATH"));
+        if (!xmlConfig.LoadFile(configFilePath.c_str()))
         {
             std::cerr << "Error: Failed to load XML config file: " << configFileName << std::endl;
             return 1;
@@ -158,7 +161,7 @@ int main(int argc, char *argv[])
     }
     catch (...)
     {
-        std::cerr << "Misconfigurated JSON file/parameters or unknown exception" << std::endl;
+        std::cerr << "Misconfigurated XML file/parameters or unknown exception" << std::endl;
         errorNo = 1;
     }
 
