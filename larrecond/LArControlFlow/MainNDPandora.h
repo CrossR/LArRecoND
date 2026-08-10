@@ -10,9 +10,9 @@
 
 #include "Pandora/Pandora.h"
 
-#include "NDEventInput.h"
-#include "NDParameters.h"
-#include "NDSimpleTPCGeom.h"
+#include "larrecond/LArObjects/NDEventInput.h"
+#include "larrecond/LArObjects/NDParameters.h"
+#include "larrecond/LArObjects/NDSimpleTPCGeom.h"
 
 #include <map>
 #include <string>

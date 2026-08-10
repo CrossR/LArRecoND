@@ -13,6 +13,7 @@
 #include "TROOT.h"
 
 #include <vector>
+#include <iostream>
 
 namespace lar_nd_reco
 {

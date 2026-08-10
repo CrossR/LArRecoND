@@ -8,7 +8,7 @@
 #ifndef PANDORA_ND_GEOMETRY_HELPER_H
 #define PANDORA_ND_GEOMETRY_HELPER_H 1
 
-#include "NDSimpleTPCGeom.h"
+#include "larrecond/LArObjects/NDSimpleTPCGeom.h"
 
 #include <memory>
 #include <string>

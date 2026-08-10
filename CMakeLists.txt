@@ -57,7 +57,7 @@ set(LAR_RECO_COMPILE_OPTIONS
 )
 
 # Build products
-file(GLOB_RECURSE LAR_RECO_ND_SRCS CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/src/*.cc")
+file(GLOB_RECURSE LAR_RECO_ND_SRCS CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/larrecond/*.cc")
 
 add_library(${PROJECT_NAME} SHARED ${LAR_RECO_ND_SRCS})
 
@@ -68,7 +68,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     SOVERSION ${PROJECT_VERSION_MAJOR}
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(${PROJECT_NAME} PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include>
+)
 
 target_compile_options(${PROJECT_NAME} PRIVATE ${LAR_RECO_COMPILE_OPTIONS})
 
@@ -97,15 +100,10 @@ set(LAR_RECO_EXECUTABLES
     PandoraOuterface
     LArRecoNDApp
 )
-set(LAR_RECO_EXECUTABLES_SRCS
-    ${PROJECT_SOURCE_DIR}/test/PandoraInterface.cxx
-    ${PROJECT_SOURCE_DIR}/test/PandoraOuterface.cxx
-    ${PROJECT_SOURCE_DIR}/app/LArRecoNDApp.cxx
-)
 
-foreach(exe_name exe_src IN ZIP_LISTS LAR_RECO_EXECUTABLES LAR_RECO_EXECUTABLES_SRCS)
+foreach(exe_name IN LISTS LAR_RECO_EXECUTABLES)
 
-    add_executable(${exe_name} ${exe_src})
+    add_executable(${exe_name} ${PROJECT_SOURCE_DIR}/test/${exe_name}.cxx)
 
     set_target_properties(${exe_name} PROPERTIES
         CXX_STANDARD 17

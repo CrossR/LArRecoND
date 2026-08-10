@@ -11,7 +11,7 @@
 #include "Pandora/Algorithm.h"
 #include "Pandora/AlgorithmTool.h"
 
-#include "LArSlice3D.h"
+#include "larrecond/LArObjects/LArSlice3D.h"
 
 namespace lar_content
 {

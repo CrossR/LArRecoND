@@ -6,7 +6,6 @@
  *  $Log: $
  */
 
-#include "NDGeometryHelper.h"
 
 #include "Api/PandoraApi.h"
 
@@ -16,6 +15,8 @@
 #include "TGeoMatrix.h"
 #include "TGeoShape.h"
 #include "TGeoVolume.h"
+
+#include "larrecond/LArHelpers/NDGeometryHelper.h"
 
 namespace lar_nd_reco
 {

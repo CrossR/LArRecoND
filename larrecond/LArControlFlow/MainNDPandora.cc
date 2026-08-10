@@ -21,10 +21,10 @@
 #include "larpandoradlcontent/LArDLContent.h"
 #endif
 
-#include "LArNDContent.h"
-#include "LArNDEventInput.h"
-#include "NDGeometryHelper.h"
-#include "TMSEventInput.h"
+#include "larrecond/LArNDContent.h"
+#include "larrecond/LArObjects/LArNDEventInput.h"
+#include "larrecond/LArHelpers/NDGeometryHelper.h"
+#include "larrecond/LArObjects/TMSEventInput.h"
 
 using namespace pandora;
 
