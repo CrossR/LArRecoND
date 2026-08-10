@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 {
     int errorNo(0);
 
-    const std::string configFileName{(argc > 1) ? argv[1] : "config/LArND_TMS.xml"};
+    const std::string configFileName{(argc > 1) ? argv[1] : "LArND_TMS.xml"};
     std::cout << "XML ConfigFileName = " << configFileName << std::endl;
 
     try
@@ -40,16 +40,20 @@ int main(int argc, char *argv[])
         pTApplication->SetReturnFromRun(kTRUE);
 #endif
 
-        TiXmlDocument xmlConfig;
+        TiXmlDocument xmlDocument;
         const std::string configFilePath(lar_content::LArFileHelper::FindFileInPath(configFileName, "FW_SEARCH_PATH"));
-        if (!xmlConfig.LoadFile(configFilePath.c_str()))
+        if (!xmlDocument.LoadFile(configFilePath.c_str()))
         {
             std::cerr << "Error: Failed to load XML config file: " << configFileName << std::endl;
             return 1;
         }
 
+        // INFO: The XML document will be the full file...we want inside the <pandora> element.
+        const TiXmlHandle xmlDocumentHandle(&xmlDocument);
+        const TiXmlHandle xmlHandle(TiXmlHandle(xmlDocumentHandle.FirstChildElement().Element()));
+
         // Get the main Pandora instance handle
-        TiXmlHandle mainHandle(xmlConfig.FirstChildElement("Main"));
+        TiXmlHandle mainHandle(xmlHandle.FirstChildElement("Main"));
         if (!mainHandle.Element())
         {
             std::cerr << "Error: Could not find 'Main' element in XML config." << std::endl;
@@ -83,7 +87,15 @@ int main(int argc, char *argv[])
         for (const std::string &instanceName : instances)
         {
             std::cout << "Setting up Pandora instance : " << instanceName << std::endl;
-            const auto instanceHandle = mainHandle.FirstChildElement(instanceName.c_str());
+
+            // Check an instance with this name exists in the XML file
+            if (!xmlHandle.FirstChildElement(instanceName.c_str()).Element())
+            {
+                std::cerr << "Error: Could not find '" << instanceName << "' element in XML config." << std::endl;
+                return 1;
+            }
+
+            const auto instanceHandle = xmlHandle.FirstChildElement(instanceName.c_str());
 
             NDParameters NDPars(mainParameters);
 
@@ -92,11 +104,13 @@ int main(int argc, char *argv[])
             NDPars.m_volType = NDPars.GetVolEnum(volTypeStr);
 
             std::string dataFormatStr;
-            PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "VolType", volTypeStr));
             PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "DataFormat", dataFormatStr));
             NDPars.m_dataFormat = NDPars.GetDataEnum(dataFormatStr);
 
-            PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "Settings", NDPars.m_settingsFile));
+            std::string settingsFile;
+            PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "Settings", settingsFile));
+            NDPars.m_settingsFile = lar_content::LArFileHelper::FindFileInPath(settingsFile, "FW_SEARCH_PATH");
+
             PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "InputFile", NDPars.m_inputFileName));
             PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "InputTree", NDPars.m_inputTreeName));
             PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "GeomFile", NDPars.m_geomFileName));

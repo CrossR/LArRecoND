@@ -1,7 +1,7 @@
 <pandora>
   <Main>
-    <Settings>settings/PandoraSettings_LArRecoND_Main.xml</Settings>
-    <Instances>LArND, TMS</Instances>
+    <Settings>PandoraSettings_LArRecoND_Main.xml</Settings>
+    <Instances>LArND TMS</Instances>
     <EventsToProcess>1</EventsToProcess>
     <EventsToSkip>0</EventsToSkip>
     <MaxNHits>-1</MaxNHits>
@@ -11,7 +11,7 @@
   </Main>
   <LArND>
     <VolType>LArND</VolType>
-    <Settings>settings/PandoraSettings_LArRecoND_ThreeD_Evt.xml</Settings>
+    <Settings>PandoraSettings_LArRecoND_ThreeD_Evt.xml</Settings>
     <InputFile>data/ND-LAr/MicroProdN3p1_NDLAr_2E18_FHC.flow.nu.0000001.FLOW.hdf5_hits_withMC.root</InputFile>
     <InputTree>events</InputTree>
     <DataFormat>SP</DataFormat>
@@ -23,7 +23,7 @@
   </LArND>
   <TMS>
     <VolType>TMS</VolType>
-    <Settings>settings/PandoraSettings_LArRecoND_TMS.xml</Settings>
+    <Settings>PandoraSettings_LArRecoND_TMS.xml</Settings>
     <InputFile>data/ND-LAr/MicroProdN3p1_NDLAr_2E18_FHC.tmsreco.nu.0000001.TMSRECOREADOUT.root</InputFile>
     <InputTree>TMS</InputTree>
     <DataFormat>TMSMC</DataFormat>
