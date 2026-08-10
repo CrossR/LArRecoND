@@ -83,7 +83,7 @@ public:
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-LArSP::LArSP(TTree *tree) :
+inline LArSP::LArSP(TTree *tree) :
     m_fChain(nullptr)
 {
     // if parameter tree is not specified (or zero), connect the file
