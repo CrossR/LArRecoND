@@ -17,13 +17,13 @@
 #include "TGeoManager.h"
 #include "TGeoNode.h"
 
-#include "LArGrid.h"
-#include "LArHitInfo.h"
-#include "LArNDGeomSimple.h"
-#include "LArSED.h"
-#include "LArSP.h"
-#include "LArSPMC.h"
-#include "LArVoxel.h"
+#include "larrecond/LArObjects/LArGrid.h"
+#include "larrecond/LArObjects/LArHitInfo.h"
+#include "larrecond/LArObjects/LArNDGeomSimple.h"
+#include "larrecond/LArObjects/LArSED.h"
+#include "larrecond/LArObjects/LArSP.h"
+#include "larrecond/LArObjects/LArSPMC.h"
+#include "larrecond/LArObjects/LArVoxel.h"
 
 namespace pandora
 {

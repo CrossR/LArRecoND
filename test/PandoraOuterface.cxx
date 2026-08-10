@@ -6,17 +6,16 @@
  *  $Log: $
  */
 
-#include "TFile.h"
-#include "TGraph.h"
-#include "TMath.h"
-#include "TSpline.h"
-#include "TTree.h"
-
-#include "TGeoBBox.h"
-#include "TGeoManager.h"
-#include "TGeoMatrix.h"
-#include "TGeoShape.h"
-#include "TGeoVolume.h"
+#include <algorithm>
+#include <cmath>
+#include <functional>
+#include <getopt.h>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <random>
+#include <string>
+#include <vector>
 
 #include "Api/PandoraApi.h"
 #include "Geometry/LArTPC.h"
@@ -38,25 +37,27 @@
 #include "larpandoradlcontent/LArDLContent.h"
 #endif
 
-#include "LArNDContent.h"
-#include "LArNDGeomSimple.h"
-#include "LArRay.h"
+#include "larrecond/LArNDContent.h"
+#include "larrecond/LArObjects/LArNDGeomSimple.h"
+#include "larrecond/LArObjects/LArRay.h"
+
 #include "PandoraOuterface.h"
 
 #ifdef MONITORING
 #include "TApplication.h"
 #endif
 
-#include <algorithm>
-#include <cmath>
-#include <functional>
-#include <getopt.h>
-#include <iostream>
-#include <map>
-#include <memory>
-#include <random>
-#include <string>
-#include <vector>
+#include "TFile.h"
+#include "TGraph.h"
+#include "TMath.h"
+#include "TSpline.h"
+#include "TTree.h"
+
+#include "TGeoBBox.h"
+#include "TGeoManager.h"
+#include "TGeoMatrix.h"
+#include "TGeoShape.h"
+#include "TGeoVolume.h"
 
 using namespace pandora;
 using namespace lar_nd_postreco;

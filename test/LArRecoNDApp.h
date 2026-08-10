@@ -8,11 +8,11 @@
 #ifndef PANDORA_LAR_RECO_ND_APP_H
 #define PANDORA_LAR_RECO_ND_APP_H 1
 
+#include <string>
+
 #include "Pandora/PandoraInputTypes.h"
 
-#include "NDParameters.h"
-
-#include <string>
+#include "larrecond/LArObjects/NDParameters.h"
 
 namespace pandora
 {

@@ -8,7 +8,15 @@
 #ifndef PANDORA_ND_OUTERFACE_H
 #define PANDORA_ND_OUTERFACE_H 1
 
+#include <map>
+
 #include "Pandora/PandoraInputTypes.h"
+
+#include "larpandoracontent/LArHelpers/LArPfoHelper.h"
+
+#include "larrecond/LArObjects/LArGrid.h"
+#include "larrecond/LArObjects/LArHitInfo.h"
+#include "larrecond/LArObjects/LArRecoNDFormat.h"
 
 #ifdef USE_EDEPSIM
 #include "TG4Event.h"
@@ -17,17 +25,9 @@
 #include "TGeoManager.h"
 #include "TGeoNode.h"
 
-#include "LArGrid.h"
-#include "LArHitInfo.h"
-#include "LArRecoNDFormat.h"
-
-#include "larpandoracontent/LArHelpers/LArPfoHelper.h"
-
 #include "TFile.h"
 #include "TProfile.h"
 #include "TTree.h"
-
-#include <map>
 
 namespace pandora
 {

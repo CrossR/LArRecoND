@@ -6,18 +6,18 @@
  *  $Log: $
  */
 
-#include "LArRecoNDApp.h"
+#include <iostream>
 
-#include "MainNDPandora.h"
-#include "NDParameters.h"
+#include "larrecond/LArControlFlow/MainNDPandora.h"
+#include "larrecond/LArObjects/NDParameters.h"
+
+#include "LArRecoNDApp.h"
 
 #ifdef MONITORING
 #include "TApplication.h"
 #endif
 
 #include "json/json.hpp"
-
-#include <iostream>
 
 using namespace pandora;
 using namespace lar_nd_reco;
