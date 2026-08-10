@@ -25,12 +25,73 @@
 using namespace pandora;
 using namespace lar_nd_reco;
 
+#include <map>
+#include <string>
+#include <iostream>
+
+struct LArRecoNDConfig
+{
+    // Default config file name
+    std::string configFileName = "LArND_TMS.xml";
+    // Input file names, stored as a map to link instances & file names.
+    std::map<std::string, std::string> inputFiles;
+};
+
+LArRecoNDConfig ParseCommandLine(int argc, char *argv[])
+{
+    LArRecoNDConfig options;
+
+    for (int i = 1; i < argc; ++i)
+    {
+        std::string arg = argv[i];
+
+        if ((arg == "-c" || arg == "--config") && i + 1 < argc)
+        {
+            options.configFileName = argv[++i];
+        }
+        else if ((arg == "-i" || arg == "--input") && i + 1 < argc)
+        {
+            std::string val = argv[++i];
+            const size_t sepPos = val.find_first_of(":");
+
+            if (sepPos != std::string::npos)
+            {
+                std::string instanceName = val.substr(0, sepPos);
+                std::string filePath = val.substr(sepPos + 1);
+                options.inputFiles[instanceName] = filePath;
+            }
+            else
+            {
+                std::cerr << "Warning: Malformed input argument '" << val
+                          << "'. Expected format is InstanceName:FilePath" << std::endl;
+            }
+        }
+        else if (arg == "-h" || arg == "--help")
+        {
+            std::cout << "Usage: " << argv[0] << " [options]\n"
+                      << "Options:\n"
+                      << "  -c, --config <file>       Specify the XML config file (default: LArND_TMS.xml)\n"
+                      << "  -i, --input <InstanceName:FilePath>  Specify input file for a Pandora instance\n"
+                      << "  -h, --help                Show this help message\n";
+            exit(0);
+        }
+        else
+        {
+            std::cerr << "Warning: Unknown or incomplete command line argument: " << arg << std::endl;
+        }
+    }
+
+    return options;
+}
+
 int main(int argc, char *argv[])
 {
     int errorNo(0);
 
-    const std::string configFileName{(argc > 1) ? argv[1] : "LArND_TMS.xml"};
-    std::cout << "XML ConfigFileName = " << configFileName << std::endl;
+    LArRecoNDConfig cliOptions = ParseCommandLine(argc, argv);
+    const std::string configFileName = cliOptions.configFileName;
+    const std::string configFilePath(lar_content::LArFileHelper::FindFileInPath(configFileName, "FW_SEARCH_PATH"));
+    std::cout << "XML ConfigFileName = " << configFilePath << std::endl;
 
     try
     {
@@ -41,10 +102,9 @@ int main(int argc, char *argv[])
 #endif
 
         TiXmlDocument xmlDocument;
-        const std::string configFilePath(lar_content::LArFileHelper::FindFileInPath(configFileName, "FW_SEARCH_PATH"));
         if (!xmlDocument.LoadFile(configFilePath.c_str()))
         {
-            std::cerr << "Error: Failed to load XML config file: " << configFileName << std::endl;
+            std::cerr << "Error: Failed to load XML config file: " << configFilePath << std::endl;
             return 1;
         }
 
@@ -111,7 +171,13 @@ int main(int argc, char *argv[])
             PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "Settings", settingsFile));
             NDPars.m_settingsFile = lar_content::LArFileHelper::FindFileInPath(settingsFile, "FW_SEARCH_PATH");
 
-            PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "InputFile", NDPars.m_inputFileName));
+            // Process the input file for this instance, with the CLI options taking precedence over the XML file
+            auto cliInputFileIt = cliOptions.inputFiles.find(instanceName);
+            if (cliInputFileIt != cliOptions.inputFiles.end())
+                NDPars.m_inputFileName = cliInputFileIt->second;
+            else
+                PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "InputFile", NDPars.m_inputFileName));
+
             PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "InputTree", NDPars.m_inputTreeName));
             PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "GeomFile", NDPars.m_geomFileName));
             PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "GeomManager", NDPars.m_geomManagerName));
