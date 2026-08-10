@@ -45,27 +45,34 @@ int main(int argc, char *argv[])
             return 1;
         }
 
-        // Get the main Pandora instance
-        const auto mainInfo = xmlConfig.FirstChildElement("Main");
-        std::cout << "mainInfo = " << mainInfo << std::endl;
+        // Get the main Pandora instance handle
+        TiXmlHandle mainHandle(xmlConfig.FirstChildElement("Main"));
+        if (!mainHandle.Element())
+        {
+            std::cerr << "Error: Could not find 'Main' element in XML config." << std::endl;
+            return 1;
+        }
 
         NDParameters mainParameters;
-        mainParameters.m_settingsFile = mainInfo->Attribute("Settings");
-        mainParameters.m_nEventsToProcess = std::stoi(mainInfo->Attribute("EventsToProcess"));
-        mainParameters.m_nEventsToSkip = std::stoi(mainInfo->Attribute("EventsToSkip"));
-        mainParameters.m_maxNHits = std::stoi(mainInfo->Attribute("MaxNHits"));
-        mainParameters.m_minNHits = std::stoi(mainInfo->Attribute("MinNHits"));
-        mainParameters.SetViewOption(mainInfo->Attribute("ViewOption"));
-        const bool gotMainRecoOption = mainParameters.SetRecoOption(mainInfo->Attribute("RecoOption"));
-        if (!gotMainRecoOption)
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(mainHandle, "Settings", mainParameters.m_settingsFile));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(mainHandle, "EventsToProcess", mainParameters.m_nEventsToProcess));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(mainHandle, "EventsToSkip", mainParameters.m_nEventsToSkip));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(mainHandle, "MaxNHits", mainParameters.m_maxNHits));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(mainHandle, "MinNHits", mainParameters.m_minNHits));
+
+        std::string viewOption, recoOption;
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(mainHandle, "ViewOption", viewOption));
+        PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(mainHandle, "RecoOption", recoOption));
+
+        mainParameters.SetViewOption(viewOption);
+        if (!mainParameters.SetRecoOption(recoOption))
             return 1;
 
         MainNDPandora mainND("Main", mainParameters);
 
         std::vector<std::string> instances;
-
-        if (mainInfo->Attribute("Instances"))
-            XmlHelper::ReadVectorOfValues(TiXmlHandle(mainInfo), "Instances", instances);
+        if (mainHandle.FirstChildElement("Instances").Element())
+            XmlHelper::ReadVectorOfValues(mainHandle, "Instances", instances);
         else
             std::cout << "No additional Pandora instances specified in the XML config file." << std::endl;
 
@@ -73,30 +80,40 @@ int main(int argc, char *argv[])
         for (const std::string &instanceName : instances)
         {
             std::cout << "Setting up Pandora instance : " << instanceName << std::endl;
-            const auto info = xmlConfig.FirstChildElement(instanceName.c_str());
+            const auto instanceHandle = mainHandle.FirstChildElement(instanceName.c_str());
 
             NDParameters NDPars(mainParameters);
-            NDPars.m_volType = NDPars.GetVolEnum(info->Attribute("VolType"));
-            NDPars.m_settingsFile = info->Attribute("Settings");
-            NDPars.m_inputFileName = info->Attribute("InputFile");
-            NDPars.m_inputTreeName = info->Attribute("InputTree");
-            NDPars.m_dataFormat = NDPars.GetDataEnum(info->Attribute("DataFormat"));
-            NDPars.m_geomFileName = info->Attribute("GeomFile");
-            NDPars.m_geomManagerName = info->Attribute("GeomManager");
-            NDPars.m_tpcName = info->Attribute("TPCName");
-            NDPars.m_lengthScale = std::stof(info->Attribute("LengthScale"));
-            NDPars.m_energyScale = std::stof(info->Attribute("EnergyScale"));
 
-            // This instance may have different reco options compared to the main one
-            if (info->Attribute("RecoOption"))
+            std::string volTypeStr;
+            PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "VolType", volTypeStr));
+            NDPars.m_volType = NDPars.GetVolEnum(volTypeStr);
+
+            std::string dataFormatStr;
+            PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "VolType", volTypeStr));
+            PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "DataFormat", dataFormatStr));
+            NDPars.m_dataFormat = NDPars.GetDataEnum(dataFormatStr);
+
+            PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "Settings", NDPars.m_settingsFile));
+            PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "InputFile", NDPars.m_inputFileName));
+            PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "InputTree", NDPars.m_inputTreeName));
+            PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "GeomFile", NDPars.m_geomFileName));
+            PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "GeomManager", NDPars.m_geomManagerName));
+            PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "TPCName", NDPars.m_tpcName));
+            PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "LengthScale", NDPars.m_lengthScale));
+            PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "EnergyScale", NDPars.m_energyScale));
+
+            // This instance may have different reco options compared to the main one.
+            std::string instanceRecoOption;
+            if (XmlHelper::ReadValue(instanceHandle, "RecoOption", instanceRecoOption) == STATUS_CODE_SUCCESS)
             {
-                const bool gotRecoOption = NDPars.SetRecoOption(info->Attribute("RecoOption"));
-                if (!gotRecoOption)
+                if (!NDPars.SetRecoOption(instanceRecoOption))
                     return 1;
             }
+
             // Instance may use different projection views as well
-            if (info->Attribute("ViewOption"))
-                NDPars.SetViewOption(info->Attribute("ViewOption"));
+            std::string instanceViewOption;
+            if (XmlHelper::ReadValue(instanceHandle, "ViewOption", instanceViewOption) == STATUS_CODE_SUCCESS)
+                NDPars.SetViewOption(instanceViewOption);
 
             // Set the event info using the main Pandora instance.
             // This assumes the input files for each Pandora instance have
