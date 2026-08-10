@@ -14,7 +14,7 @@
 
 #include "larpandoracontent/LArObjects/LArThreeDSlidingFitResult.h"
 
-#include "MergeClearTracksThreeDAlgorithm.h"
+#include "larrecond/LArThreeDReco/LArTrackReco/MergeClearTracksThreeDAlgorithm.h"
 
 using namespace pandora;
 

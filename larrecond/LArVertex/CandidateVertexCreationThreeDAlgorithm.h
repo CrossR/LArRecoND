@@ -8,11 +8,11 @@
 #ifndef LAR_CANDIDATE_VERTEX_CREATION_THREE_D_ALGORITHM_H
 #define LAR_CANDIDATE_VERTEX_CREATION_THREE_D_ALGORITHM_H 1
 
-#include "larpandoracontent/LArObjects/LArThreeDSlidingFitResult.h"
+#include <unordered_map>
 
 #include "Pandora/Algorithm.h"
 
-#include <unordered_map>
+#include "larpandoracontent/LArObjects/LArThreeDSlidingFitResult.h"
 
 namespace lar_content
 {

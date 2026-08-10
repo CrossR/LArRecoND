@@ -6,14 +6,14 @@
  *  $Log: $
  */
 
+#include <unordered_map>
+
 #include "Pandora/AlgorithmHeaders.h"
 
 #include "larpandoracontent/LArHelpers/LArClusterHelper.h"
 #include "larpandoracontent/LArUtility/KDTreeLinkerAlgoT.h"
 
-#include "SimpleClusterCreationThreeDAlgorithm.h"
-
-#include <unordered_map>
+#include "larrecond/LArThreeDReco/LArClusterCreation/SimpleClusterCreationThreeDAlgorithm.h"
 
 using namespace pandora;
 

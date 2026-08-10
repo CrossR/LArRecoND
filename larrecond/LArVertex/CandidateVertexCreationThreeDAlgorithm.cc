@@ -6,14 +6,14 @@
  *  $Log: $
  */
 
+#include <utility>
+
 #include "Pandora/AlgorithmHeaders.h"
 
 #include "larpandoracontent/LArHelpers/LArClusterHelper.h"
 #include "larpandoracontent/LArHelpers/LArGeometryHelper.h"
 
-#include "CandidateVertexCreationThreeDAlgorithm.h"
-
-#include <utility>
+#include "larrecond/LArVertex/CandidateVertexCreationThreeDAlgorithm.h"
 
 using namespace pandora;
 

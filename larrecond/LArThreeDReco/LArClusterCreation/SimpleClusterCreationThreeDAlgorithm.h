@@ -8,12 +8,12 @@
 #ifndef LAR_SIMPLE_CLUSTER_CREATION_THREE_D_ALGORITHM_H
 #define LAR_SIMPLE_CLUSTER_CREATION_THREE_D_ALGORITHM_H 1
 
+#include <unordered_map>
+#include <vector>
+
 #include "Pandora/Algorithm.h"
 
 #include "larpandoracontent/LArUtility/KDTreeLinkerToolsT.h"
-
-#include <unordered_map>
-#include <vector>
 
 namespace lar_content
 {

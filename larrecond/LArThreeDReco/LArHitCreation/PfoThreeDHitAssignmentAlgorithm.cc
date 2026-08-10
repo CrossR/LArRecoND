@@ -6,6 +6,8 @@
  *  $Log: $
  */
 
+#include <limits>
+
 #include "Api/PandoraApi.h"
 #include "Objects/CartesianVector.h"
 #include "Objects/ParticleFlowObject.h"
@@ -16,9 +18,7 @@
 #include "larpandoracontent/LArHelpers/LArGeometryHelper.h"
 #include "larpandoracontent/LArHelpers/LArPfoHelper.h"
 
-#include "PfoThreeDHitAssignmentAlgorithm.h"
-
-#include <limits>
+#include "larrecond/LArThreeDReco/LArHitCreation/PfoThreeDHitAssignmentAlgorithm.h"
 
 using namespace pandora;
 

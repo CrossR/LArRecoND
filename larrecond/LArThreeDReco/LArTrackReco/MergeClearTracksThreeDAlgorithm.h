@@ -9,6 +9,7 @@
 #define LAR_MERGE_CLEAR_TRACKS_THREE_D_ALGORITHM_H 1
 
 #include "Pandora/Algorithm.h"
+
 #include "larpandoracontent/LArObjects/LArThreeDSlidingFitResult.h"
 
 namespace lar_content

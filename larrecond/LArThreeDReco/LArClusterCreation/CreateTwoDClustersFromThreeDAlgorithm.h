@@ -8,10 +8,10 @@
 #ifndef LAR_CREATE_TWO_D_CLUSTERS_FROM_THREE_D_ALGORITHM_H
 #define LAR_CREATE_TWO_D_CLUSTERS_FROM_THREE_D_ALGORITHM_H 1
 
+#include <unordered_map>
+
 #include "Api/PandoraContentApi.h"
 #include "Pandora/Algorithm.h"
-
-#include <unordered_map>
 
 namespace lar_content
 {
