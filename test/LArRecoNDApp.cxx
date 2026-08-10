@@ -6,8 +6,12 @@
  *  $Log: $
  */
 
-#include <iostream>
 
+#include <iostream>
+#include <map>
+#include <string>
+
+#include <Pandora/StatusCodes.h>
 #include "Helpers/XmlHelper.h"
 #include "Xml/tinyxml.h"
 
@@ -25,17 +29,32 @@
 using namespace pandora;
 using namespace lar_nd_reco;
 
-#include <map>
-#include <string>
-#include <iostream>
+typedef std::map<std::string, std::string> InstanceMap;
 
 struct LArRecoNDConfig
 {
     // Default config file name
     std::string configFileName = "LArND_TMS.xml";
-    // Input file names, stored as a map to link instances & file names.
-    std::map<std::string, std::string> inputFiles;
+    // Input file names.
+    InstanceMap inputFiles;
+    // Geometry file names.
+    InstanceMap geometryFiles;
+    // TODO: Expand this to match all the expected CLI options for "Main" in the XML.
 };
+
+std::tuple<std::string, std::string> ParseInstanceInput(const std::string &input)
+{
+    const size_t sepPos = input.find_first_of(":");
+
+    if (sepPos == std::string::npos)
+    {
+        return std::make_tuple("", "");
+    }
+
+    std::string instanceName = input.substr(0, sepPos);
+    std::string filePath = input.substr(sepPos + 1);
+    return std::make_tuple(instanceName, filePath);
+}
 
 LArRecoNDConfig ParseCommandLine(int argc, char *argv[])
 {
@@ -51,20 +70,23 @@ LArRecoNDConfig ParseCommandLine(int argc, char *argv[])
         }
         else if ((arg == "-i" || arg == "--input") && i + 1 < argc)
         {
-            std::string val = argv[++i];
-            const size_t sepPos = val.find_first_of(":");
+            std::string inputArg = argv[++i];
+            auto [instanceName, filePath] = ParseInstanceInput(inputArg);
 
-            if (sepPos != std::string::npos)
-            {
-                std::string instanceName = val.substr(0, sepPos);
-                std::string filePath = val.substr(sepPos + 1);
+            if (!instanceName.empty() && !filePath.empty())
                 options.inputFiles[instanceName] = filePath;
-            }
             else
-            {
-                std::cerr << "Warning: Malformed input argument '" << val
-                          << "'. Expected format is InstanceName:FilePath" << std::endl;
-            }
+                std::cerr << "Warning: Malformed input argument '" << inputArg << "'. Expected format is InstanceName:FilePath" << std::endl;
+        }
+        else if ((arg == "-g" || arg == "--geometry") && i + 1 < argc)
+        {
+            std::string geomArg = argv[++i];
+            auto [instanceName, filePath] = ParseInstanceInput(geomArg);
+
+            if (!instanceName.empty() && !filePath.empty())
+                options.geometryFiles[instanceName] = filePath;
+            else
+                std::cerr << "Warning: Malformed geometry argument '" << geomArg << "'. Expected format is InstanceName:FilePath" << std::endl;
         }
         else if (arg == "-h" || arg == "--help")
         {
@@ -72,6 +94,7 @@ LArRecoNDConfig ParseCommandLine(int argc, char *argv[])
                       << "Options:\n"
                       << "  -c, --config <file>       Specify the XML config file (default: LArND_TMS.xml)\n"
                       << "  -i, --input <InstanceName:FilePath>  Specify input file for a Pandora instance\n"
+                      << "  -g, --geometry <InstanceName:FilePath>  Specify geometry file for a Pandora instance\n"
                       << "  -h, --help                Show this help message\n";
             exit(0);
         }
@@ -82,6 +105,31 @@ LArRecoNDConfig ParseCommandLine(int argc, char *argv[])
     }
 
     return options;
+}
+
+template <typename T>
+T GetValue(InstanceMap &cliOptions, const TiXmlHandle &xmlHandle, const std::string &xmlKey, const std::string &instanceName)
+{
+    // Check if the CLI option is provided for this instance
+    auto cliIt = cliOptions.find(instanceName);
+    if (cliIt != cliOptions.end())
+    {
+        return cliIt->second;
+    }
+
+    // If not, check the XML configuration
+    TiXmlHandle instanceHandle = xmlHandle.FirstChildElement(instanceName.c_str());
+    if (instanceHandle.Element())
+    {
+        T value;
+        if (XmlHelper::ReadValue(instanceHandle, xmlKey, value) == STATUS_CODE_SUCCESS)
+        {
+            return value;
+        }
+    }
+
+    // If neither is provided, raise an error.
+    throw StatusCodeException(STATUS_CODE_NOT_FOUND);
 }
 
 int main(int argc, char *argv[])
@@ -171,15 +219,11 @@ int main(int argc, char *argv[])
             PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "Settings", settingsFile));
             NDPars.m_settingsFile = lar_content::LArFileHelper::FindFileInPath(settingsFile, "FW_SEARCH_PATH");
 
-            // Process the input file for this instance, with the CLI options taking precedence over the XML file
-            auto cliInputFileIt = cliOptions.inputFiles.find(instanceName);
-            if (cliInputFileIt != cliOptions.inputFiles.end())
-                NDPars.m_inputFileName = cliInputFileIt->second;
-            else
-                PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "InputFile", NDPars.m_inputFileName));
+            // Process any options that may have CLI overrides, otherwise use the XML values
+            NDPars.m_inputFileName = GetValue<std::string>(cliOptions.inputFiles, instanceHandle, "InputFile", instanceName);
+            NDPars.m_geomFileName = GetValue<std::string>(cliOptions.geometryFiles, instanceHandle, "GeomFile", instanceName);
 
             PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "InputTree", NDPars.m_inputTreeName));
-            PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "GeomFile", NDPars.m_geomFileName));
             PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "GeomManager", NDPars.m_geomManagerName));
             PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "TPCName", NDPars.m_tpcName));
             PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "LengthScale", NDPars.m_lengthScale));
