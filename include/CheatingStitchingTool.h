@@ -1,28 +1,28 @@
 /**
- *  @file   include/CheatingStitchingAlgorithm.h
+ *  @file   include/CheatingStitchingTool.h
  *
- *  @brief  Header file for the cheating stitching algorithm.
+ *  @brief  Header file for the cheating stitching tool.
  *
  *  $Log: $
  */
-#ifndef LAR_CHEATING_STITCHING_ALGORITHM_H
-#define LAR_CHEATING_STITCHING_ALGORITHM_H 1
+#ifndef LAR_CHEATING_STITCHING_TOOL_H
+#define LAR_CHEATING_STITCHING_TOOL_H 1
 
-#include "larpandoracontent/LArThreeDReco/LArPfoStitching/PfoStitchingAlgorithm.h"
+#include "larpandoracontent/LArThreeDReco/LArPfoStitching/StitchingBaseTool.h"
 
 namespace lar_content
 {
 
 /**
- *  @brief  CheatingStitchingAlgorithm class
+ *  @brief  CheatingStitchingTool class
  */
-class CheatingStitchingAlgorithm : public PfoStitchingAlgorithm
+class CheatingStitchingTool : public StitchingBaseTool
 {
 public:
     /**
      *  @brief  Default constructor
      */
-    CheatingStitchingAlgorithm();
+    CheatingStitchingTool();
 
 protected:
     /**
@@ -43,4 +43,4 @@ private:
 
 } // namespace lar_content
 
-#endif // #ifndef LAR_CHEATING_STITCHING_ALGORITHM_H
+#endif // #ifndef LAR_CHEATING_STITCHING_TOOL_H

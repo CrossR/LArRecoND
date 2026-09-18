@@ -1,7 +1,7 @@
 /**
- *  @file   src/CheatingStitchingAlgorithm.cc
+ *  @file   src/CheatingStitchingTool.cc
  *
- *  @brief  Implementation of the cheating stitching algorithm class.
+ *  @brief  Implementation of the cheating stitching tool class.
  *
  *  $Log: $
  */
@@ -11,19 +11,19 @@
 #include <larpandoracontent/LArHelpers/LArMCParticleHelper.h>
 #include <larpandoracontent/LArHelpers/LArPfoHelper.h>
 
-#include "CheatingStitchingAlgorithm.h"
+#include "CheatingStitchingTool.h"
 
 using namespace pandora;
 
 namespace lar_content
 {
-CheatingStitchingAlgorithm::CheatingStitchingAlgorithm()
+CheatingStitchingTool::CheatingStitchingTool()
 {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void CheatingStitchingAlgorithm::RunStitching(const Algorithm *const pAlgorithm, const StitchingPfoOperations *const /*pStitchingOperations*/, const PfoList *const /*pMultiPfoList*/,
+void CheatingStitchingTool::RunStitching(const Algorithm *const pAlgorithm, const StitchingPfoOperations *const pStitchingOperations, const PfoList *const /*pMultiPfoList*/,
     PfoToLArTPCMap &pfoToLArTPCMap, PfoToFloatMap & /*stitchedPfosToX0Map*/)
 {
     if (PandoraContentApi::GetSettings(*pAlgorithm)->ShouldDisplayAlgorithmInfo())
@@ -128,14 +128,14 @@ void CheatingStitchingAlgorithm::RunStitching(const Algorithm *const pAlgorithm,
             const ParticleFlowObject *const pCurrentPfo = tpcToMainPfoIter->second;
 
             // Stitch the current PFO to the reference PFO
-            this->StitchPfos(pReferencePfo, pCurrentPfo, pfoToLArTPCMap);
+            pStitchingOperations->StitchPfos(pReferencePfo, pCurrentPfo, pfoToLArTPCMap);
         }
     }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-StatusCode CheatingStitchingAlgorithm::ReadSettings(const TiXmlHandle /*xmlHandle*/)
+StatusCode CheatingStitchingTool::ReadSettings(const TiXmlHandle /*xmlHandle*/)
 {
 
     return STATUS_CODE_SUCCESS;
