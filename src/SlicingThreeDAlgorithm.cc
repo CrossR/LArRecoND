@@ -15,6 +15,7 @@
 #include "SlicingThreeDAlgorithm.h"
 
 #include <chrono>
+#include <limits>
 
 using namespace pandora;
 
@@ -31,7 +32,12 @@ SlicingThreeDAlgorithm::SlicingThreeDAlgorithm() :
 SlicingThreeDAlgorithm::~SlicingThreeDAlgorithm()
 {
     if (m_evaluateSlices)
+    {
         PANDORA_MONITORING_API(SaveTree(this->GetPandora(), m_analysisTreeName.c_str(), m_analysisFileName.c_str(), "UPDATE"));
+
+        std::string truthTreeName = m_analysisTreeName + "_TruthBased";
+        PANDORA_MONITORING_API(SaveTree(this->GetPandora(), truthTreeName.c_str(), m_analysisFileName.c_str(), "UPDATE"));
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -343,84 +349,274 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
 
     std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Evaluated " << sliceIndex << " reco slices for this event" << std::endl;
 
-    // Now...lets inverse. Lets loop over every neutrino, and evaluate the slices that it contributed to.
-    // First, get every MC bit that contributed to this event, and store it in a set.
+    // Now build some more truth based metrics, rather than the previous reco-based metrics.
+    std::map<const CaloHit *, int> caloHitToSliceMap;
+    int currentSliceIdx = 0;
+    for (const Slice3D &slice : sliceList)
+    {
+        for (const CaloHit *pCaloHit : slice.m_caloHitList3D)
+            caloHitToSliceMap[pCaloHit] = currentSliceIdx;
+        currentSliceIdx++;
+    }
+
+    const std::size_t numTruth(static_cast<std::size_t>(allNeutrinos.size()));
+    const std::size_t numReco(sliceList.size());
+    std::vector<std::vector<unsigned int>> contingency(numTruth, std::vector<unsigned int>(numReco, 0));
+
+    unsigned int numComparableHits = 0;
+    for (const auto &hitTruth : caloHitToNuMap)
+    {
+        const auto sliceIt(caloHitToSliceMap.find(hitTruth.first));
+        if (sliceIt == caloHitToSliceMap.end())
+            continue;
+
+        const auto truthIt(nuToIdMap.find(hitTruth.second));
+        if (truthIt == nuToIdMap.end())
+            continue;
+
+        contingency[truthIt->second][sliceIt->second]++;
+        numComparableHits++;
+    }
+
+    std::vector<unsigned int> truthCounts(numTruth, 0), recoCounts(numReco, 0);
+    for (std::size_t truthIdx = 0; truthIdx < numTruth; truthIdx++)
+    {
+        for (std::size_t recoIdx = 0; recoIdx < numReco; recoIdx++)
+        {
+            truthCounts[truthIdx] += contingency[truthIdx][recoIdx];
+            recoCounts[recoIdx] += contingency[truthIdx][recoIdx];
+        }
+    }
+
+    const float nan(std::numeric_limits<float>::quiet_NaN());
+    float sbd(nan), ari(nan);
+
+    if (numComparableHits > 0)
+    {
+        double truthToRecoDice = 0.0;
+        unsigned int numTruthDice = 0;
+        for (std::size_t truthIdx = 0; truthIdx < numTruth; truthIdx++)
+        {
+            if (truthCounts[truthIdx] == 0)
+                continue;
+
+            double bestDice = 0.0;
+            for (std::size_t recoIdx = 0; recoIdx < numReco; recoIdx++)
+            {
+                if (recoCounts[recoIdx] == 0)
+                    continue;
+                const double denominator = truthCounts[truthIdx] + recoCounts[recoIdx];
+                bestDice = std::max(bestDice, 2.0 * contingency[truthIdx][recoIdx] / denominator);
+            }
+            truthToRecoDice += bestDice;
+            numTruthDice++;
+        }
+
+        double recoToTruthDice = 0.0;
+        unsigned int numRecoDice = 0;
+        for (std::size_t recoIdx = 0; recoIdx < numReco; recoIdx++)
+        {
+            if (recoCounts[recoIdx] == 0)
+                continue;
+
+            double bestDice = 0.0;
+            for (std::size_t truthIdx = 0; truthIdx < numTruth; truthIdx++)
+            {
+                if (truthCounts[truthIdx] == 0)
+                    continue;
+                const double denominator = truthCounts[truthIdx] + recoCounts[recoIdx];
+                bestDice = std::max(bestDice, 2.0 * contingency[truthIdx][recoIdx] / denominator);
+            }
+            recoToTruthDice += bestDice;
+            numRecoDice++;
+        }
+        if (numTruthDice > 0 && numRecoDice > 0)
+            sbd = static_cast<float>(std::min(truthToRecoDice / numTruthDice, recoToTruthDice / numRecoDice));
+
+        if (numComparableHits >= 2)
+        {
+            const auto comb2 = [](unsigned int count) {
+                return count < 2 ? 0.0 : static_cast<double>(count) * (count - 1) / 2.0;
+            };
+            double intersectionPairs = 0.0;
+            double truthPairs = 0.0;
+            double recoPairs = 0.0;
+            for (std::size_t truthIdx = 0; truthIdx < numTruth; truthIdx++)
+            {
+                truthPairs += comb2(truthCounts[truthIdx]);
+                for (std::size_t recoIdx = 0; recoIdx < numReco; recoIdx++)
+                    intersectionPairs += comb2(contingency[truthIdx][recoIdx]);
+            }
+            for (const unsigned int count : recoCounts)
+                recoPairs += comb2(count);
+
+            const double totalPairs = comb2(numComparableHits);
+            const double expectedIndex = truthPairs * recoPairs / totalPairs;
+            const double maxIndex = (truthPairs + recoPairs) / 2.0;
+            ari = maxIndex == expectedIndex
+                ? 1.f
+                : static_cast<float>((intersectionPairs - expectedIndex) / (maxIndex - expectedIndex));
+        }
+    }
+
+    // Save one record per truth interaction. The truth-side metrics use the
+    // best reconstructed slice for that interaction, while ARI and SBD remain
+    // event-level partition metrics and are stored with explicit names.
+    std::string truthTreeName = m_analysisTreeName + "_TruthBased";
     std::vector<int> eventNumTruth, subrunNumTruth, runNumTruth;
-    std::vector<float> truthCompleteness, truthPurity, nuEnergyTruth;
-    std::vector<int> isRockMuonTruth, trueNuSizeTruth, nuIdTruth, bestSliceIndexTruth, matchedHitsTruth, bestSliceSizeTruth, nuPdgTruth;
+    std::vector<int> nuIdTruth, bestSliceIndexTruth, trueNuSizeTruth, bestSliceSizeTruth;
+    std::vector<int> numComparableTruth, numTruthTruth, numRecoTruth;
+    std::vector<float> purityTruth, efficiencyTruth, completenessTruth;
+    std::vector<float> ariEventTruth, sbdEventTruth;
+    std::vector<float> nuEnergyTruth;
+    std::vector<int> isRockMuonTruth, nuPdgTruth, matchedHitsTruth;
+    std::vector<float> trueNuVtxX, trueNuVtxY, trueNuVtxZ;
+    std::vector<float> minHadronX, maxHadronX, minHadronY, maxHadronY, minHadronZ, maxHadronZ;
 
     for (const MCParticle *nu : allNeutrinos)
     {
-        const unsigned int nHitsInNu(nuToCaloHitMap[nu].size());
-        if (nHitsInNu == 0)
+        const auto truthIt(nuToIdMap.find(nu));
+        if (truthIt == nuToIdMap.end())
             continue;
 
-        unsigned int maxHitsFromNuInAnySlice(0);
-        int bestSliceIdx(-1);
-        unsigned int bestSliceTotalHits(0);
+        const std::size_t truthIdx(static_cast<std::size_t>(truthIt->second));
+        const unsigned int trueNuHits(nuToCaloHitMap[nu].size());
+        if (trueNuHits == 0)
+            continue;
 
-        int currentSliceIdx = 0;
-        for (const Slice3D &slice : sliceList)
+        unsigned int maxMatchedHits = 0;
+        int bestSliceIdx = -1;
+        for (std::size_t recoIdx = 0; recoIdx < numReco; recoIdx++)
         {
-            unsigned int hitsFromNuInThisSlice(0);
-            for (const CaloHit *pCaloHit : slice.m_caloHitList3D)
+            if (contingency[truthIdx][recoIdx] > maxMatchedHits)
             {
-                const auto it(caloHitToNuMap.find(pCaloHit));
-                if ((it != caloHitToNuMap.end()) && (it->second == nu))
-                    hitsFromNuInThisSlice++;
+                maxMatchedHits = contingency[truthIdx][recoIdx];
+                bestSliceIdx = static_cast<int>(recoIdx);
             }
-
-            if (hitsFromNuInThisSlice > maxHitsFromNuInAnySlice)
-            {
-                maxHitsFromNuInAnySlice = hitsFromNuInThisSlice;
-                bestSliceIdx = currentSliceIdx;
-                bestSliceTotalHits = slice.m_caloHitList3D.size();
-            }
-            currentSliceIdx++;
         }
 
-        float completeness(0.f);
-        float purity(0.f);
+        const unsigned int comparableTruthHits(truthCounts[truthIdx]);
+        const float interactionEfficiency = comparableTruthHits > 0
+            ? static_cast<float>(maxMatchedHits) / comparableTruthHits
+            : 0.f;
+        const float interactionCompleteness = static_cast<float>(maxMatchedHits) / trueNuHits;
+        const float interactionPurity = bestSliceIdx >= 0 && recoCounts[bestSliceIdx] > 0
+            ? static_cast<float>(maxMatchedHits) / recoCounts[bestSliceIdx]
+            : 0.f;
 
-        if (bestSliceIdx != -1)
+        // Get nu containment
+        const CartesianVector vtx(nu->GetVertex());
+        trueNuVtxX.push_back(vtx.GetX());
+        trueNuVtxY.push_back(vtx.GetY());
+        trueNuVtxZ.push_back(vtx.GetZ());
+
+        // Calculate hadron containment
+        float minHx = std::numeric_limits<float>::max();
+        float maxHx = -std::numeric_limits<float>::max();
+        float minHy = std::numeric_limits<float>::max();
+        float maxHy = -std::numeric_limits<float>::max();
+        float minHz = std::numeric_limits<float>::max();
+        float maxHz = -std::numeric_limits<float>::max();
+
+        for (const CaloHit *pCaloHit : nuToCaloHitMap[nu])
         {
-            completeness = static_cast<float>(maxHitsFromNuInAnySlice) / static_cast<float>(nHitsInNu);
-            purity = static_cast<float>(maxHitsFromNuInAnySlice) / static_cast<float>(bestSliceTotalHits);
+            const LArCaloHit *pLArCaloHit = dynamic_cast<const LArCaloHit*>(pCaloHit);
+            if (!pLArCaloHit) continue;
+
+            // Find the specific MC particle that created this hit
+            const MCParticle *hitMC = nullptr;
+            float maxWeight = -1.f;
+            for (const auto &mcWeight : pLArCaloHit->GetMCParticleWeightMap())
+            {
+                if (mcWeight.second > maxWeight)
+                {
+                    maxWeight = mcWeight.second;
+                    hitMC = mcWeight.first;
+                }
+            }
+
+            if (hitMC)
+            {
+                const int pdg = std::abs(hitMC->GetParticleId());
+
+                // Skip if it doesn't look like a hadron
+                if (pdg == 11 || pdg == 13 || pdg == 22 || pdg == 111)
+                    continue;
+
+                const CartesianVector pos(pCaloHit->GetPositionVector());
+                minHx = std::min(minHx, pos.GetX());
+                maxHx = std::max(maxHx, pos.GetX());
+                minHy = std::min(minHy, pos.GetY());
+                maxHy = std::max(maxHy, pos.GetY());
+                minHz = std::min(minHz, pos.GetZ());
+                maxHz = std::max(maxHz, pos.GetZ());
+            }
         }
 
-        runNumTruth.push_back(runNum);
-        subrunNumTruth.push_back(subrunNum);
-        eventNumTruth.push_back(eventNum);
+        // If no hadrons were found, default to the vertex position to avoid extreme bounding boxes
+        if (minHx == std::numeric_limits<float>::max())
+        {
+            minHx = maxHx = vtx.GetX();
+            minHy = maxHy = vtx.GetY();
+            minHz = maxHz = vtx.GetZ();
+        }
 
-        nuIdTruth.push_back(nuToIdMap[nu]);
-        nuEnergyTruth.push_back(nu->GetEnergy());
-        nuPdgTruth.push_back(nu->GetParticleId());
-        isRockMuonTruth.push_back(rockMuonSet.find(nu) != rockMuonSet.end());
-        trueNuSizeTruth.push_back(nHitsInNu);
+        minHadronX.push_back(minHx);
+        maxHadronX.push_back(maxHx);
+        minHadronY.push_back(minHy);
+        maxHadronY.push_back(maxHy);
+        minHadronZ.push_back(minHz);
+        maxHadronZ.push_back(maxHz);
 
+        eventNumTruth.push_back(static_cast<int>(eventNum));
+        subrunNumTruth.push_back(static_cast<int>(subrunNum));
+        runNumTruth.push_back(static_cast<int>(runNum));
+        nuIdTruth.push_back(truthIt->second);
         bestSliceIndexTruth.push_back(bestSliceIdx);
-        bestSliceSizeTruth.push_back(bestSliceTotalHits);
-        matchedHitsTruth.push_back(maxHitsFromNuInAnySlice);
-
-        truthCompleteness.push_back(completeness);
-        truthPurity.push_back(purity);
+        trueNuSizeTruth.push_back(static_cast<int>(trueNuHits));
+        bestSliceSizeTruth.push_back(bestSliceIdx >= 0 ? static_cast<int>(sliceList[bestSliceIdx].m_caloHitList3D.size()) : 0);
+        matchedHitsTruth.push_back(static_cast<int>(maxMatchedHits));
+        numComparableTruth.push_back(static_cast<int>(numComparableHits));
+        numTruthTruth.push_back(static_cast<int>(numTruth));
+        numRecoTruth.push_back(static_cast<int>(numReco));
+        purityTruth.push_back(interactionPurity);
+        efficiencyTruth.push_back(interactionEfficiency);
+        completenessTruth.push_back(interactionCompleteness);
+        ariEventTruth.push_back(ari);
+        sbdEventTruth.push_back(sbd);
+        nuEnergyTruth.push_back(nu->GetEnergy());
+        isRockMuonTruth.push_back(rockMuonSet.find(nu) != rockMuonSet.end());
+        nuPdgTruth.push_back(nu->GetParticleId());
     }
 
-    // Save to a truth-first tree.
-    std::string truthTreeName = m_analysisTreeName + "_TruthFirst";
     PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "run", &runNumTruth));
     PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "subrun", &subrunNumTruth));
     PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "event", &eventNumTruth));
-    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "completeness", &truthCompleteness));
-    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "purity", &truthPurity));
-    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "isRockMuon", &isRockMuonTruth));
-    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "trueNuSize", &trueNuSizeTruth));
-    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "nuPdg", &nuPdgTruth));
     PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "nuId", &nuIdTruth));
-    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "nuEnergy", &nuEnergyTruth));
     PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "bestSliceIndex", &bestSliceIndexTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "purity", &purityTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "efficiency", &efficiencyTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "completeness", &completenessTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "ariEvent", &ariEventTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "sbdEvent", &sbdEventTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "trueNuSize", &trueNuSizeTruth));
     PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "bestSliceSize", &bestSliceSizeTruth));
     PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "matchedHits", &matchedHitsTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "isRockMuon", &isRockMuonTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "nuPdg", &nuPdgTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "nuEnergy", &nuEnergyTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "numTruth", &numTruthTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "numReco", &numRecoTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "numComparable", &numComparableTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "trueNuVtxX", &trueNuVtxX));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "trueNuVtxY", &trueNuVtxY));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "trueNuVtxZ", &trueNuVtxZ));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "minHadronX", &minHadronX));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "maxHadronX", &maxHadronX));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "minHadronY", &minHadronY));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "maxHadronY", &maxHadronY));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "minHadronZ", &minHadronZ));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "maxHadronZ", &maxHadronZ));
     PANDORA_MONITORING_API(FillTree(this->GetPandora(), truthTreeName.c_str()));
 }
 
