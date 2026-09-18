@@ -364,6 +364,19 @@ const Pandora *MasterThreeDAlgorithm::CreateWorkerInstance(
     larTPCParameters.m_wireAngleW = pFirstLArTPC->GetWireAngleW();
     larTPCParameters.m_sigmaUVW = pFirstLArTPC->GetSigmaUVW();
     larTPCParameters.m_isDriftInPositiveX = pFirstLArTPC->IsDriftInPositiveX();
+
+    // Merge in readout volumes from every child TPC, keeping ids unique, and record the offset used for each original LArTPC so hits copied
+    // into this worker can be remapped consistently in Copy()
+    m_daughterVolumeIdOffsetMap.clear();
+    unsigned int idOffset(0);
+    for (const LArTPCMap::value_type &mapEntry : larTPCMap)
+    {
+        const LArTPC *const pLArTPC(mapEntry.second);
+        m_daughterVolumeIdOffsetMap[pLArTPC->GetLArTPCVolumeId()] = idOffset;
+        this->AppendReadoutVolumeParameters(*pLArTPC, idOffset, larTPCParameters.m_readoutVolumeParametersVector);
+        idOffset += pLArTPC->GetReadoutVolumes().size();
+    }
+
     PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::Geometry::LArTPC::Create(*pPandora, larTPCParameters));
 
     // The Gaps
