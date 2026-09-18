@@ -1,7 +1,7 @@
 /**
- *  @file   src/CheatingStitching.cc
+ *  @file   src/CheatingStitchingAlgorithm.cc
  *
- *  @brief  Implementation of the cheating stitching tool class.
+ *  @brief  Implementation of the cheating stitching algorithm class.
  *
  *  $Log: $
  */
@@ -11,23 +11,23 @@
 #include <larpandoracontent/LArHelpers/LArMCParticleHelper.h>
 #include <larpandoracontent/LArHelpers/LArPfoHelper.h>
 
-#include "CheatingStitchingTool.h"
+#include "CheatingStitchingAlgorithm.h"
 
 using namespace pandora;
 
 namespace lar_content
 {
-CheatingStitchingTool::CheatingStitchingTool()
+CheatingStitchingAlgorithm::CheatingStitchingAlgorithm()
 {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void CheatingStitchingTool::Run(const MasterAlgorithm *const pAlgorithm, const PfoList *const /*pMultiPfoList*/,
+void CheatingStitchingAlgorithm::RunStitching(const Algorithm *const pAlgorithm, const StitchingPfoOperations *const /*pStitchingOperations*/, const PfoList *const /*pMultiPfoList*/,
     PfoToLArTPCMap &pfoToLArTPCMap, PfoToFloatMap & /*stitchedPfosToX0Map*/)
 {
     if (PandoraContentApi::GetSettings(*pAlgorithm)->ShouldDisplayAlgorithmInfo())
-        std::cout << "----> Running Algorithm Tool: " << this->GetInstanceName() << ", " << this->GetType() << std::endl;
+        std::cout << "----> Running Algorithm : " << this->GetInstanceName() << ", " << this->GetType() << std::endl;
 
     if (this->GetPandora().GetGeometry()->GetLArTPCMap().size() < 2)
         return;
@@ -128,14 +128,14 @@ void CheatingStitchingTool::Run(const MasterAlgorithm *const pAlgorithm, const P
             const ParticleFlowObject *const pCurrentPfo = tpcToMainPfoIter->second;
 
             // Stitch the current PFO to the reference PFO
-            pAlgorithm->StitchPfos(pReferencePfo, pCurrentPfo, pfoToLArTPCMap);
+            this->StitchPfos(pReferencePfo, pCurrentPfo, pfoToLArTPCMap);
         }
     }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-StatusCode CheatingStitchingTool::ReadSettings(const TiXmlHandle /*xmlHandle*/)
+StatusCode CheatingStitchingAlgorithm::ReadSettings(const TiXmlHandle /*xmlHandle*/)
 {
 
     return STATUS_CODE_SUCCESS;
