@@ -79,7 +79,6 @@ void DLEventSlicingThreeDTool::RunSlicing(const Algorithm *const pAlgorithm, con
 
     // Build up a map of slice index to the candidate vertex indicies that fall within that slice.
     std::map<unsigned int, VertexList> sliceIndexToCandidateVertexIndicesMap;
-    unsigned int vertexIdx{0};
     for (const auto &vertex : *pThreeDVertexList)
     {
         const auto vertexPos = vertex->GetPosition();
@@ -108,8 +107,6 @@ void DLEventSlicingThreeDTool::RunSlicing(const Algorithm *const pAlgorithm, con
 
             ++sliceIdx;
         }
-
-        ++vertexIdx;
     }
 
     // For every 3D cluster, get all the associated 3D hits, find the

@@ -9,7 +9,7 @@
 #define LAR_CHEATING_STITCHING_TOOL_H 1
 
 #include "larpandoracontent/LArControlFlow/MasterAlgorithm.h"
-#include "larpandoracontent/LArControlFlow/StitchingBaseTool.h"
+#include "larpandoracontent/LArThreeDReco/LArPfoStitching/StitchingBaseTool.h"
 
 namespace lar_content
 {
