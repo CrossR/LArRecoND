@@ -685,13 +685,20 @@ void CreateSPMCParticles(const LArSPMC &larspmc, const pandora::Pandora *const p
         mcNeutrinoParameters.m_process = lar_content::MC_PROC_INCIDENT_NU;
 
         mcNeutrinoParameters.m_energy = nuE;
+        mcNeutrinoParameters.m_visibleEnergy = nuE;
+        mcNeutrinoParameters.m_isCC = ((*larspmc.m_ccnc)[i] == 1);
         mcNeutrinoParameters.m_momentum = pandora::CartesianVector(nuPx, nuPy, nuPz);
         mcNeutrinoParameters.m_vertex = pandora::CartesianVector(nuVtxX, nuVtxY, nuVtxZ);
+        mcNeutrinoParameters.m_endDirection = mcNeutrinoParameters.m_momentum;
         mcNeutrinoParameters.m_endpoint = pandora::CartesianVector(nuVtxX, nuVtxY, nuVtxZ);
 
         mcNeutrinoParameters.m_particleId = neutrinoPDG;
         mcNeutrinoParameters.m_mcParticleType = pandora::MC_3D;
         mcNeutrinoParameters.m_pParentAddress = (void *)((intptr_t)vertexID);
+
+        // INFO: Neutrino has no trajactory points.
+        mcNeutrinoParameters.m_nTrajPoints = 0;
+        mcNeutrinoParameters.m_trajPoints = {};
 
         PANDORA_THROW_RESULT_IF(
             pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::MCParticle::Create(*pPrimaryPandora, mcNeutrinoParameters, mcParticleFactory));
@@ -724,11 +731,14 @@ void CreateSPMCParticles(const LArSPMC &larspmc, const pandora::Pandora *const p
         const float pz = (*larspmc.m_mcp_pz)[i] * parameters.m_energyScale;
         const float energy = (*larspmc.m_mcp_energy)[i] * parameters.m_energyScale;
         mcParticleParameters.m_energy = energy;
+        mcParticleParameters.m_visibleEnergy = energy;
         mcParticleParameters.m_momentum = pandora::CartesianVector(px, py, pz);
+        mcParticleParameters.m_endDirection = mcParticleParameters.m_momentum;
 
         // Particle codes
         mcParticleParameters.m_particleId = (*larspmc.m_mcp_pdg)[i];
         mcParticleParameters.m_mcParticleType = pandora::MC_3D;
+        mcParticleParameters.m_isCC = false;
 
         // Neutrino info
         const long mcpVertexID = (*larspmc.m_mcp_vertex_id)[i];
@@ -753,6 +763,10 @@ void CreateSPMCParticles(const LArSPMC &larspmc, const pandora::Pandora *const p
 
         // Process ID
         mcParticleParameters.m_process = lar_content::MC_PROC_UNKNOWN;
+
+        // Empty trajectory info for now.
+        mcParticleParameters.m_nTrajPoints = 0;
+        mcParticleParameters.m_trajPoints = {};
 
         // Create MCParticle
         try
@@ -953,14 +967,19 @@ MCParticleEnergyMap CreateEDepSimMCParticles(const TG4Event &event, const pandor
 
                 lar_content::LArMCParticleParameters mcNeutrinoParameters;
                 mcNeutrinoParameters.m_nuanceCode = nuanceCode;
+                mcNeutrinoParameters.m_isCC = (g4PrimaryVtx.GetReaction().find("CC") != std::string::npos);
                 mcNeutrinoParameters.m_process = lar_content::MC_PROC_INCIDENT_NU;
                 mcNeutrinoParameters.m_energy = neutrinoP4.E();
+                mcNeutrinoParameters.m_visibleEnergy = neutrinoP4.E();
                 mcNeutrinoParameters.m_momentum = pandora::CartesianVector(neutrinoP4.Px(), neutrinoP4.Py(), neutrinoP4.Pz());
+                mcNeutrinoParameters.m_endDirection = mcNeutrinoParameters.m_momentum;
                 mcNeutrinoParameters.m_vertex = pandora::CartesianVector(neutrinoVtx.X(), neutrinoVtx.Y(), neutrinoVtx.Z());
                 mcNeutrinoParameters.m_endpoint = pandora::CartesianVector(neutrinoVtx.X(), neutrinoVtx.Y(), neutrinoVtx.Z());
                 mcNeutrinoParameters.m_particleId = neutrinoPDG;
                 mcNeutrinoParameters.m_mcParticleType = pandora::MC_3D;
                 mcNeutrinoParameters.m_pParentAddress = (void *)((intptr_t)neutrinoID);
+                mcNeutrinoParameters.m_nTrajPoints = 0;
+                mcNeutrinoParameters.m_trajPoints = {};
 
                 PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=,
                     PandoraApi::MCParticle::Create(*pPrimaryPandora, mcNeutrinoParameters, mcParticleFactory));
@@ -992,11 +1011,13 @@ MCParticleEnergyMap CreateEDepSimMCParticles(const TG4Event &event, const pandor
         const TLorentzVector initMtm(g4Traj.GetInitialMomentum() * parameters.m_energyScale);
         const float energy(initMtm.E());
         mcParticleParameters.m_energy = energy;
+        mcParticleParameters.m_visibleEnergy = energy;
         mcParticleParameters.m_momentum = pandora::CartesianVector(initMtm.X(), initMtm.Y(), initMtm.Z());
 
         // Particle codes
         mcParticleParameters.m_particleId = g4Traj.GetPDGCode();
         mcParticleParameters.m_mcParticleType = pandora::MC_3D;
+        mcParticleParameters.m_isCC = false;
 
         // Set unique parent integer address using trackID
         const int trackID = g4Traj.GetTrackId();
@@ -1005,6 +1026,8 @@ MCParticleEnergyMap CreateEDepSimMCParticles(const TG4Event &event, const pandor
         // Start and end points in cm (Geant4 uses mm)
         const std::vector<TG4TrajectoryPoint> trajPoints = g4Traj.Points;
         const int nPoints(trajPoints.size());
+        mcParticleParameters.m_nTrajPoints = nPoints;
+        CartesianPointVector trajPointsVector({});
 
         if (nPoints > 1)
         {
@@ -1015,17 +1038,28 @@ MCParticleEnergyMap CreateEDepSimMCParticles(const TG4Event &event, const pandor
             const TG4TrajectoryPoint end = trajPoints[nPoints - 1];
             const TLorentzVector endPos = end.GetPosition() * parameters.m_lengthScale;
             mcParticleParameters.m_endpoint = pandora::CartesianVector(endPos.X(), endPos.Y(), endPos.Z());
+            mcParticleParameters.m_endDirection = pandora::CartesianVector(end.GetMomentum().X(), end.GetMomentum().Y(), end.GetMomentum().Z());
 
             // Process ID
             mcParticleParameters.m_process = start.GetProcess();
+
+            for (const TG4TrajectoryPoint &trajPoint : trajPoints)
+            {
+                const TLorentzVector pos = trajPoint.GetPosition() * parameters.m_lengthScale;
+                const pandora::CartesianVector cartPos(pos.X(), pos.Y(), pos.Z());
+                trajPointsVector.emplace_back(cartPos);
+            }
         }
         else
         {
             // Should not reach here, but set sensible values just in case
             mcParticleParameters.m_vertex = pandora::CartesianVector(0.f, 0.f, 0.f);
             mcParticleParameters.m_endpoint = pandora::CartesianVector(0.f, 0.f, 0.f);
+            mcParticleParameters.m_endDirection = pandora::CartesianVector(0.f, 0.f, 0.f);
             mcParticleParameters.m_process = lar_content::MC_PROC_UNKNOWN;
         }
+
+        mcParticleParameters.m_trajPoints = trajPointsVector;
 
         // Set parent relationship and nuance interaction code
         mcParticleParameters.m_nuanceCode = 0;
@@ -1217,15 +1251,20 @@ void CreateSEDMCParticles(const LArSED &larsed, const pandora::Pandora *const pP
         lar_content::LArMCParticleParameters mcNeutrinoParameters;
         mcNeutrinoParameters.m_nuanceCode = nuanceCode;
         mcNeutrinoParameters.m_process = lar_content::MC_PROC_INCIDENT_NU;
+        mcNeutrinoParameters.m_isCC = (*larsed.m_ccnc)[i] == 0;
 
         mcNeutrinoParameters.m_energy = nuE;
+        mcNeutrinoParameters.m_visibleEnergy = nuE;
         mcNeutrinoParameters.m_momentum = pandora::CartesianVector(nuPx, nuPy, nuPz);
         mcNeutrinoParameters.m_vertex = pandora::CartesianVector(nuVtxX, nuVtxY, nuVtxZ);
         mcNeutrinoParameters.m_endpoint = pandora::CartesianVector(nuVtxX, nuVtxY, nuVtxZ);
+        mcNeutrinoParameters.m_endDirection = mcNeutrinoParameters.m_momentum;
 
         mcNeutrinoParameters.m_particleId = neutrinoPDG;
         mcNeutrinoParameters.m_mcParticleType = pandora::MC_3D;
         mcNeutrinoParameters.m_pParentAddress = (void *)((intptr_t)neutrinoID);
+        mcNeutrinoParameters.m_nTrajPoints = 0;
+        mcNeutrinoParameters.m_trajPoints = {};
 
         PANDORA_THROW_RESULT_IF(
             pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::MCParticle::Create(*pPrimaryPandora, mcNeutrinoParameters, mcParticleFactory));
@@ -1243,11 +1282,13 @@ void CreateSEDMCParticles(const LArSED &larsed, const pandora::Pandora *const pP
         const float pz = (*larsed.m_mcp_pz)[i] * parameters.m_energyScale;
         const float energy = (*larsed.m_mcp_energy)[i] * parameters.m_energyScale;
         mcParticleParameters.m_energy = energy;
+        mcParticleParameters.m_visibleEnergy = energy;
         mcParticleParameters.m_momentum = pandora::CartesianVector(px, py, pz);
 
         // Particle codes
         mcParticleParameters.m_particleId = (*larsed.m_mcp_pdg)[i];
         mcParticleParameters.m_mcParticleType = pandora::MC_3D;
+        mcParticleParameters.m_isCC = false;
 
         // Neutrino info
         const int nuid = (*larsed.m_mcp_nuid)[i];
@@ -1269,9 +1310,13 @@ void CreateSEDMCParticles(const LArSED &larsed, const pandora::Pandora *const pP
         const float endy = (*larsed.m_mcp_endy)[i] * parameters.m_lengthScale;
         const float endz = (*larsed.m_mcp_endz)[i] * parameters.m_lengthScale;
         mcParticleParameters.m_endpoint = pandora::CartesianVector(endx, endy, endz);
+        mcParticleParameters.m_endDirection = mcParticleParameters.m_momentum;
 
         // Process ID
         mcParticleParameters.m_process = lar_content::MC_PROC_UNKNOWN;
+
+        mcParticleParameters.m_nTrajPoints = 0;
+        mcParticleParameters.m_trajPoints = {};
 
         // Create MCParticle
         PANDORA_THROW_RESULT_IF(

@@ -4,109 +4,65 @@ Standalone Pandora application for developing and running DUNE ND reconstruction
 
 ## Building Pandora with LArRecoND
 
-The [scripts](scripts) directory contains example build and environment setup files. It is
-recommended to first copy this directory, or the files it contains, to a separate working area
-(outside of LArRecoND) before building Pandora.
+The [scripts](scripts) directory contains example build and environment setup files.
 
-The [build.sh](scripts/build.sh) script contains a recipe for building LArRecoND with all of the required
-[Pandora](https://github.com/PandoraPFA) packages, based on the instructions from
-[PandoraPFA/Documentation](https://github.com/PandoraPFA/Documentation#2-using-cmake-for-each-individual-package),
-using the versions defined in [tags.sh](scripts/tags.sh). This just requires the [ROOT](https://root.cern/install)
-software to be installed on the system or available using an appropriate
-[CVMFS](https://cvmfs.readthedocs.io/en/stable/cpt-quickstart.html) repository; this is used by Pandora's
-event display and monitoring tools. The build script also sets up the [Eigen](https://gitlab.com/libeigen/eigen)
-header library for [LArContent](https://github.com/PandoraPFA/LArContent).
+The [build](scripts/build) folder contains a recipe for building LArRecoND with
+all of the required [Pandora](https://github.com/PandoraPFA) packages, using the
+versions defined in [tags.sh](scripts/tags.sh). This just requires 3 things to
+either be installed or available (i.e. via `spack` or
+[CVMFS](https://cvmfs.readthedocs.io/en/stable/cpt-quickstart.html)):
+[ROOT](https://root.cern/install), [CMake](https://cmake.org/install/) and a
+modern C++ compiler.
+Depending on the OS, [Eigen](https://gitlab.com/libeigen/eigen) may also be
+setup, if not provided by the system.
 
-Before building the software, the Pandora package versions need to be defined by sourcing the
-[tags.sh](scripts/tags.sh) script, which also accepts an optional argument to set the
-$MY_TEST_AREA environment variable, which specifies the working directory where all of the packages
-will be placed (which defaults to the current directory if it is not given):
+There is 3 main ways to build LArRecoND and its dependencies, depending on the
+OS you are using, and where that OS is running (e.g. on a Fermilab gpvm, or on a
+personal machine).
 
-```Shell
-source tags.sh MyTestAreaDirPath
-source build.sh
+All commands below assume that you have cloned the LArRecoND repository and are
+in the top-level directory of the repository (i.e. some `$MY_TEST_AREA/`
+directory, that contains `LArRecoND` inside it).
+
+### Alma9 (FNAL GPVM Native Build)
+
+Pandora supports being built natively on Alma9, such that no container is required.
+All dependencies are supplied via `spack`, so the build is relatively straight forward:
+
+```sh
+source LArRecoND/scripts/setup/Alma9_FNAL.sh
+./LArRecoND/scripts/build/build_al9.sh
 ```
 
-### Alma9 environment at FNAL
+This will build a full build of Pandora, including DL support.
 
-The [Alma9_FNAL.sh](scripts/Alma9_FNAL.sh) script can be used to setup the cmake, gcc and ROOT environment at FNAL.
-This also defines the Pandora package versions using the [tags.sh](scripts/tags.sh) script, with an optional argument
-to set the $MY_TEST_AREA environment variable (which defaults to the current directory if left out). Then the
-[build.sh](scripts/build.sh) script can be used to build Pandora along with LArRecoND. Note that building with
-LibTorch and/or edep-sim (Geant4 with CLHEP) is not currently possible within this environment, since the required
-software versions for these extra packages are not yet available or compatible.
+### SL7 (FNAL GPVM Container Build)
 
-```Shell
-source Alma9_FNAL.sh
-source tags.sh MyTestAreaDirPath
-source build.sh
+If instead, you need to run in an SL7 container still, you can follow these
+instructions, and get your dependencies from `ups` and `cvmfs`:
+
+```sh
+source LArRecoND/scripts/setup/ContainerSL7_FNAL.sh
+source LArRecoND/scripts/setup/SL7_FNAL.sh
+./LArRecoND/scripts/build/build_sl7.sh
 ```
 
-### SL7 environment in FNAL container
+There also exists more specialised build scripts for SL7 inside the build folder,
+to enable building with LibTorch support, and also EDepsim support.
 
-The [ContainerSL7_FNAL.sh](scripts/ContainerSL7_FNAL.sh) script sets up the SL7 environment using an
-[apptainer](https://apptainer.org/docs/admin/main/installation.html) container on the FNAL computers:
+### Personal Machine (Linux or MacOS)
 
-```Shell
-source ContainerSL7_FNAL.sh
-source SL7_FNAL.sh
-source tags.sh MyTestAreaDirPath
-source build.sh
+Finally, if you want a local development build, you can use the following script
+to build Pandora natively locally. This works by grabbing a pre-built version of
+LibTorch, which may not be compatible with every single linux version. If that occurs,
+you may need to alter the download link to a version of LibTorch that is
+compatible with your system.
+
+```sh
+./LArRecoND/scripts/build/build.sh
 ```
 
-If using the build machines at FNAL, the `apptainer` command in [ContainerSL7_FNAL.sh](scripts/ContainerSL7_FNAL.sh)
-needs to be replaced by `/cvmfs/oasis.opensciencegrid.org/mis/apptainer/current/bin/apptainer`, and the
-`/pnfs/dune` directory needs to be removed for the `-B` option since it is not accessible on those machines.
-
-Note that you cannot mix the Alma9 and SL7 environments, i.e. sourcing [Alma9_FNAL.sh](scripts/Alma9_FNAL.sh)
-followed by [SL7_FNAL.sh](scripts/SL7_FNAL.sh) will give compiler and other environment errors. It is best to
-always start a fresh interactive terminal session for whatever build environment you need to use.
-
-The SL7 environment can also be used to build LArRecoND with LibTorch (used for Deep Learning Vertexing)
-and/or edep-sim enabled, as described below.
-
-To use an FNAL-related SL7 CVMFS container for building the code on your laptop or work/home unix PC, do
-(along with any other extra apptainer settings you need, such as adding more comma-separated
-`-B` directory paths):
-
-```Shell
-apptainer shell -B /cvmfs/ /cvmfs/singularity.opensciencegrid.org/fermilab/fnal-wn-sl7\:latest/
-source SL7_FNAL.sh
-source tags.sh MyTestAreaDirPath
-source build.sh
-```
-
-### Building with LibTorch for using Deep Learning Vertexing
-
-The [buildDLVtx.sh](scripts/buildDLVtx.sh) script contains the recipe for building LArRecoND with LibTorch v1.6.0
-that is needed for using the Deep Learning Vertexing. This also requires building LArContent
-(which contains the vertexing algorithm) with LibTorch turned on. This recipe uses the LibTorch library that is
-available on CVMFS using a container with the SL7 environment on Fermilab computers (replace the first script
-appropriately for your own laptop/PC container setup):
-
-```Shell
-source ContainerSL7_FNAL.sh
-source SL7_FNAL.sh
-source tags.sh MyTestAreaDirPath
-source buildDLVtx.sh
-```
-
-### Building with edep-sim (and LibTorch)
-
-The [buildEDepSimDLVtx.sh](scripts/buildEDepSimDLVtx.sh) script contains the recipe for building LArRecoND with
-[edep-sim](https://github.com/ClarkMcGrew/edep-sim) enabled as well as LibTorch for the Deep Learning Vertexing.
-This requires building edep-sim with
-[Geant4](https://geant4-userdoc.web.cern.ch/UsersGuides/InstallationGuide/html/)
-(and [CLHEP](https://proj-clhep.web.cern.ch/proj-clhep/)).
-The build script uses compatible libraries from CVMFS using a container with the SL7 environment on Fermilab
-computers (replace the first script appropriately for your own laptop/PC container setup):
-
-```Shell
-source ContainerSL7_FNAL.sh
-source SL7_FNAL.sh
-source tags.sh MyTestAreaDirPath
-source buildEDepSimDLVtx.sh
-```
+This will build a full build of Pandora, including DL support.
 
 ### LArMachineLearningData
 
@@ -114,6 +70,9 @@ Various neutrino algorithms need to use MicroBooNE/SBND and DUNE training files 
 [LArMachineLearningData](https://github.com/PandoraPFA/LArMachineLearningData) package. These need to be
 downloaded from CERNBox using the
 [download.sh](https://github.com/PandoraPFA/LArMachineLearningData/blob/master/download.sh) script:
+
+These are downloaded by default by the build scripts, but if you need to
+download them manually, you can do so by running the following commands:
 
 ```Shell
 cd $MY_TEST_AREA/LArMachineLearningData
@@ -159,7 +118,7 @@ If everything has been built correctly, running
 ```Shell
 cd $MY_TEST_AREA/LArRecoND
 ./bin/PandoraInterface -h
-``` 
+```
 
 will list all available (required and optional) run options.
 
@@ -169,7 +128,7 @@ by the $FW_SEARCH_PATH environment variable, which is set by the [tags.sh](scrip
 
 ### Converting hdf5 files from FLOW to ROOT
 
-Scripts exist to extract the necessary components from the FLOW files, which are in hdf5 format, and store them as a ROOT 
+Scripts exist to extract the necessary components from the FLOW files, which are in hdf5 format, and store them as a ROOT
 TTree read by `LArRecoND`. Running this conversion does **NOT** require one to have `LArRecoND` installed and relies on
 Python and ROOT. It does however, require some non-standard Python packages, and thus the following instructions make use
 of a virtual environment. First, source the relevant setup script from `LArRecoND`, e.g. assuming Alma9 and a Fermilab gpvm:
