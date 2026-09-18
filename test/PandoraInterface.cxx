@@ -58,7 +58,16 @@
 #include <random>
 #include <string>
 #include <vector>
+
+// TEMP: GCC12.1 has a weird regex warning...avoid for now, sort later.
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
 #include <regex>
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 using namespace pandora;
 using namespace lar_nd_reco;
