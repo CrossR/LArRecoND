@@ -228,6 +228,17 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
         caloHitToNuMap[pCaloHit] = largestContributor;
     }
 
+    // Create a super set of all neutrinos, so we can loop over them later.
+    std::set<const MCParticle *> allNeutrinos;
+    allNeutrinos.insert(neutrinoSet.begin(), neutrinoSet.end());
+    allNeutrinos.insert(rockMuonSet.begin(), rockMuonSet.end());
+
+    // Create a relational map to sync the two trees
+    std::map<const MCParticle *, int> nuToIdMap;
+    int currentNuId = 0;
+    for (const MCParticle *nu : allNeutrinos)
+        nuToIdMap[nu] = currentNuId++;
+
     int sliceIndex = 0;
 
     // Now, we can loop through every slice, and evaluate it.
@@ -259,7 +270,7 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
         // the completeness and purity of the main contributor, whilst also storing the completeness and purity
         // of every neutrino that contributed to this slice.
         std::vector<int> eventNumSlice, subrunNumSlice, runNumSlice;
-        std::vector<int> sliceIndexSlice;
+        std::vector<int> sliceIndexSlice, targetNuIdSlice, nuPdgSlice;
         std::vector<float> slicingDurationSlice;
         std::vector<float> puritySlice, completenessSlice, isRockMuonSlice, isMainNuSlice;
         std::vector<float> trueNuSize, trueNuEnergy, sliceSize, sliceMatchedHits, sliceMissedHits;
@@ -303,6 +314,8 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
             sliceSize.push_back(nHitsInSlice);
             sliceMatchedHits.push_back(matchedHits);
             sliceMissedHits.push_back(missedHits);
+            targetNuIdSlice.push_back(nuToIdMap[nu]);
+            nuPdgSlice.push_back(nu->GetParticleId());
         }
 
         // Add the results to a ROOT file.
@@ -328,7 +341,87 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
         sliceIndex++;
     }
 
-    std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Evaluated " << sliceIndex << " slices for this event" << std::endl;
+    std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Evaluated " << sliceIndex << " reco slices for this event" << std::endl;
+
+    // Now...lets inverse. Lets loop over every neutrino, and evaluate the slices that it contributed to.
+    // First, get every MC bit that contributed to this event, and store it in a set.
+    std::vector<int> eventNumTruth, subrunNumTruth, runNumTruth;
+    std::vector<float> truthCompleteness, truthPurity, nuEnergyTruth;
+    std::vector<int> isRockMuonTruth, trueNuSizeTruth, nuIdTruth, bestSliceIndexTruth, matchedHitsTruth, bestSliceSizeTruth, nuPdgTruth;
+
+    for (const MCParticle *nu : allNeutrinos)
+    {
+        const unsigned int nHitsInNu(nuToCaloHitMap[nu].size());
+        if (nHitsInNu == 0)
+            continue;
+
+        unsigned int maxHitsFromNuInAnySlice(0);
+        int bestSliceIdx(-1);
+        unsigned int bestSliceTotalHits(0);
+
+        int currentSliceIdx = 0;
+        for (const Slice3D &slice : sliceList)
+        {
+            unsigned int hitsFromNuInThisSlice(0);
+            for (const CaloHit *pCaloHit : slice.m_caloHitList3D)
+            {
+                const auto it(caloHitToNuMap.find(pCaloHit));
+                if ((it != caloHitToNuMap.end()) && (it->second == nu))
+                    hitsFromNuInThisSlice++;
+            }
+
+            if (hitsFromNuInThisSlice > maxHitsFromNuInAnySlice)
+            {
+                maxHitsFromNuInAnySlice = hitsFromNuInThisSlice;
+                bestSliceIdx = currentSliceIdx;
+                bestSliceTotalHits = slice.m_caloHitList3D.size();
+            }
+            currentSliceIdx++;
+        }
+
+        float completeness(0.f);
+        float purity(0.f);
+
+        if (bestSliceIdx != -1)
+        {
+            completeness = static_cast<float>(maxHitsFromNuInAnySlice) / static_cast<float>(nHitsInNu);
+            purity = static_cast<float>(maxHitsFromNuInAnySlice) / static_cast<float>(bestSliceTotalHits);
+        }
+
+        runNumTruth.push_back(runNum);
+        subrunNumTruth.push_back(subrunNum);
+        eventNumTruth.push_back(eventNum);
+
+        nuIdTruth.push_back(nuToIdMap[nu]);
+        nuEnergyTruth.push_back(nu->GetEnergy());
+        nuPdgTruth.push_back(nu->GetParticleId());
+        isRockMuonTruth.push_back(rockMuonSet.find(nu) != rockMuonSet.end());
+        trueNuSizeTruth.push_back(nHitsInNu);
+
+        bestSliceIndexTruth.push_back(bestSliceIdx);
+        bestSliceSizeTruth.push_back(bestSliceTotalHits);
+        matchedHitsTruth.push_back(maxHitsFromNuInAnySlice);
+
+        truthCompleteness.push_back(completeness);
+        truthPurity.push_back(purity);
+    }
+
+    // Save to a truth-first tree.
+    std::string truthTreeName = m_analysisTreeName + "_TruthFirst";
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "run", &runNumTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "subrun", &subrunNumTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "event", &eventNumTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "completeness", &truthCompleteness));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "purity", &truthPurity));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "isRockMuon", &isRockMuonTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "trueNuSize", &trueNuSizeTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "nuPdg", &nuPdgTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "nuId", &nuIdTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "nuEnergy", &nuEnergyTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "bestSliceIndex", &bestSliceIndexTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "bestSliceSize", &bestSliceSizeTruth));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), truthTreeName.c_str(), "matchedHits", &matchedHitsTruth));
+    PANDORA_MONITORING_API(FillTree(this->GetPandora(), truthTreeName.c_str()));
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
