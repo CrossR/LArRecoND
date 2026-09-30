@@ -14,13 +14,6 @@
         <CurrentCaloHitListReplacement>CaloHitList2D</CurrentCaloHitListReplacement>
     </algorithm>
 
-    <!-- Gianfranco comment : debugging algorithm  -->
-    <algorithm type = "LArPrintCurrentPfoInfo">
-      <InputStageName>LArPreProcessingThreeD</InputStageName>
-      <MCParticleListNames>Input</MCParticleListNames>
-      <!-- <InputHitListName>Input</InputHitListName> -->
-    </algorithm>
-
     <algorithm type = "LArMasterThreeD">
         <CRSettingsFile>PandoraSettings_Cosmic_Standard_ThreeD.xml</CRSettingsFile>
         <NuSettingsFile>PandoraSettings_Neutrino_Standard.xml</NuSettingsFile>
@@ -60,12 +53,6 @@
         <RecreatedVertexListName>RecreatedVertices</RecreatedVertexListName>
         <VisualizeOverallRecoStatus>false</VisualizeOverallRecoStatus>
         <ShouldRemoveOutOfTimeHits>false</ShouldRemoveOutOfTimeHits>
-    </algorithm>
-
-    <!-- Gianfranco comment : debugging algorithm  -->
-    <algorithm type = "LArPrintCurrentPfoInfo">
-      <InputStageName>LArMasterThreeD</InputStageName>
-      <InputPfoListNames>RecreatedPfos</InputPfoListNames>
     </algorithm>
 
     <algorithm type = "LArHierarchyAnalysis">
