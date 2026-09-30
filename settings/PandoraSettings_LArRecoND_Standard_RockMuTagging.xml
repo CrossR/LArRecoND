@@ -15,7 +15,7 @@
     </algorithm>
 
     <algorithm type = "LArMasterThreeD">
-        <CRSettingsFile>PandoraSettings_Cosmic_Standard_ThreeD.xml</CRSettingsFile>
+        <CRSettingsFile>PandoraSettings_Cosmic_ThreeD.xml</CRSettingsFile>
         <NuSettingsFile>PandoraSettings_Neutrino_Standard.xml</NuSettingsFile>
         <SlicingSettingsFile>PandoraSettings_Slicing_Standard.xml</SlicingSettingsFile>
         <ShouldRunRockMus_Xworkers>true</ShouldRunRockMus_Xworkers>
