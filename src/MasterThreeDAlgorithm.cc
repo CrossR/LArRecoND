@@ -516,7 +516,7 @@ StatusCode MasterThreeDAlgorithm::InitializeWorkerInstances(WorkerToLArTPCMap& w
            for (const LArTPCMap::value_type &mapEntry : larTPCMap)
            {
              const LArTPC& tpc(*(mapEntry.second));
-             auto key_xy = std::make_pair(tpc.GetCenterX(), tpc.GetCenterY());
+             const auto key_xy = std::make_pair(tpc.GetCenterX(), tpc.GetCenterY());
              auto it_tpcMap = XYgrouped.find(key_xy);
 
              if (it_tpcMap != XYgrouped.end())
@@ -525,7 +525,7 @@ StatusCode MasterThreeDAlgorithm::InitializeWorkerInstances(WorkerToLArTPCMap& w
                 LArTPCMap& tpcMap = it_tpcMap->second; 
                 // get the tpc id of the most recent added tpc - the newest tpc 
                 // id is the most recent + 1
-                unsigned int current_max_id = tpcMap.empty() ? FIRST_TPC_ID : tpcMap.rbegin()->first + 1; 
+                const unsigned int current_max_id = tpcMap.empty() ? FIRST_TPC_ID : tpcMap.rbegin()->first + 1; 
                 XYgrouped[key_xy].emplace(current_max_id, &tpc);
              }
              else // new column of tpcs
