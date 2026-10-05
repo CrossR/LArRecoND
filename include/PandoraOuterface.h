@@ -816,7 +816,8 @@ void NDRecoOutputData::FillBasicBranches(const std::unique_ptr<LArRecoNDFormat> 
     m_out_nVHits.insert(m_out_nVHits.end(), inputSpill->m_nVHits->begin(), inputSpill->m_nVHits->end());
     m_out_nWHits.insert(m_out_nWHits.end(), inputSpill->m_nWHits->begin(), inputSpill->m_nWHits->end());
     m_out_isShower.insert(m_out_isShower.end(), inputSpill->m_isShower->begin(), inputSpill->m_isShower->end());
-    m_out_isClearRockOrCosmic.insert(m_out_isClearRockOrCosmic.end(), inputSpill->m_isClearRockOrCosmic->begin(), inputSpill->m_isClearRockOrCosmic->end());
+    m_out_isClearRockOrCosmic.insert(
+        m_out_isClearRockOrCosmic.end(), inputSpill->m_isClearRockOrCosmic->begin(), inputSpill->m_isClearRockOrCosmic->end());
     m_out_trackScore.insert(m_out_trackScore.end(), inputSpill->m_trackScore->begin(), inputSpill->m_trackScore->end());
     m_out_recoPDG.insert(m_out_recoPDG.end(), inputSpill->m_recoPDG->begin(), inputSpill->m_recoPDG->end());
     m_out_isRecoPrimary.insert(m_out_isRecoPrimary.end(), inputSpill->m_isRecoPrimary->begin(), inputSpill->m_isRecoPrimary->end());

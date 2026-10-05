@@ -9,8 +9,8 @@
 #ifndef LAR_ROCK_MUON_TAGGING_TOOL_H
 #define LAR_ROCK_MUON_TAGGING_TOOL_H 1
 
-#include "larpandoracontent/LArControlFlow/MasterAlgorithm.h"
 #include "larpandoracontent/LArControlFlow/CosmicRayTaggingTool.h"
+#include "larpandoracontent/LArControlFlow/MasterAlgorithm.h"
 
 #include <unordered_map>
 
@@ -23,31 +23,31 @@ namespace lar_content
 
 class RockMuonTaggingTool : public CosmicRayTaggingTool
 {
-  public:
+public:
     /**
      *  @brief  Default constructor
      */
     RockMuonTaggingTool();
 
-    void FindAmbiguousPfos( const pandora::PfoList &parentCosmicRayPfos, pandora::PfoList &ambiguousPfos, const MasterAlgorithm *const pAlgorithm) override;
+    void FindAmbiguousPfos(const pandora::PfoList &parentCosmicRayPfos, pandora::PfoList &ambiguousPfos, const MasterAlgorithm *const pAlgorithm) override;
 
     /**
      *  @brief Tag clear rock muons and exclude it from ambiguousPfos 
      *
      *  @param  ambiguousPfos input pfos list
      */
-    pandora::StatusCode TagRockMuonPfos(pandora::PfoList& ambiguousPfos) const;
+    pandora::StatusCode TagRockMuonPfos(pandora::PfoList &ambiguousPfos) const;
 
-  private:
+private:
     /**
      *  @brief Check if a 3D point is inside the detector boundaies with margins 
      *
      *  @param  x point x coordinate
      *  @param  y point y coordinate
      *  @param  z point z coordinate
-     */   
+     */
     bool IsOutsideBox(const float x, const float y, const float z) const;
-  
+
     /**
      *  @brief  Check if each candidate is throughgoing (i.e emerging and exiting from any of the detector boundaies)
      *
@@ -62,5 +62,5 @@ class RockMuonTaggingTool : public CosmicRayTaggingTool
     float m_marginZ; ///< the minimum distance from the dector Z-face to define a fiducial volume for tagging
 };
 
-} // namespace lar_cont::ent
+} // namespace lar_content
 #endif // #ifndef LAR_ROCK_MUON_TAGGING_TOOL_H

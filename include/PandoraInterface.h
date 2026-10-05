@@ -47,20 +47,16 @@ typedef std::vector<LArVoxel> LArVoxelList;
 // identifies the correct drift volume. The current io_group-to-TPC
 // mapping is empirical and hard-coded.
 //
-std::map<int, int> ioGroup2tcpIDMap_2x2 = {
-      {1,7}, {2,6}, {3,5}, {4,4}, {5,3}, {6,2}, {7,1}, {8,0}
-    };
+std::map<int, int> ioGroup2tcpIDMap_2x2 = {{1, 7}, {2, 6}, {3, 5}, {4, 4}, {5, 3}, {6, 2}, {7, 1}, {8, 0}};
 
-std::map<int, int> ioGroup2tcpIDMap_FSD = {
-  {1,1}, {2,1}, {3,0}, {4,0}
-};
+std::map<int, int> ioGroup2tcpIDMap_FSD = {{1, 1}, {2, 1}, {3, 0}, {4, 0}};
 
 auto ioGroup2tcpIDMap_NDLAr = [](int io_group)
-{ 
-  if (io_group % 2 == 0) // even 
-      return io_group / 2 - 1;
-  else 
-      return io_group / 2;
+{
+    if (io_group % 2 == 0) // even
+        return io_group / 2 - 1;
+    else
+        return io_group / 2;
 };
 
 /**
@@ -149,7 +145,7 @@ inline Parameters::Parameters() :
     m_shouldRunSlicing(true),
     m_shouldRunNeutrinoRecoOption(true),
     m_shouldRunCosmicRecoOption(true),
-    m_shouldRunRockMus_Xworkers(true), 
+    m_shouldRunRockMus_Xworkers(true),
     m_shouldPerformSliceId(true),
     m_printOverallRecoStatus(false),
     m_nEventsToSkip(0),

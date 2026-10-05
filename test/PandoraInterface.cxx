@@ -1922,7 +1922,7 @@ bool ParseCommandLine(int argc, char *argv[], Parameters &parameters)
 bool PrintOptions()
 {
     std::cout << std::endl
-              << "./bin/PandoraInterface " << std::endl
+              << "./build/PandoraInterface " << std::endl
               << "    -r RecoOption          (required) [Full, AllHitsCR, AllHitsNu, CRRemHitsSliceCR, CRRemHitsSliceNu, AllHitsSliceCR, AllHitsSliceNu]"
               << std::endl
               << "    -i Settings            (required) [Run xml file for setting up the Pandora algorithms]" << std::endl

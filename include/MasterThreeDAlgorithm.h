@@ -38,7 +38,7 @@ public:
 
 protected:
     pandora::StatusCode Run() override;
-    
+
     /**
      *  @brief  Run the cosmic-ray reconstruction worker instances
      *
@@ -46,7 +46,7 @@ protected:
      *  @param  workerToLArTPCMap the worker id to LArTPC list map
      */
     pandora::StatusCode RunCosmicRayReconstruction(const VolumeIdToHitListMap &volumeIdToHitListMap) const;
-    
+
     /**
      *  @brief  Tag clear, unambiguous cosmic-ray pfos
      *
@@ -116,7 +116,7 @@ protected:
      *
      *  @param workerToLArTPCMap to map each worker instance to the list of TPCs it acts on
      */
-    pandora::StatusCode InitializeWorkerInstances(WorkerToLArTPCMap& workerToLArTPCMap);
+    pandora::StatusCode InitializeWorkerInstances(WorkerToLArTPCMap &workerToLArTPCMap);
 
     /**
      *  @brief  Get the mapping from lar tpc volume id to lists of all hits, and truncated hits
@@ -129,12 +129,12 @@ protected:
 
     pandora::StatusCode ReadSettings(const pandora::TiXmlHandle xmlHandle) override;
 
-    typedef std::vector<RockMuonTaggingTool*> RockMuonTaggingToolVector;
+    typedef std::vector<RockMuonTaggingTool *> RockMuonTaggingToolVector;
 
-    bool m_shouldRunRockMus_Xworkers;   ///< Whether to run rock muons reconstruction using a columnar X worker
-    bool m_tagRockMuons;  ///< bool to activate tagging of rock muons
+    bool m_shouldRunRockMus_Xworkers;                      ///< Whether to run rock muons reconstruction using a columnar X worker
+    bool m_tagRockMuons;                                   ///< bool to activate tagging of rock muons
     RockMuonTaggingToolVector m_rockMuonTaggingToolVector; ///< The cosmic-ray tagging tool vector
-    WorkerToLArTPCMap m_workerToLArTPCMap; ///< mapping between worker instances and LArTPCs
+    WorkerToLArTPCMap m_workerToLArTPCMap;                 ///< mapping between worker instances and LArTPCs
 };
 
 } // namespace lar_content

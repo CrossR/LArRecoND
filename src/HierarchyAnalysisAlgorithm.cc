@@ -108,7 +108,7 @@ StatusCode HierarchyAnalysisAlgorithm::Run()
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::GetCurrentList(*this, pMCParticleList));
     const PfoList *pPfoList(nullptr);
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::GetList(*this, m_pfoListName, pPfoList));
-    
+
     LArHierarchyHelper::FoldingParameters foldParameters;
     if (m_foldToPrimaries)
         foldParameters.m_foldToTier = true;
