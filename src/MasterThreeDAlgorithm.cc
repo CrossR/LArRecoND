@@ -353,6 +353,7 @@ const Pandora *MasterThreeDAlgorithm::CreateWorkerInstance(
     larTPCParameters.m_wireAngleW = larTPC.GetWireAngleW();
     larTPCParameters.m_sigmaUVW = larTPC.GetSigmaUVW();
     larTPCParameters.m_isDriftInPositiveX = larTPC.IsDriftInPositiveX();
+    this->AppendReadoutVolumeParameters(larTPC, 0, larTPCParameters.m_readoutVolumeParametersVector);
     PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::Geometry::LArTPC::Create(*pPandora, larTPCParameters));
 
     const float tpcMinX(larTPC.GetCenterX() - 0.5f * larTPC.GetWidthX()), tpcMaxX(larTPC.GetCenterX() + 0.5f * larTPC.GetWidthX());
@@ -461,6 +462,20 @@ const Pandora *MasterThreeDAlgorithm::CreateWorkerInstance(const LArTPCMap &larT
     larTPCParameters.m_wireAngleW = pFirstLArTPC->GetWireAngleW();
     larTPCParameters.m_sigmaUVW = pFirstLArTPC->GetSigmaUVW();
     larTPCParameters.m_isDriftInPositiveX = pFirstLArTPC->IsDriftInPositiveX();
+
+    // Merge in readout volumes from every child TPC, keeping ids unique, and record the offset used for each original LArTPC so hits copied
+    // into this worker can be remapped consistently in Copy()
+    m_daughterVolumeIdOffsetMap.clear();
+    unsigned int idOffset(0);
+    for (const LArTPCMap::value_type &mapEntry : larTPCMap)
+    {
+        const LArTPC *const pLArTPC(mapEntry.second);
+        // ATTN: This gets rebuilt on each call at startup (slicing), but it's always consistent, so it's fine to do this.
+        m_daughterVolumeIdOffsetMap[pLArTPC->GetLArTPCVolumeId()] = idOffset;
+        this->AppendReadoutVolumeParameters(*pLArTPC, idOffset, larTPCParameters.m_readoutVolumeParametersVector);
+        idOffset += pLArTPC->GetReadoutVolumes().size();
+    }
+
     PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::Geometry::LArTPC::Create(*pPandora, larTPCParameters));
 
     // The Gaps
