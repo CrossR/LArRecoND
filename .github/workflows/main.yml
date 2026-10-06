@@ -13,6 +13,11 @@ on:
       - "*"
   workflow_dispatch:
 
+# Concurrency group ensures that only one workflow run is active for a given PR or branch at a time.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 # Top level environment variables...
 env:
   PRIMARY_COMPILER: gcc-13
@@ -26,7 +31,7 @@ jobs:
     name: LArRecoND - ${{ matrix.compiler.c }}
 
     # # Only run in the PandoraPFA repos.
-    # if: github.repository_owner == 'PandoraPFA'
+    # if: github.repository_owner == 'PandoraPFAOrg'
 
     # Defines the build matrix, so what combinatorics of compiler etc. to test.
     strategy:
@@ -44,7 +49,7 @@ jobs:
 
     steps:
       - name: Checkout LArRecoND Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Env
         uses: ./.github/actions/setup-env
@@ -58,7 +63,7 @@ jobs:
         uses: ./.github/actions/build-pandora
 
       - name: Archive Build Environment
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: matrix.compiler.c == env.PRIMARY_COMPILER
         with:
           name: pandora-build-env-${{ matrix.compiler.c }}
@@ -71,21 +76,19 @@ jobs:
 
     strategy:
       matrix:
-        data_url:
-          [
-            "https://portal.nersc.gov/project/dune/data/2x2/simulation/productions/MiniRun6.5_1E19_RHC/MiniRun6.5_1E19_RHC.flow/FLOW/0000000/MiniRun6.5_1E19_RHC.flow.0000000.FLOW.hdf5",
-          ]
-        geometry_url:
-          [
-            "https://raw.githubusercontent.com/DUNE/2x2_sim/refs/heads/develop/geometry/Merged2x2MINERvA_v4/Merged2x2MINERvA_v4_withRock.gdml"
-          ]
-        name: ["2x2 MiniRun6.5"]
+        include:
+          - name: "2x2 MiniRun6.5"
+            data_url: "https://portal.nersc.gov/project/dune/data/2x2/simulation/productions/MiniRun6.5_1E19_RHC/MiniRun6.5_1E19_RHC.flow/FLOW/0000000/MiniRun6.5_1E19_RHC.flow.0000000.FLOW.hdf5"
+            geometry_url: "https://raw.githubusercontent.com/DUNE/2x2_sim/refs/heads/develop/geometry/Merged2x2MINERvA_v4/Merged2x2MINERvA_v4_withRock.gdml"
+          - name: "NDLAr MicroProdN4p1"
+            data_url: "https://portal.nersc.gov/project/dune/data/ND/MicroProdN4p1/run-ndlar-flow/MicroProdN4p1_NDComplex_FHC.flow.full/FLOW/0002000/MicroProdN4p1_NDComplex_FHC.flow.full.0002459.FLOW.hdf5"
+            geometry_url: "https://raw.githubusercontent.com/DUNE/ND_Production/refs/heads/main/geometry/nd_hall_with_lar_tms_sand_TDR_Production_geometry_v_1.1.0.gdml"
 
     name: Test ${{ matrix.name }} Data
 
     steps:
       - name: Checkout LArRecoND Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Env
         uses: ./.github/actions/setup-env
@@ -94,7 +97,7 @@ jobs:
         uses: ./.github/actions/setup-python
 
       - name: Download Build Environment
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: pandora-build-env-${{ env.PRIMARY_COMPILER }}
           path: /pandora
@@ -109,7 +112,7 @@ jobs:
         run: echo "hash=$(echo -n '${{ matrix.data_url }}' | sha256sum | cut -d ' ' -f 1)" >> $GITHUB_OUTPUT
       - name: Cache Data Files
         id: cache-data
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: /pandora/data/
           key: ${{ steps.url-key.outputs.hash }}
@@ -120,11 +123,13 @@ jobs:
         run: |
           echo "Downloading data files..."
           cd /pandora/data/
-          wget -q ${{ matrix.data_url }} -O input_data.hdf5
-          wget -q ${{ matrix.geometry_url }} -O geometry.gdml
+          wget --show-progress --progress=bar:force:noscroll "${{ matrix.data_url }}" -O input_data.hdf5
+          wget --show-progress --progress=bar:force:noscroll "${{ matrix.geometry_url }}" -O geometry.gdml
 
       - name: Process Files With Python
         shell: bash -l {0}
+        env:
+          UCX_TLS: tcp,self,sm
         run: |
           echo "Fixing data folder..."
           sudo chmod -R +x /pandora

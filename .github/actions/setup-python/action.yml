@@ -11,7 +11,7 @@ runs:
         git clone https://github.com/DUNE/h5flow.git
 
     - name: Setup Conda
-      uses: conda-incubator/setup-miniconda@v2
+      uses: conda-incubator/setup-miniconda@v4
       env:
         CC: mpicc
         HDF5_MPI: "ON"
@@ -20,7 +20,7 @@ runs:
         python-version: "3.11"
 
     - name: Cache Conda Environment
-      uses: actions/cache@v3
+      uses: actions/cache@v6
       with:
         path: ~/miniconda/envs
         key: conda-env-${{ runner.os }}-py311-${{ hashFiles('**/action.yml') }}

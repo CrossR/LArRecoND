@@ -38,7 +38,7 @@ runs:
 
     - name: ML Data Cache
       id: ml-cache
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: /pandora/LArMachineLearningData
         key: ${{ steps.ml-cache-key.outputs.key }}
