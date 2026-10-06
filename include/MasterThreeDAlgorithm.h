@@ -37,15 +37,13 @@ public:
     MasterThreeDAlgorithm();
 
 protected:
-    pandora::StatusCode Run() override;
+    void CreateCosmicRayWorkerInstances(const pandora::LArTPCMap &larTPCMap, const pandora::DetectorGapList &gapList) override;
 
-    /**
-     *  @brief  Run the cosmic-ray reconstruction worker instances
-     *
-     *  @param  volumeIdToHitListMap the volume id to hit list map
-     *  @param  workerToLArTPCMap the worker id to LArTPC list map
-     */
-    pandora::StatusCode RunCosmicRayReconstruction(const VolumeIdToHitListMap &volumeIdToHitListMap) const;
+    std::vector<const pandora::LArTPC *> GetTPCsForWorker(const pandora::Pandora *const pCRWorker) const override;
+
+    void RecreateClusters(const pandora::ParticleFlowObject *const pInputPfo, pandora::ClusterList &newClusterList) const override;
+
+    pandora::StatusCode RegisterCustomContent(const pandora::Pandora *const pPandora) const override;
 
     /**
      *  @brief  Tag clear, unambiguous cosmic-ray pfos
@@ -56,76 +54,6 @@ protected:
      */
     pandora::StatusCode TagCosmicRayPfos(
         const PfoToFloatMap &stitchedPfosToX0Map, pandora::PfoList &clearCosmicRayPfos, pandora::PfoList &ambiguousPfos) const override;
-
-    /**
-     *  @brief  Run cosmic-ray hit removal, freeing hits in ambiguous pfos for further processing
-     *
-     *  @param  ambiguousPfos the list of ambiguous cosmic-ray pfos
-     */
-    pandora::StatusCode RunCosmicRayHitRemoval(const pandora::PfoList &ambiguousPfos) const;
-
-    /**
-     *  @brief  Run the event slicing procedures, dividing available hits up into distinct 3D regions
-     *
-     *  @param  volumeIdToHitListMap the volume id to hit list map
-     *  @param  sliceVector to receive the populated slice vector
-     *
-     *  @return whether slicing could be run
-     */
-    pandora::StatusCode RunSlicing(const VolumeIdToHitListMap &volumeIdToHitListMap, SliceVector &sliceVector) const;
-
-    /**
-     *  @brief  Recreate a specified pfo in the current pandora instance
-     *
-     *  @param  pInputPfo the input pfo
-     *  @param  pNewParentPfo the new parent of the new output pfo (nullptr if none)
-     *  @param  newPfoList to receive the list of new pfos
-     */
-    pandora::StatusCode Recreate(const pandora::ParticleFlowObject *const pInputPfo, const pandora::ParticleFlowObject *const pNewParentPfo,
-        pandora::PfoList &newPfoList) const override;
-
-    /**
-     *  @brief  Create a pandora worker instance to handle a single LArTPC
-     *
-     *  @param  larTPC the lar tpc
-     *  @param  gapList the gap list
-     *  @param  settingsFile the pandora settings file
-     *  @param  name the pandora instance name
-     *
-     *  @return the address of the pandora instance
-     */
-    const pandora::Pandora *CreateWorkerInstance(const pandora::LArTPC &larTPC, const pandora::DetectorGapList &gapList,
-        const std::string &settingsFile, const std::string &name) const;
-
-    /**
-     *  @brief  Create a pandora worker instance to handle a number of LArTPCs
-     *
-     *  @param  larTPCMap the lar tpc map
-     *  @param  gapList the gap list
-     *  @param  settingsFile the pandora settings file
-     *  @param  name the pandora instance name
-     *  @param  id for the created worker instance (i.e. larTPCParameters.m_larTPCVolumeId)   
-     *
-     *  @return the address of the pandora instance
-     */
-    const pandora::Pandora *CreateWorkerInstance(const pandora::LArTPCMap &larTPCMap, const pandora::DetectorGapList &gapList,
-        const std::string &settingsFile, const std::string &name, const unsigned int id) const;
-
-    /**
-     *  @brief  Initialize pandora worker instances
-     *
-     *  @param workerToLArTPCMap to map each worker instance to the list of TPCs it acts on
-     */
-    pandora::StatusCode InitializeWorkerInstances(WorkerToLArTPCMap &workerToLArTPCMap);
-
-    /**
-     *  @brief  Get the mapping from lar tpc volume id to lists of all hits, and truncated hits
-     *
-     *  @param  volumeIdToHitListMap to receive the populated volume id to hit list map
-     *
-     *  @return status code
-     */
-    pandora::StatusCode GetVolumeIdToHitListMap(VolumeIdToHitListMap &volumeIdToHitListMap) const;
 
     pandora::StatusCode ReadSettings(const pandora::TiXmlHandle xmlHandle) override;
 
