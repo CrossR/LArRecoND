@@ -1,1 +1,0 @@
-apptainer shell --env PS1="C@\h:\W$ " --shell=/bin/bash -B /cvmfs,/exp,/nashome,/pnfs/dune,/opt,/run/user,/etc/hostname,/etc/hosts,/etc/krb5.conf /cvmfs/singularity.opensciencegrid.org/fermilab/fnal-dev-sl7:latest

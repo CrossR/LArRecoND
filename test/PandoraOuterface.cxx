@@ -248,6 +248,10 @@ float LifetimeCorrectionFactor(const std::vector<float> &detAnodes, const float 
         if (thisDist < driftDist)
             driftDist = thisDist;
     }
+    // Safeguard to return 1 for the correction factor if no sensible drift distance was found
+    if ( detAnodes.size()==0 || driftDist > std::numeric_limits<float>::max()-1. ) {
+      return 1.;
+    }
     float tDrift = driftDist / driftSpeed;
     return TMath::Exp(tDrift / lifetime);
 }
@@ -409,6 +413,16 @@ void ProcessPostReco(const ParameterStruct &parameters)
     std::vector<float> xBoundaries = {detX0, detX1};
     std::vector<float> yBoundaries = {detY0, detY1};
     std::vector<float> zBoundaries = {detZ0, detZ1};
+
+    if ( posAnodes.size() == 0 ) {
+      std::cout << "/////////////////////////////////// WARNING!!! ///////////////////////////////////" << std::endl;
+      std::cout << std::endl;
+      std::cout << "WARNING!!!! YOU ARE RUNNING OUTERFACE WITHOUT ANY ANODE POSITIONS BEING LOADED IN." << std::endl;
+      std::cout << "            The lifetime corrections will leave the input charged uncorrected, and" << std::endl;
+      std::cout << "            very likely you will tag every particle as uncontained." << std::endl;
+      std::cout << std::endl;
+      std::cout << "//////////////////////////////////////////////////////////////////////////////////" << std::endl;
+    }
 
     //std::cout << "Boundaries min=(" << detX0 << ", " << detY0 << ", " << detZ0 << ") and max=(" << detX1 << ", " << detY1 << ", " << detZ1 << ")" << std::endl;
     //std::cout << "Anodes:" << std::endl;
@@ -1471,8 +1485,6 @@ void ProcessPostReco(const ParameterStruct &parameters)
                 CaloHitList showerStartCaloHitList;
                 CartesianVector hitProjectedPosition(0.f, 0.f, 0.f);
 
-                int caloHitIndex = 0;
-
                 showerStartCaloHitList.clear();
 
                 for (const CaloHit *const pShowerStartCaloHit3D : caloHitList)
@@ -1504,7 +1516,6 @@ void ProcessPostReco(const ParameterStruct &parameters)
                         showerStartCaloHitList.push_back(pShowerStartCaloHit3D);
                         chargeStartPoints += pShowerStartCaloHit3D->GetInputEnergy() *
                             LifetimeCorrectionFactor(posAnodes, showerStartCurrentHit.GetX(), parameters.fElectronLifetime, parameters.fElectronDriftSpeed);
-                        caloHitIndex++;
                     }
 
                     else
@@ -1780,7 +1791,7 @@ bool ReadSettings(ParameterStruct &parameters)
 bool PrintOptions()
 {
     std::cout << std::endl
-              << "./bin/PandoraOuterface -x [path/file] -f [path/file] -o [out name] -g [geom file] -t [geom manager] -v [geom volume]"
+              << "./build/PandoraOuterface -x [path/file] -f [path/file] -o [out name] -g [geom file] -t [geom manager] -v [geom volume]"
               << std::endl;
     std::cout << "    -x = mandatory, path and name of XML settings file" << std::endl;
     std::cout << "    -f = mandatory, path and name of input ROOT file" << std::endl;
@@ -1791,7 +1802,7 @@ bool PrintOptions()
     std::cout << "    -t = 'optional' - sets geometry manager name." << std::endl;
     std::cout << "         Default: Default. Can be set here or in XML" << std::endl;
     std::cout << "    -v = 'optional' - sets geometry volume name." << std::endl;
-    std::cout << "         Default: volArgonCubeCryostat_PV. Can be set here or in XML" << std::endl;
+    std::cout << "         Default: volTPCActive. Can be set here or in XML" << std::endl;
 
     return false;
 }

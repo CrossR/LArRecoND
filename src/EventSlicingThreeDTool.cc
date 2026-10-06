@@ -243,8 +243,9 @@ void EventSlicingThreeDTool::CollectAssociatedClusters(const Cluster *const pClu
 
         if ((m_usePointingAssociation && this->PassPointing(pClusterInSlice, pCandidateCluster, trackFitResults)) ||
             (m_useProximityAssociation && this->PassProximity(pClusterInSlice, pCandidateCluster)) ||
-            (m_useShowerConeAssociation && (this->PassShowerCone(pClusterInSlice, pCandidateCluster, showerConeFitResults) ||
-                                               this->PassShowerCone(pCandidateCluster, pClusterInSlice, showerConeFitResults))))
+            (m_useShowerConeAssociation &&
+                (this->PassShowerCone(pClusterInSlice, pCandidateCluster, showerConeFitResults) ||
+                    this->PassShowerCone(pCandidateCluster, pClusterInSlice, showerConeFitResults))))
         {
             addedClusters.push_back(pCandidateCluster);
             (void)usedClusters.insert(pCandidateCluster);
@@ -350,9 +351,9 @@ bool EventSlicingThreeDTool::PassShowerCone(
 bool EventSlicingThreeDTool::CheckClosestApproach(const LArPointingCluster &cluster1, const LArPointingCluster &cluster2) const
 {
     return (this->CheckClosestApproach(cluster1.GetInnerVertex(), cluster2.GetInnerVertex()) ||
-            this->CheckClosestApproach(cluster1.GetOuterVertex(), cluster2.GetInnerVertex()) ||
-            this->CheckClosestApproach(cluster1.GetInnerVertex(), cluster2.GetOuterVertex()) ||
-            this->CheckClosestApproach(cluster1.GetOuterVertex(), cluster2.GetOuterVertex()));
+        this->CheckClosestApproach(cluster1.GetOuterVertex(), cluster2.GetInnerVertex()) ||
+        this->CheckClosestApproach(cluster1.GetInnerVertex(), cluster2.GetOuterVertex()) ||
+        this->CheckClosestApproach(cluster1.GetOuterVertex(), cluster2.GetOuterVertex()));
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -376,7 +377,7 @@ bool EventSlicingThreeDTool::CheckClosestApproach(const LArPointingCluster::Vert
     const float closestApproach((approach1 - approach2).GetMagnitude());
 
     return ((closestApproach < m_maxClosestApproach) && (std::fabs(displacement1) < m_maxInterceptDistance) &&
-            (std::fabs(displacement2) < m_maxInterceptDistance));
+        (std::fabs(displacement2) < m_maxInterceptDistance));
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -385,20 +386,20 @@ bool EventSlicingThreeDTool::IsNode(const LArPointingCluster &cluster1, const LA
 {
     return (LArPointingClusterHelper::IsNode(cluster1.GetInnerVertex().GetPosition(), cluster2.GetInnerVertex(),
                 m_minVertexLongitudinalDistance, m_maxVertexTransverseDistance) ||
-            LArPointingClusterHelper::IsNode(cluster1.GetOuterVertex().GetPosition(), cluster2.GetInnerVertex(),
-                m_minVertexLongitudinalDistance, m_maxVertexTransverseDistance) ||
-            LArPointingClusterHelper::IsNode(cluster1.GetInnerVertex().GetPosition(), cluster2.GetOuterVertex(),
-                m_minVertexLongitudinalDistance, m_maxVertexTransverseDistance) ||
-            LArPointingClusterHelper::IsNode(cluster1.GetOuterVertex().GetPosition(), cluster2.GetOuterVertex(),
-                m_minVertexLongitudinalDistance, m_maxVertexTransverseDistance) ||
-            LArPointingClusterHelper::IsNode(cluster2.GetInnerVertex().GetPosition(), cluster1.GetInnerVertex(),
-                m_minVertexLongitudinalDistance, m_maxVertexTransverseDistance) ||
-            LArPointingClusterHelper::IsNode(cluster2.GetOuterVertex().GetPosition(), cluster1.GetInnerVertex(),
-                m_minVertexLongitudinalDistance, m_maxVertexTransverseDistance) ||
-            LArPointingClusterHelper::IsNode(cluster2.GetInnerVertex().GetPosition(), cluster1.GetOuterVertex(),
-                m_minVertexLongitudinalDistance, m_maxVertexTransverseDistance) ||
-            LArPointingClusterHelper::IsNode(cluster2.GetOuterVertex().GetPosition(), cluster1.GetOuterVertex(),
-                m_minVertexLongitudinalDistance, m_maxVertexTransverseDistance));
+        LArPointingClusterHelper::IsNode(cluster1.GetOuterVertex().GetPosition(), cluster2.GetInnerVertex(),
+            m_minVertexLongitudinalDistance, m_maxVertexTransverseDistance) ||
+        LArPointingClusterHelper::IsNode(cluster1.GetInnerVertex().GetPosition(), cluster2.GetOuterVertex(),
+            m_minVertexLongitudinalDistance, m_maxVertexTransverseDistance) ||
+        LArPointingClusterHelper::IsNode(cluster1.GetOuterVertex().GetPosition(), cluster2.GetOuterVertex(),
+            m_minVertexLongitudinalDistance, m_maxVertexTransverseDistance) ||
+        LArPointingClusterHelper::IsNode(cluster2.GetInnerVertex().GetPosition(), cluster1.GetInnerVertex(),
+            m_minVertexLongitudinalDistance, m_maxVertexTransverseDistance) ||
+        LArPointingClusterHelper::IsNode(cluster2.GetOuterVertex().GetPosition(), cluster1.GetInnerVertex(),
+            m_minVertexLongitudinalDistance, m_maxVertexTransverseDistance) ||
+        LArPointingClusterHelper::IsNode(cluster2.GetInnerVertex().GetPosition(), cluster1.GetOuterVertex(),
+            m_minVertexLongitudinalDistance, m_maxVertexTransverseDistance) ||
+        LArPointingClusterHelper::IsNode(cluster2.GetOuterVertex().GetPosition(), cluster1.GetOuterVertex(),
+            m_minVertexLongitudinalDistance, m_maxVertexTransverseDistance));
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -407,20 +408,20 @@ bool EventSlicingThreeDTool::IsEmission(const LArPointingCluster &cluster1, cons
 {
     return (LArPointingClusterHelper::IsEmission(cluster1.GetInnerVertex().GetPosition(), cluster2.GetInnerVertex(),
                 m_minVertexLongitudinalDistance, m_maxVertexLongitudinalDistance, m_maxVertexTransverseDistance, m_vertexAngularAllowance) ||
-            LArPointingClusterHelper::IsEmission(cluster1.GetOuterVertex().GetPosition(), cluster2.GetInnerVertex(),
-                m_minVertexLongitudinalDistance, m_maxVertexLongitudinalDistance, m_maxVertexTransverseDistance, m_vertexAngularAllowance) ||
-            LArPointingClusterHelper::IsEmission(cluster1.GetInnerVertex().GetPosition(), cluster2.GetOuterVertex(),
-                m_minVertexLongitudinalDistance, m_maxVertexLongitudinalDistance, m_maxVertexTransverseDistance, m_vertexAngularAllowance) ||
-            LArPointingClusterHelper::IsEmission(cluster1.GetOuterVertex().GetPosition(), cluster2.GetOuterVertex(),
-                m_minVertexLongitudinalDistance, m_maxVertexLongitudinalDistance, m_maxVertexTransverseDistance, m_vertexAngularAllowance) ||
-            LArPointingClusterHelper::IsEmission(cluster2.GetInnerVertex().GetPosition(), cluster1.GetInnerVertex(),
-                m_minVertexLongitudinalDistance, m_maxVertexLongitudinalDistance, m_maxVertexTransverseDistance, m_vertexAngularAllowance) ||
-            LArPointingClusterHelper::IsEmission(cluster2.GetOuterVertex().GetPosition(), cluster1.GetInnerVertex(),
-                m_minVertexLongitudinalDistance, m_maxVertexLongitudinalDistance, m_maxVertexTransverseDistance, m_vertexAngularAllowance) ||
-            LArPointingClusterHelper::IsEmission(cluster2.GetInnerVertex().GetPosition(), cluster1.GetOuterVertex(),
-                m_minVertexLongitudinalDistance, m_maxVertexLongitudinalDistance, m_maxVertexTransverseDistance, m_vertexAngularAllowance) ||
-            LArPointingClusterHelper::IsEmission(cluster2.GetOuterVertex().GetPosition(), cluster1.GetOuterVertex(),
-                m_minVertexLongitudinalDistance, m_maxVertexLongitudinalDistance, m_maxVertexTransverseDistance, m_vertexAngularAllowance));
+        LArPointingClusterHelper::IsEmission(cluster1.GetOuterVertex().GetPosition(), cluster2.GetInnerVertex(),
+            m_minVertexLongitudinalDistance, m_maxVertexLongitudinalDistance, m_maxVertexTransverseDistance, m_vertexAngularAllowance) ||
+        LArPointingClusterHelper::IsEmission(cluster1.GetInnerVertex().GetPosition(), cluster2.GetOuterVertex(),
+            m_minVertexLongitudinalDistance, m_maxVertexLongitudinalDistance, m_maxVertexTransverseDistance, m_vertexAngularAllowance) ||
+        LArPointingClusterHelper::IsEmission(cluster1.GetOuterVertex().GetPosition(), cluster2.GetOuterVertex(),
+            m_minVertexLongitudinalDistance, m_maxVertexLongitudinalDistance, m_maxVertexTransverseDistance, m_vertexAngularAllowance) ||
+        LArPointingClusterHelper::IsEmission(cluster2.GetInnerVertex().GetPosition(), cluster1.GetInnerVertex(),
+            m_minVertexLongitudinalDistance, m_maxVertexLongitudinalDistance, m_maxVertexTransverseDistance, m_vertexAngularAllowance) ||
+        LArPointingClusterHelper::IsEmission(cluster2.GetOuterVertex().GetPosition(), cluster1.GetInnerVertex(),
+            m_minVertexLongitudinalDistance, m_maxVertexLongitudinalDistance, m_maxVertexTransverseDistance, m_vertexAngularAllowance) ||
+        LArPointingClusterHelper::IsEmission(cluster2.GetInnerVertex().GetPosition(), cluster1.GetOuterVertex(),
+            m_minVertexLongitudinalDistance, m_maxVertexLongitudinalDistance, m_maxVertexTransverseDistance, m_vertexAngularAllowance) ||
+        LArPointingClusterHelper::IsEmission(cluster2.GetOuterVertex().GetPosition(), cluster1.GetOuterVertex(),
+            m_minVertexLongitudinalDistance, m_maxVertexLongitudinalDistance, m_maxVertexTransverseDistance, m_vertexAngularAllowance));
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -477,7 +478,9 @@ void EventSlicingThreeDTool::CopyPfoHitsToSlices(const ClusterToSliceIndexMap &c
             if ((TPC_VIEW_U != hitType) && (TPC_VIEW_V != hitType) && (TPC_VIEW_W != hitType))
                 throw StatusCodeException(STATUS_CODE_INVALID_PARAMETER);
 
-            CaloHitList &targetList((TPC_VIEW_U == hitType) ? slice.m_caloHitListU : (TPC_VIEW_V == hitType) ? slice.m_caloHitListV : slice.m_caloHitListW);
+            CaloHitList &targetList((TPC_VIEW_U == hitType) ? slice.m_caloHitListU
+                    : (TPC_VIEW_V == hitType)               ? slice.m_caloHitListV
+                                                            : slice.m_caloHitListW);
 
             pCluster2D->GetOrderedCaloHitList().FillCaloHitList(targetList);
             targetList.insert(targetList.end(), pCluster2D->GetIsolatedCaloHitList().begin(), pCluster2D->GetIsolatedCaloHitList().end());
@@ -578,7 +581,9 @@ void EventSlicingThreeDTool::AssignRemainingHitsToSlices(
                 continue;
 
             Slice3D &slice(sliceList.at(pointToSliceIndexMap.at(pBestResultPoint->data)));
-            CaloHitList &targetList((TPC_VIEW_U == hitType) ? slice.m_caloHitListU : (TPC_VIEW_V == hitType) ? slice.m_caloHitListV : slice.m_caloHitListW);
+            CaloHitList &targetList((TPC_VIEW_U == hitType) ? slice.m_caloHitListU
+                    : (TPC_VIEW_V == hitType)               ? slice.m_caloHitListV
+                                                            : slice.m_caloHitListW);
 
             pCluster2D->GetOrderedCaloHitList().FillCaloHitList(targetList);
             targetList.insert(targetList.end(), pCluster2D->GetIsolatedCaloHitList().begin(), pCluster2D->GetIsolatedCaloHitList().end());

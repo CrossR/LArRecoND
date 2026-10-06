@@ -1,0 +1,13 @@
+# Temporary files
+*~
+*.bak
+*.backup
+*.log
+*.root
+*#
+
+# Build directories
+/build/
+
+# Compiler + LSP caches
+.cache/
