@@ -80,9 +80,11 @@ jobs:
           - name: "2x2 MiniRun6.5"
             data_url: "https://portal.nersc.gov/project/dune/data/2x2/simulation/productions/MiniRun6.5_1E19_RHC/MiniRun6.5_1E19_RHC.flow/FLOW/0000000/MiniRun6.5_1E19_RHC.flow.0000000.FLOW.hdf5"
             geometry_url: "https://raw.githubusercontent.com/DUNE/2x2_sim/refs/heads/develop/geometry/Merged2x2MINERvA_v4/Merged2x2MINERvA_v4_withRock.gdml"
+            flags: "0 0 0"
           - name: "NDLAr MicroProdN4p1"
             data_url: "https://portal.nersc.gov/project/dune/data/ND/MicroProdN4p1/run-ndlar-flow/MicroProdN4p1_NDComplex_FHC.flow.full/FLOW/0002000/MicroProdN4p1_NDComplex_FHC.flow.full.0002459.FLOW.hdf5"
             geometry_url: "https://raw.githubusercontent.com/DUNE/ND_Production/refs/heads/main/geometry/nd_hall_with_lar_tms_sand_TDR_Production_geometry_v_1.1.0.gdml"
+            flags: "0 0 2"
 
     name: Test ${{ matrix.name }} Data
 
@@ -123,8 +125,12 @@ jobs:
         run: |
           echo "Downloading data files..."
           cd /pandora/data/
-          wget --show-progress --progress=bar:force:noscroll "${{ matrix.data_url }}" -O input_data.hdf5
-          wget --show-progress --progress=bar:force:noscroll "${{ matrix.geometry_url }}" -O geometry.gdml
+          wget --show-progress --progress=bar:force:noscroll \
+            --tries=5 --timeout=60 --waitretry=10 \
+            "${{ matrix.data_url }}" -O input_data.hdf5
+          wget --show-progress --progress=bar:force:noscroll \
+            --tries=5 --timeout=60 --waitretry=10 \
+            "${{ matrix.geometry_url }}" -O geometry.gdml
 
       - name: Process Files With Python
         shell: bash -l {0}
@@ -136,7 +142,7 @@ jobs:
 
           echo "Processing files with Python..."
           cd /pandora/data/
-          python3 /pandora/LArRecoND/ndlarflow/h5_to_root_ndlarflow.py /pandora/data/input_data.hdf5 0 0 0 converted_flow.root
+          python3 /pandora/LArRecoND/ndlarflow/h5_to_root_ndlarflow.py /pandora/data/input_data.hdf5 ${{ matrix.flags }} converted_flow.root
 
           echo "Setting up environment for ROOT..."
           source /pandora/setup.sh
@@ -160,7 +166,7 @@ jobs:
         run: |
           source /pandora/setup.sh
           cd /pandora/data/
-          /pandora/LArRecoND/bin/PandoraInterface -i /pandora/LArRecoND/settings/PandoraSettings_LArRecoND_ThreeD.xml \
+          /pandora/LArRecoND/build/PandoraInterface -i /pandora/LArRecoND/settings/PandoraSettings_LArRecoND_ThreeD.xml \
            -r AllHitsNu \
            -e /pandora/data/processed_output.root \
            -g /pandora/data/geometry.root \
