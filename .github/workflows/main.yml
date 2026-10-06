@@ -1,0 +1,376 @@
+# Build LArRecoND against the full Pandora stack, standalone
+name: Build LArRecoND
+
+# Controls when the workflow will run
+on:
+  # Trigger the workflow on push to master, or any pull request.
+  # workflow_dispatch allows manual running through the GitHub UI.
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - "*"
+  workflow_dispatch:
+
+# Concurrency group ensures that only one workflow run is active for a given PR or branch at a time.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# Top level environment variables...
+env:
+  PRIMARY_COMPILER: gcc-13
+
+# Workflow with 1 stage: Build.
+# Each of the sub-stages in the build job run in parallel.
+jobs:
+  build:
+    # Use the latest ubuntu image: https://github.com/actions/runner-images
+    runs-on: ubuntu-24.04
+    name: LArRecoND - ${{ matrix.compiler.c }}
+
+    # # Only run in the PandoraPFA repos.
+    # if: github.repository_owner == 'PandoraPFAOrg'
+
+    # Defines the build matrix, so what combinatorics of compiler etc. to test.
+    strategy:
+      fail-fast: false # Don't quit other jobs if one job fails.
+      matrix:
+        compiler: [{ cpp: g++-13, c: gcc-13 }, { cpp: clang++, c: clang }]
+
+    # Set the compiler env vars to ensure the correct compiler is used.
+    # Similarly, set all the URLs for external dependencies in one place.
+    env:
+      CC: ${{ matrix.compiler.c }}
+      CXX: ${{ matrix.compiler.cpp }}
+      ROOT_URL: "https://root.cern/download/root_v6.36.04.Linux-ubuntu24.04-x86_64-gcc13.3.tar.gz"
+      TORCH_URL: "https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.1.1%2Bcpu.zip"
+
+    steps:
+      - name: Checkout LArRecoND Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Env
+        uses: ./.github/actions/setup-env
+
+      - name: Setup External Dependencies
+        uses: ./.github/actions/setup-externals
+        with:
+          root-url: ${{ env.ROOT_URL }}
+
+      - name: Build Pandora Software Stack
+        uses: ./.github/actions/build-pandora
+
+      - name: Archive Build Environment
+        uses: actions/upload-artifact@v7
+        if: matrix.compiler.c == env.PRIMARY_COMPILER
+        with:
+          name: pandora-build-env-${{ matrix.compiler.c }}
+          path: /pandora
+          retention-days: 1
+
+  test:
+    needs: build
+    runs-on: ubuntu-24.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: "2x2 MiniRun6.5"
+            id: two-by-two
+            data_url: "https://portal.nersc.gov/project/dune/data/2x2/simulation/productions/MiniRun6.5_1E19_RHC/MiniRun6.5_1E19_RHC.flow/FLOW/0000000/MiniRun6.5_1E19_RHC.flow.0000000.FLOW.hdf5"
+            geometry_url: "https://raw.githubusercontent.com/DUNE/2x2_sim/refs/heads/develop/geometry/Merged2x2MINERvA_v4/Merged2x2MINERvA_v4_withRock.gdml"
+            flags: "0 0 0"
+            xml: "PandoraSettings_LArRecoND_ThreeD_RockMuTagging.xml"
+            run_type: "CRRemHitsSliceNu"
+          - name: "NDLAr MicroProdN4p1"
+            id: ndlar
+            data_url: "https://portal.nersc.gov/project/dune/data/ND/MicroProdN4p1/run-ndlar-flow/MicroProdN4p1_NDComplex_FHC.flow.full/FLOW/0002000/MicroProdN4p1_NDComplex_FHC.flow.full.0002459.FLOW.hdf5"
+            geometry_url: "https://raw.githubusercontent.com/DUNE/2x2_sim/refs/heads/develop/geometry/Merged2x2MINERvA_v4/Merged2x2MINERvA_v4_withRock.gdml"
+            flags: "0 0 2"
+            xml: "PandoraSettings_LArRecoND_ThreeD_CheatedSlicing_RockMuTagging.xml"
+            run_type: "CRRemHitsSliceNu"
+
+    name: Test ${{ matrix.name }} Data
+
+    steps:
+      - name: Checkout LArRecoND Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Env
+        uses: ./.github/actions/setup-env
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+
+      - name: Download Build Environment
+        uses: actions/download-artifact@v8
+        with:
+          name: pandora-build-env-${{ env.PRIMARY_COMPILER }}
+          path: /pandora
+
+      - name: Setup Downloads
+        run: |
+          mkdir -p /pandora/data
+
+      - name: Generate URL Hash Key
+        id: url-key
+        shell: bash
+        run: echo "hash=$(echo -n '${{ matrix.data_url }}' | sha256sum | cut -d ' ' -f 1)" >> $GITHUB_OUTPUT
+
+      - name: Cache Data Files
+        id: cache-data
+        uses: actions/cache/restore@v6
+        with:
+          path: /pandora/data/*.hdf5
+          key: ${{ steps.url-key.outputs.hash }}
+
+      - name: Download Data Files
+        if: steps.cache-data.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          echo "Downloading data files..."
+          cd /pandora/data/
+          wget --show-progress --progress=bar:force:noscroll \
+            --tries=5 --timeout=60 --waitretry=10 \
+            "${{ matrix.data_url }}" -O input_data.hdf5
+          wget --show-progress --progress=bar:force:noscroll \
+            --tries=5 --timeout=60 --waitretry=10 \
+            "${{ matrix.geometry_url }}" -O geometry.gdml
+
+      - name: Process Files With Python
+        shell: bash -l {0}
+        env:
+          UCX_TLS: tcp,self,sm
+        run: |
+          echo "Fixing data folder..."
+          sudo chmod -R +x /pandora
+
+          echo "Processing files with Python..."
+          cd /pandora/data/
+          python3 /pandora/LArRecoND/ndlarflow/h5_to_root_ndlarflow.py /pandora/data/input_data.hdf5 ${{ matrix.flags }} converted_flow.root
+
+          echo "Setting up environment for ROOT..."
+          source /pandora/setup.sh
+
+          echo "Converting processed file to ROOT..."
+          root -l -b -q /pandora/LArRecoND/ndlarflow/rootToRootConversion.C+\(true,\"converted_flow.root\",\"processed_output.root\"\)
+          ln -s processed_output.root /pandora/data/LArRecoNDInput.root
+
+          echo "Converting geometry GDML to ROOT..."
+          root -l -b <<EOF
+            TGeoManager::LockDefaultUnits(kFALSE);
+            TGeoManager::SetDefaultUnits(TGeoManager::kRootUnits);
+            TGeoManager::Import("/pandora/data/geometry.gdml");
+            gGeoManager->Export("/pandora/data/geometry.root");
+          EOF
+
+          echo "Data processing complete."
+          ls -lh /pandora/data/
+
+      - name: Run Binary Tests
+        id: binary
+        run: |
+          source /pandora/setup.sh
+          cd /pandora/data/
+          /pandora/LArRecoND/build/PandoraInterface \
+           -i /pandora/LArRecoND/settings/${{ matrix.xml }} \
+           -r ${{ matrix.run_type }} \
+           -e /pandora/data/processed_output.root \
+           -g /pandora/data/geometry.root \
+           -f SPMC \
+           -n 10 -N
+
+      - name: Validate Reconstruction Output
+        id: validate-output
+        if: always() && steps.binary.outcome != 'skipped'
+        shell: bash -l {0}
+        run: |
+          python3 "$GITHUB_WORKSPACE/validation/ciRecoValidation.py" \
+            --input /pandora/data/LArRecoND.root \
+            --dataset-id "${{ matrix.id }}" \
+            --dataset-name "${{ matrix.name }}" \
+            --output-dir "$RUNNER_TEMP/reco-validation"
+
+      - name: Collect Matrix Status and ROOT Output
+        if: always()
+        env:
+          DATASET_ID: ${{ matrix.id }}
+          DATASET_NAME: ${{ matrix.name }}
+          JOB_OUTCOME: ${{ job.status }}
+          BINARY_OUTCOME: ${{ steps.binary.outcome }}
+          VALIDATION_OUTCOME: ${{ steps.validate-output.outcome }}
+        run: |
+          output_dir="$RUNNER_TEMP/reco-validation"
+          mkdir -p "$output_dir"
+
+          root_file=""
+          if [[ -s /pandora/data/LArRecoND.root ]]; then
+            root_file="${DATASET_ID}-LArRecoND.root"
+            cp /pandora/data/LArRecoND.root "$output_dir/$root_file"
+          fi
+
+          jq -n \
+            --arg dataset_id "$DATASET_ID" \
+            --arg dataset_name "$DATASET_NAME" \
+            --arg job_outcome "${JOB_OUTCOME:-failure}" \
+            --arg binary_outcome "${BINARY_OUTCOME:-skipped}" \
+            --arg validation_outcome "${VALIDATION_OUTCOME:-skipped}" \
+            --arg root_file "$root_file" \
+            '{dataset_id: $dataset_id, dataset_name: $dataset_name,
+              job_outcome: $job_outcome, binary_outcome: $binary_outcome,
+              validation_outcome: $validation_outcome,
+              root_file: (if $root_file == "" then null else $root_file end)}' \
+            > "$output_dir/${DATASET_ID}-status.json"
+
+      - name: Upload Reconstruction Debug Artifacts
+        uses: actions/upload-artifact@v7
+        if: always() && github.event_name == 'pull_request'
+        with:
+          name: reco-validation-${{ matrix.id }}
+          path: ${{ runner.temp }}/reco-validation
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Save Data Cache
+        uses: actions/cache/save@v6
+        if: always() && steps.cache-data.outputs.cache-hit != 'true'
+        with:
+          path: /pandora/data/*.hdf5
+          key: ${{ steps.url-key.outputs.hash }}
+
+  report:
+    name: Update PR Reconstruction Report
+    needs: test
+    if: always() && github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      pull-requests: write
+
+    steps:
+      - name: Prepare Report Directory
+        run: mkdir -p reco-validation
+
+      - name: Download Matrix Reports
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          pattern: reco-validation-*
+          path: reco-validation
+          merge-multiple: true
+
+      - name: Prepare PR Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- lard-reco-ci-validation -->';
+            const expectedDatasets = [
+              { id: 'two-by-two', name: '2x2 MiniRun6.5' },
+              { id: 'ndlar', name: 'NDLAr MicroProdN4p1' },
+            ];
+            const readJson = (file) => fs.existsSync(file)
+              ? JSON.parse(fs.readFileSync(file, 'utf8'))
+              : null;
+            const results = expectedDatasets.map((dataset) => {
+              const status = readJson(`reco-validation/${dataset.id}-status.json`);
+              const summary = readJson(`reco-validation/${dataset.id}.json`);
+              return {
+                ...dataset,
+                status,
+                summary,
+                plotExists: fs.existsSync(`reco-validation/${dataset.id}.png`),
+              };
+            });
+
+            const displayOutcome = (outcome) => outcome || 'not run';
+            const rows = results.map(({ name, status, summary }) => {
+              const job = displayOutcome(status?.job_outcome);
+              const binary = displayOutcome(status?.binary_outcome);
+              const validation = displayOutcome(status?.validation_outcome);
+              const entries = summary?.entries ?? '-';
+              const pfps = summary ? summary.pfp_total.toLocaleString() : '-';
+              const rootOutput = status?.root_file ? 'available' : 'missing';
+              return `| ${name} | ${job} | ${binary} | ${validation} | ${rootOutput} | ${entries} | ${pfps} |`;
+            });
+
+            const commit = context.payload.pull_request.head.sha;
+            const timestamp = new Date().toISOString();
+            const runUrl = `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const plotMarkdown = results
+              .filter(({ plotExists }) => plotExists)
+              .map(({ id, name }) => `![${name} distributions](./reco-validation/${id}.png)`);
+
+            const body = [
+              marker,
+              '## LArRecoND reconstruction validation',
+              '',
+              '| Dataset | Job | PandoraInterface | Output validation | ROOT file | Events | Reconstructed PFPs (`clusterId`) |',
+              '| --- | --- | --- | --- | --- | ---: | ---: |',
+              ...rows,
+              '',
+              ...plotMarkdown,
+              '',
+              `[Download seven-day debug artifacts](${runUrl}#artifacts)`,
+              '',
+              `Commit: \`${commit}\`  `,
+              `Generated: ${timestamp} UTC`,
+            ].join('\n');
+
+            fs.writeFileSync('reco-validation/comment.md', body);
+
+      - name: Update Single PR Comment with Inline Plots
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          attach_args=()
+          if [[ -f reco-validation/two-by-two.png ]]; then
+            attach_args+=(--attach './reco-validation/two-by-two.png#2x2 MiniRun6.5 distributions')
+          fi
+          if [[ -f reco-validation/ndlar.png ]]; then
+            attach_args+=(--attach './reco-validation/ndlar.png#NDLAr MicroProdN4p1 distributions')
+          fi
+
+          gh pr comment "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --edit-last --create-if-none \
+            --body-file reco-validation/comment.md \
+            "${attach_args[@]}"
+
+
+  cleanup:
+    name: Cleanup Build Artifacts
+    runs-on: ubuntu-latest
+    needs: [build, test, report]
+    if: always()
+    permissions:
+      actions: write
+
+    steps:
+      - name: Delete workflow artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Fetching artifacts for this workflow run..."
+          # Use the GitHub CLI to list artifacts from this specific run
+          ARTIFACTS=$(gh api /repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --jq '.artifacts[] | [.id, .name] | @tsv')
+
+          if [ -z "$ARTIFACTS" ]; then
+            echo "No artifacts found to delete."
+            exit 0
+          fi
+
+          echo "Found workflow artifacts."
+          while IFS=$'\t' read -r ARTIFACT_ID ARTIFACT_NAME; do
+            if [[ "$ARTIFACT_NAME" == reco-validation-* ]]; then
+              echo "Preserving validation plot artifact: $ARTIFACT_NAME"
+              continue
+            fi
+            echo "Deleting artifact with ID: $ARTIFACT_ID"
+            gh api --method DELETE /repos/${{ github.repository }}/actions/artifacts/$ARTIFACT_ID
+          done <<< "$ARTIFACTS"
+          echo "Artifact cleanup complete."
