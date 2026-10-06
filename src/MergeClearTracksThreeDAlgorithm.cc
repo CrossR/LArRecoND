@@ -22,7 +22,10 @@ namespace lar_content
 {
 
 MergeClearTracksThreeDAlgorithm::MergeClearTracksThreeDAlgorithm() :
-    m_slidingFitWindow(10), m_maxGapLengthCut(25.f), m_maxGapTransverseCut(1.f), m_minCosThetaCut(0.96f)
+    m_slidingFitWindow(10),
+    m_maxGapLengthCut(25.f),
+    m_maxGapTransverseCut(1.f),
+    m_minCosThetaCut(0.96f)
 {
 }
 
