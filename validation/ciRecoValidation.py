@@ -1,0 +1,114 @@
+import argparse
+import json
+import sys
+from pathlib import Path
+
+import awkward as ak
+import matplotlib
+import numpy as np
+import uproot
+
+matplotlib.use("Agg")
+
+import matplotlib.pyplot as plt
+
+
+PLOT_BRANCHES = (
+    ("n3DHits", "3D hits per PFP"),
+    ("trackScore", "Track score"),
+    ("energy", "Reconstructed energy"),
+    ("purity", "MC match purity"),
+    ("completeness", "MC match completeness"),
+)
+
+
+def validate_and_plot(input_path, dataset_id, dataset_name, output_dir):
+    input_path = Path(input_path)
+    output_dir = Path(output_dir)
+
+    if not input_path.is_file() or input_path.stat().st_size == 0:
+        raise ValueError(f"Output file is missing or empty: {input_path}")
+
+    with uproot.open(input_path) as root_file:
+        if "LArRecoND" not in root_file:
+            raise ValueError(f"Missing LArRecoND tree in {input_path}")
+
+        tree = root_file["LArRecoND"]
+        entries = int(tree.num_entries)
+        if entries == 0:
+            raise ValueError(f"LArRecoND tree has no entries: {input_path}")
+
+        branches = set(tree.keys())
+        required_branches = {"clusterId", *(branch for branch, _ in PLOT_BRANCHES)}
+        missing_branches = sorted(required_branches - branches)
+        if missing_branches:
+            raise ValueError(f"Missing required branches: {', '.join(missing_branches)}")
+
+        cluster_ids = tree["clusterId"].array(library="ak")
+        pfps_per_event = ak.to_numpy(ak.num(cluster_ids, axis=1))
+        pfp_total = int(np.sum(pfps_per_event))
+        if pfp_total == 0:
+            raise ValueError(f"LArRecoND tree has entries but no reconstructed PFPs: {input_path}")
+
+        branch_values = {
+            branch: ak.to_numpy(ak.flatten(tree[branch].array(library="ak"), axis=None))
+            for branch, _ in PLOT_BRANCHES
+        }
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    figure, axes = plt.subplots(2, 3, figsize=(15, 8))
+    axes = axes.flatten()
+
+    axes[0].hist(pfps_per_event, bins="auto", color="#2878a5", edgecolor="white")
+    axes[0].set_title("Reconstructed PFPs per event")
+    axes[0].set_xlabel("PFP count")
+    axes[0].set_ylabel("Events")
+
+    for axis, (branch, title) in zip(axes[1:], PLOT_BRANCHES):
+        values = np.asarray(branch_values[branch], dtype=np.float64)
+        values = values[np.isfinite(values)]
+        if values.size:
+            axis.hist(values, bins=50, color="#d06b3c", edgecolor="white")
+        else:
+            axis.text(0.5, 0.5, "No values", ha="center", va="center", transform=axis.transAxes)
+        axis.set_title(title)
+        axis.set_xlabel(branch)
+        axis.set_ylabel("PFPs")
+
+    figure.suptitle(f"{dataset_name}: {entries} events, {pfp_total:,} PFPs")
+    figure.tight_layout()
+    plot_path = output_dir / f"{dataset_id}.png"
+    figure.savefig(plot_path, dpi=150)
+    plt.close(figure)
+
+    summary = {
+        "dataset_id": dataset_id,
+        "dataset_name": dataset_name,
+        "entries": entries,
+        "pfp_total": pfp_total,
+        "pfps_per_event": [int(value) for value in pfps_per_event],
+        "plot": plot_path.name,
+    }
+    summary_path = output_dir / f"{dataset_id}.json"
+    summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps(summary, indent=2))
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Validate and plot a LArRecoND ROOT output file.")
+    parser.add_argument("--input", required=True, help="LArRecoND.root path")
+    parser.add_argument("--dataset-id", required=True, help="Stable dataset identifier")
+    parser.add_argument("--dataset-name", required=True, help="Human-readable dataset name")
+    parser.add_argument("--output-dir", required=True, help="Directory for JSON summary and plot")
+    args = parser.parse_args()
+
+    try:
+        validate_and_plot(args.input, args.dataset_id, args.dataset_name, args.output_dir)
+    except Exception as error:
+        print(f"CI validation failed: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
