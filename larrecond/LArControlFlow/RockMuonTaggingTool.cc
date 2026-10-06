@@ -1,5 +1,5 @@
 /**
- *  @file   src/RockMuonTaggingTool.cc
+ *  @file   larrecond/LArControlFlow/RockMuonTaggingTool.cc
  *
  *  @brief  Implementation of the rock muon tagging tool class.
  *
@@ -9,9 +9,8 @@
 #include "Pandora/AlgorithmHeaders.h"
 
 #include "larpandoracontent/LArControlFlow/CosmicRayTaggingTool.h"
-#include <memory>
 
-#include "RockMuonTaggingTool.h"
+#include "larrecond/LArControlFlow/RockMuonTaggingTool.h"
 
 using namespace pandora;
 

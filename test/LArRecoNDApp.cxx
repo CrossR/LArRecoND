@@ -113,9 +113,7 @@ T GetValue(InstanceMap &cliOptions, const TiXmlHandle &xmlHandle, const std::str
     // Check if the CLI option is provided for this instance
     auto cliIt = cliOptions.find(instanceName);
     if (cliIt != cliOptions.end())
-    {
         return cliIt->second;
-    }
 
     // If not, check the XML configuration
     TiXmlHandle instanceHandle = xmlHandle.FirstChildElement(instanceName.c_str());
@@ -123,9 +121,7 @@ T GetValue(InstanceMap &cliOptions, const TiXmlHandle &xmlHandle, const std::str
     {
         T value;
         if (XmlHelper::ReadValue(instanceHandle, xmlKey, value) == STATUS_CODE_SUCCESS)
-        {
             return value;
-        }
     }
 
     // If neither is provided, raise an error.

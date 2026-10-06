@@ -1,5 +1,5 @@
-/** 
- * @file   include/RockMuonTaggingTool.h
+/**
+ * @file   larrecond/LArControlFlow/RockMuonTaggingTool.h
  *
  *  @brief  Header file for the rock muon tagging tool class.
  *
@@ -11,8 +11,6 @@
 
 #include "larpandoracontent/LArControlFlow/CosmicRayTaggingTool.h"
 #include "larpandoracontent/LArControlFlow/MasterAlgorithm.h"
-
-#include <unordered_map>
 
 namespace lar_content
 {
@@ -32,7 +30,7 @@ public:
     void FindAmbiguousPfos(const pandora::PfoList &parentCosmicRayPfos, pandora::PfoList &ambiguousPfos, const MasterAlgorithm *const pAlgorithm) override;
 
     /**
-     *  @brief Tag clear rock muons and exclude it from ambiguousPfos 
+     *  @brief Tag clear rock muons and exclude it from ambiguousPfos
      *
      *  @param  ambiguousPfos input pfos list
      */
@@ -40,7 +38,7 @@ public:
 
 private:
     /**
-     *  @brief Check if a 3D point is inside the detector boundaies with margins 
+     *  @brief Check if a 3D point is inside the detector boundaies with margins
      *
      *  @param  x point x coordinate
      *  @param  y point y coordinate
