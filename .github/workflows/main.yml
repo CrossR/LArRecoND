@@ -131,7 +131,7 @@ jobs:
 
           echo "Processing files with Python..."
           cd /pandora/data/
-          python3 /pandora/LArRecoND/ndlarflow/h5_to_root_ndlarflow.py /pandora/data/input_data.hdf5 0 0 converted_flow.root
+          python3 /pandora/LArRecoND/ndlarflow/h5_to_root_ndlarflow.py /pandora/data/input_data.hdf5 0 0 0 converted_flow.root
 
           echo "Setting up environment for ROOT..."
           source /pandora/setup.sh
