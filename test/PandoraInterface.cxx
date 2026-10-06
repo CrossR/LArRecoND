@@ -53,6 +53,7 @@
 #include <iostream>
 #include <memory>
 #include <random>
+#include <regex>
 #include <string>
 #include <vector>
 
@@ -362,6 +363,29 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
             CreateSPMCParticles(*larspmc, pPrimaryPandora, parameters);
         }
 
+        // And event level information...
+        int run{0};
+        int subrun{0};
+        const int event{larsp->m_event};
+
+        // INFO: Currently, the run + subrun fields are seemingly not set in the
+        // input ROOT files, so we can instead parse it from the input file
+        // name, if possible.
+        //
+        // This should pull out 12 from
+        // MiniProdN5p1_NDComplex_FHC.flow.full.sanddrift.0000012.FLOW.hdf5_hits.root
+        std::regex fileNameRegex(".*\\.(\\d+)\\.FLOW.*");
+        std::smatch matches;
+
+        if (std::regex_match(parameters.m_inputFileName, matches, fileNameRegex) && matches.size() > 1)
+        {
+            run = std::stoi(matches[1].str());
+            subrun = run;
+        }
+
+        std::cout << "Event info: run " << run << ", subrun " << subrun << ", event " << event << std::endl;
+        PandoraApi::SetEventInformation(*pPrimaryPandora, run, subrun, event);
+
         int hitCounter(0);
 
         // Loop over the space points and make them into caloHits
@@ -386,22 +410,22 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
             const float voxelMipEquivalentE = voxelE / MipE;
 
             // TEMPORARY COMMENT: if we read the tpcID from input voxel_io_group
-            // do we actually need to keep the 'geom' input? For now use it as 
+            // do we actually need to keep the 'geom' input? For now use it as
             // fallback option in case voxel_io_group for any reason in null
-            int tpcID = -1; 
+            int tpcID = -1;
             if ((70 == geom.m_TPCs.size()) && (voxel_io_group >= 0)) // NDLAr
             {
               tpcID = ioGroup2tcpIDMap_NDLAr(voxel_io_group);
-            } 
-            else if ((4 == geom.m_TPCs.size()) && (voxel_io_group >= 0)) // 2x2 
+            }
+            else if ((4 == geom.m_TPCs.size()) && (voxel_io_group >= 0)) // 2x2
             {
               tpcID = ioGroup2tcpIDMap_2x2[voxel_io_group];
-            } 
+            }
             else if ((2 == geom.m_TPCs.size()) && (voxel_io_group >= 0)) // FSD
             {
               tpcID = ioGroup2tcpIDMap_FSD[voxel_io_group];
             }
-            else 
+            else
             {
               tpcID = geom.GetTPCNumber(voxelPos);
             }
