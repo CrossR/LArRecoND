@@ -9,7 +9,7 @@ runs:
       run: |
         rm -rf /pandora/LArRecoND
         cp -r $GITHUB_WORKSPACE /pandora/LArRecoND
-        chmod +x /pandora/LArRecoND/scripts/build_al9.sh
+        chmod +x /pandora/LArRecoND/scripts/build/build.sh
 
     - name: Define Environment
       shell: bash
@@ -27,7 +27,7 @@ runs:
       shell: bash
       run: |
         source /pandora/setup.sh
-        source /pandora/LArRecoND/scripts/build_al9.sh
+        bash /pandora/LArRecoND/scripts/build/build.sh
 
     - name: Generate ML Data Cache Key
       id: ml-cache-key
