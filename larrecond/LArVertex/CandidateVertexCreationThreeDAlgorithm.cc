@@ -135,8 +135,7 @@ void CandidateVertexCreationThreeDAlgorithm::SelectClusters(ClusterVector &clust
 
         if (pCluster->GetParticleId() == E_MINUS && m_reducedCandidates)
         {
-            selectionCutFactor =
-                (m_selectionCutFactorMax + 1.f) * 0.5f +
+            selectionCutFactor = (m_selectionCutFactorMax + 1.f) * 0.5f +
                 (m_selectionCutFactorMax - 1.f) * 0.5f * std::tanh(static_cast<float>(nClustersPassingMaxCuts) - m_nClustersPassingMaxCutsPar);
         }
 

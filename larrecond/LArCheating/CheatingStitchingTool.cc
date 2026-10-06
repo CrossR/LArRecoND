@@ -1,15 +1,14 @@
 /**
- *  @file   src/CheatingStitching.cc
+ *  @file   src/CheatingStitchingTool.cc
  *
  *  @brief  Implementation of the cheating stitching tool class.
  *
  *  $Log: $
  */
 
-#include "Pandora/AlgorithmHeaders.h"
-
 #include <larpandoracontent/LArHelpers/LArMCParticleHelper.h>
 #include <larpandoracontent/LArHelpers/LArPfoHelper.h>
+#include <larpandoracontent/LArThreeDReco/LArPfoStitching/StitchingPfoOperations.h>
 
 #include "larrecond/LArCheating/CheatingStitchingTool.h"
 
@@ -23,8 +22,8 @@ CheatingStitchingTool::CheatingStitchingTool()
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void CheatingStitchingTool::Run(const MasterAlgorithm *const pAlgorithm, const PfoList *const /*pMultiPfoList*/,
-    PfoToLArTPCMap &pfoToLArTPCMap, PfoToFloatMap & /*stitchedPfosToX0Map*/)
+void CheatingStitchingTool::RunStitching(const Algorithm *const pAlgorithm, const StitchingPfoOperations *const pStitchingOperations,
+    const PfoList *const /*pMultiPfoList*/, PfoToLArTPCMap &pfoToLArTPCMap, PfoToFloatMap & /*stitchedPfosToX0Map*/)
 {
     if (PandoraContentApi::GetSettings(*pAlgorithm)->ShouldDisplayAlgorithmInfo())
         std::cout << "----> Running Algorithm Tool: " << this->GetInstanceName() << ", " << this->GetType() << std::endl;
@@ -128,7 +127,7 @@ void CheatingStitchingTool::Run(const MasterAlgorithm *const pAlgorithm, const P
             const ParticleFlowObject *const pCurrentPfo = tpcToMainPfoIter->second;
 
             // Stitch the current PFO to the reference PFO
-            pAlgorithm->StitchPfos(pReferencePfo, pCurrentPfo, pfoToLArTPCMap);
+            pStitchingOperations->StitchPfos(pReferencePfo, pCurrentPfo, pfoToLArTPCMap);
         }
     }
 }

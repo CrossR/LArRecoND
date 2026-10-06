@@ -52,7 +52,9 @@ public:
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-inline LArBox::LArBox(const pandora::CartesianVector &bottom, const pandora::CartesianVector &top) : m_bottom(bottom), m_top(top)
+inline LArBox::LArBox(const pandora::CartesianVector &bottom, const pandora::CartesianVector &top) :
+    m_bottom(bottom),
+    m_top(top)
 {
 }
 
