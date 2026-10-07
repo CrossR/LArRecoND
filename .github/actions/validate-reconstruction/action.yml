@@ -17,6 +17,10 @@ inputs:
   is-pull-request:
     description: Whether to upload artifacts for a pull request
     required: true
+  reference-file:
+    description: Path to the reference ROOT file for validation
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -25,9 +29,17 @@ runs:
       id: validate-output
       if: inputs.binary-outcome != 'skipped'
       shell: bash -l {0}
+      env:
+        REFERENCE_FILE: ${{ inputs.reference-file }}
       run: |
+        EXTRA_ARGS=()
+        if [[ -n "$REFERENCE_FILE" && -f "$REFERENCE_FILE" ]]; then
+          EXTRA_ARGS=(--reference "$REFERENCE_FILE")
+        fi
+
         python3 "$GITHUB_WORKSPACE/validation/ciRecoValidation.py" \
           --input /pandora/data/LArRecoND.root \
+          "${EXTRA_ARGS[@]}" \
           --dataset-id "${{ inputs.dataset-id }}" \
           --dataset-name "${{ inputs.dataset-name }}" \
           --output-dir "$RUNNER_TEMP/reco-validation"
@@ -66,9 +78,9 @@ runs:
 
     - name: Upload Reconstruction Debug Artifacts
       uses: actions/upload-artifact@v7
-      if: always() && inputs.is-pull-request == 'true'
+      if: always()
       with:
         name: reco-validation-${{ inputs.dataset-id }}
         path: ${{ runner.temp }}/reco-validation
         if-no-files-found: error
-        retention-days: 7
+        retention-days: 90

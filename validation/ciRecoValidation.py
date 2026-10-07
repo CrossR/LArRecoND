@@ -41,8 +41,32 @@ def describe(values):
         "median": float(np.median(values)),
     }
 
+def populate_stats(file_path):
+    if file_path is None:
+        return
 
-def validate_and_plot(input_path, dataset_id, dataset_name, output_dir):
+    file_path = Path(file_path)
+    if not file_path.is_file() or file_path.stat().st_size == 0:
+        print(f"File is missing or empty: {file_path}")
+        return
+
+    with uproot.open(file_path) as root_file:
+        if "LArRecoND" not in root_file:
+            print(f"Missing LArRecoND tree in reference file: {file_path}")
+            return
+
+        tree = root_file["LArRecoND"]
+        cluster_ids = tree["clusterId"].array(library="ak")
+        pfps = ak.to_numpy(ak.flatten(cluster_ids, axis=1))
+        branch_values = {
+            branch: ak.to_numpy(ak.flatten(tree[branch].array(library="ak"), axis=None))
+            for branch, _ in PLOT_BRANCHES
+        }
+
+        return pfps, branch_values
+
+
+def validate_and_plot(input_path, dataset_id, dataset_name, output_dir, reference_path):
     input_path = Path(input_path)
     output_dir = Path(output_dir)
 
@@ -80,6 +104,14 @@ def validate_and_plot(input_path, dataset_id, dataset_name, output_dir):
             for branch in branches_to_read
         }
 
+    # Next, read in the reference file if provided and compare the distributions.
+    ref_pfps = None
+    ref_branch_values = {}
+    ref_stats = populate_stats(reference_path)
+
+    if ref_stats is not None:
+        ref_pfps, ref_branch_values = ref_stats
+
     event_stats = describe(pfps_per_event)
     branch_stats = [
         {"branch": branch, **describe(branch_values[branch])}
@@ -90,14 +122,28 @@ def validate_and_plot(input_path, dataset_id, dataset_name, output_dir):
     figure, axes = plt.subplots(2, 3, figsize=(15, 8))
     axes = axes.flatten()
 
+    if ref_pfps is not None:
+        axes[0].hist(ref_pfps, bins="auto", color="gray", alpha=0.5, label="Main")
+
     axes[0].hist(pfps_per_event, bins="auto", color="#2878a5", edgecolor="white")
     axes[0].set_title("Reconstructed PFPs per event")
     axes[0].set_xlabel("PFP count")
     axes[0].set_ylabel("Events")
 
+    if ref_pfps is not None:
+        axes[0].legend()
+
     for axis, (branch, title) in zip(axes[1:], PLOT_BRANCHES):
         values = np.asarray(branch_values[branch], dtype=np.float64)
         values = values[np.isfinite(values)]
+
+        if branch in ref_branch_values:
+            ref_values = np.asarray(ref_branch_values[branch], dtype=np.float64)
+            ref_values = ref_values[np.isfinite(ref_values)]
+            axis.hist(
+                ref_values, bins=50, color="gray", alpha=0.5, label="Reference"
+            )
+
         if values.size:
             axis.hist(values, bins=50, color="#d06b3c", edgecolor="white")
         else:
@@ -112,6 +158,9 @@ def validate_and_plot(input_path, dataset_id, dataset_name, output_dir):
         axis.set_title(title)
         axis.set_xlabel(branch)
         axis.set_ylabel("PFPs")
+
+        if branch in ref_branch_values:
+            axis.legend()
 
     figure.suptitle(f"{dataset_name}: {entries} events, {pfp_total:,} PFPs")
     figure.tight_layout()
@@ -146,11 +195,21 @@ def main():
     parser.add_argument(
         "--output-dir", required=True, help="Directory for JSON summary and plot"
     )
+    parser.add_argument(
+        "--reference",
+        required=False,
+        help="Path to reference ROOT file for validation",
+        default=None,
+    )
     args = parser.parse_args()
 
     try:
         validate_and_plot(
-            args.input, args.dataset_id, args.dataset_name, args.output_dir
+            args.input,
+            args.dataset_id,
+            args.dataset_name,
+            args.output_dir,
+            args.reference,
         )
     except Exception as error:
         print(f"CI validation failed: {error}", file=sys.stderr)

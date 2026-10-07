@@ -27,7 +27,7 @@ env:
 jobs:
   build:
     # Use the latest ubuntu image: https://github.com/actions/runner-images
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     name: LArRecoND - ${{ matrix.compiler.c }}
 
     # # Only run in the PandoraPFA repos.
@@ -139,6 +139,7 @@ jobs:
           key: ${{ steps.url-key.outputs.hash }}
 
       - name: Download Data Files
+        id: download-data
         if: steps.cache-data.outputs.cache-hit != 'true'
         shell: bash
         run: |
@@ -197,6 +198,15 @@ jobs:
            -f SPMC \
            -n ${{ matrix.events }} -N
 
+      - name: Download Reference File
+        if: github.event_name == 'pull_request'
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          name: reco-validation-${{ matrix.id }}
+          path: /pandora/data/reference
+          branch: master
+          if_no_artifact_found: warn
+
       # After this, validate the output in a basic way: Check the output exists,
       # has entries and make some basic plots.
       - name: Validate and Upload Reconstruction Results
@@ -208,11 +218,12 @@ jobs:
           binary-outcome: ${{ steps.binary.outcome }}
           job-outcome: ${{ job.status }}
           is-pull-request: ${{ github.event_name == 'pull_request' }}
+          reference-file: /pandora/data/reference/${{ matrix.id }}-LArRecoND.root
 
-      # Save the data cache for future runs, if it wasn't already cached.
+      # Only cache a fully successful download
       - name: Save Data Cache
         uses: actions/cache/save@v6
-        if: always() && steps.cache-data.outputs.cache-hit != 'true'
+        if: always() && steps.download-data.outcome == 'success'
         with:
           path: |
             /pandora/data/*.hdf5
