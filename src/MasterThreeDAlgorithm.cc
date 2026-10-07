@@ -14,9 +14,6 @@
 #include "MasterThreeDAlgorithm.h"
 
 #include "larpandoracontent/LArContent.h"
-#include "larpandoracontent/LArHelpers/LArClusterHelper.h"
-#include "larpandoracontent/LArHelpers/LArFileHelper.h"
-#include "larpandoracontent/LArHelpers/LArMCParticleHelper.h"
 #include "larpandoracontent/LArHelpers/LArPfoHelper.h"
 #include "larpandoracontent/LArHelpers/LArStitchingHelper.h"
 
@@ -26,7 +23,6 @@
 #include "larpandoracontent/LArPlugins/LArPseudoLayerPlugin.h"
 #include "larpandoracontent/LArPlugins/LArRotationalTransformationPlugin.h"
 
-#include "larpandoracontent/LArUtility/PfoMopUpBaseAlgorithm.h"
 #include <larpandoracontent/LArControlFlow/MasterAlgorithm.h>
 
 #ifdef LIBTORCH_DL
@@ -133,47 +129,6 @@ StatusCode MasterThreeDAlgorithm::TagCosmicRayPfos(const PfoToFloatMap &stitched
 
     return STATUS_CODE_SUCCESS;
 }
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-StatusCode MasterThreeDAlgorithm::RunCosmicRayReconstruction(const VolumeIdToHitListMap &volumeIdToHitListMap) const
-{
-    for (const Pandora *const pCRWorker : m_crWorkerInstances)
-    {
-        const LArTPC &worker_larTPC(pCRWorker->GetGeometry()->GetLArTPC());
-        const unsigned int worker_id = worker_larTPC.GetLArTPCVolumeId();
-
-        const auto worker_it = m_workerToLArTPCMap.find(worker_id);
-        if (worker_it == m_workerToLArTPCMap.end())
-        {
-            std::cout << "Problem: worker_id " << worker_id << "not present in the m_workerToLArTPCMap. Skipping this worker.\n";
-            continue;
-        }
-
-        // loop over worker's TPCs
-        for (const pandora::LArTPC *pLArTPC : worker_it->second)
-        {
-            const unsigned int larTPC_id = (*pLArTPC).GetLArTPCVolumeId();
-
-            // get all TPC's hits
-            VolumeIdToHitListMap::const_iterator iter(volumeIdToHitListMap.find(larTPC_id));
-
-            if (volumeIdToHitListMap.end() == iter)
-                continue;
-
-            // copy hits into the worker
-            std::cout << "Copying " << iter->second.m_allHitList.size() << " hits from LArTPC " << larTPC_id << " to worker " << worker_id << "\n";
-            for (const CaloHit *const pCaloHit : iter->second.m_allHitList)
-                PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->Copy(pCRWorker, pCaloHit));
-        }
-
-        if (m_printOverallRecoStatus)
-            std::cout << "Running cosmic-ray reconstruction worker instance " << worker_id << " of " << m_crWorkerInstances.size() << std::endl;
-
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ProcessEvent(*pCRWorker));
-    }
-
-    return STATUS_CODE_SUCCESS;
-}
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -242,13 +197,32 @@ StatusCode MasterThreeDAlgorithm::RunCosmicRayReconstructionThenRecreate(const V
     for (const Pandora *const pCRWorker : m_crWorkerInstances)
     {
         const LArTPC &larTPC(pCRWorker->GetGeometry()->GetLArTPC());
-        VolumeIdToHitListMap::const_iterator iter(volumeIdToHitListMap.find(larTPC.GetLArTPCVolumeId()));
+        const unsigned int workerId = larTPC.GetLArTPCVolumeId();
+        const auto workerIter = m_workerToLArTPCMap.find(workerId);
 
-        if (volumeIdToHitListMap.end() == iter)
+        if (workerIter == m_workerToLArTPCMap.end())
+        {
+            std::cout << "Problem: worker_id " << workerId << "not present in the m_workerToLArTPCMap. Skipping this worker.\n";
             continue;
+        }
 
-        for (const CaloHit *const pCaloHit : iter->second.m_allHitList)
-            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->Copy(pCRWorker, pCaloHit));
+        // Loop over each of the worker's TPCs
+        for (const pandora::LArTPC *pLArTPC : workerIter->second)
+        {
+            const unsigned int larTPC_id = (*pLArTPC).GetLArTPCVolumeId();
+
+            // Get all TPC's hits
+            VolumeIdToHitListMap::const_iterator iter(volumeIdToHitListMap.find(larTPC_id));
+
+            if (volumeIdToHitListMap.end() == iter)
+                continue;
+
+            // Copy hits into the worker
+            std::cout << "Copying " << iter->second.m_allHitList.size() << " hits from LArTPC " << larTPC_id << " to worker " << workerId << std::endl;
+            for (const CaloHit *const pCaloHit : iter->second.m_allHitList)
+                PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->Copy(pCRWorker, pCaloHit));
+        }
+
 
         if (m_printOverallRecoStatus)
             std::cout << "Running cosmic-ray reconstruction worker instance " << ++workerCounter << " of " << m_crWorkerInstances.size() << std::endl;

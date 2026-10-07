@@ -407,22 +407,22 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
             const float voxelMipEquivalentE = voxelE / MipE;
 
             // TEMPORARY COMMENT: if we read the tpcID from input voxel_io_group
-            // do we actually need to keep the 'geom' input? For now use it as 
+            // do we actually need to keep the 'geom' input? For now use it as
             // fallback option in case voxel_io_group for any reason in null
-            int tpcID = -1; 
+            int tpcID = -1;
             if ((70 == geom.m_TPCs.size()) && (voxel_io_group >= 0)) // NDLAr
             {
               tpcID = ioGroup2tcpIDMap_NDLAr(voxel_io_group);
-            } 
-            else if ((4 == geom.m_TPCs.size()) && (voxel_io_group >= 0)) // 2x2 
+            }
+            else if ((4 == geom.m_TPCs.size()) && (voxel_io_group >= 0)) // 2x2
             {
               tpcID = ioGroup2tcpIDMap_2x2[voxel_io_group];
-            } 
+            }
             else if ((2 == geom.m_TPCs.size()) && (voxel_io_group >= 0)) // FSD
             {
               tpcID = ioGroup2tcpIDMap_FSD[voxel_io_group];
             }
-            else 
+            else
             {
               tpcID = geom.GetTPCNumber(voxelPos);
             }
@@ -1700,6 +1700,7 @@ void MakeCaloHitsFromVoxels(const LArVoxelList &voxels, const MCParticleEnergyMa
     const float voxelWidth(parameters.m_voxelWidth);
     const float MipE = 0.00075;
     lar_content::LArCaloHitParameters caloHitParameters = MakeDefaultCaloHitParams(voxelWidth);
+    std::map<long, int> voxelIdToHitCounter;
 
     if (parameters.m_use3D)
     {
@@ -1719,7 +1720,9 @@ void MakeCaloHitsFromVoxels(const LArVoxelList &voxels, const MCParticleEnergyMa
             caloHitParameters.m_mipEquivalentEnergy = voxelMipEquivalentE;
             caloHitParameters.m_electromagneticEnergy = voxelE;
             caloHitParameters.m_hadronicEnergy = voxelE;
-            caloHitParameters.m_pParentAddress = (void *)(static_cast<uintptr_t>(++hitCounter));
+            const int hitId(++hitCounter);
+            voxelIdToHitCounter[voxel.m_voxelID] = hitId;
+            caloHitParameters.m_pParentAddress = (void *)(static_cast<uintptr_t>(hitId));
             caloHitParameters.m_larTPCVolumeId = voxel.m_tpcID;
 
             PANDORA_THROW_RESULT_IF(
@@ -1728,7 +1731,7 @@ void MakeCaloHitsFromVoxels(const LArVoxelList &voxels, const MCParticleEnergyMa
             // Set calo hit voxel to MCParticle relation using trackID
             const int trackID = voxel.m_trackID;
             const float energyFrac = GetMCEnergyFraction(mcEnergyMap, voxelE, trackID);
-            PandoraApi::SetCaloHitToMCParticleRelationship(*pPrimaryPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
+            PandoraApi::SetCaloHitToMCParticleRelationship(*pPrimaryPandora, (void *)((intptr_t)hitId), (void *)((intptr_t)trackID), energyFrac);
         }
     }
 
@@ -1783,7 +1786,9 @@ void MakeCaloHitsFromVoxels(const LArVoxelList &voxels, const MCParticleEnergyMa
                 caloHitParameters.m_mipEquivalentEnergy = voxelMipEquivalentE;
                 caloHitParameters.m_electromagneticEnergy = voxelE;
                 caloHitParameters.m_hadronicEnergy = voxelE;
-                caloHitParameters.m_pParentAddress = (void *)(static_cast<uintptr_t>(++hitCounter));
+                const auto parentHitId(voxelIdToHitCounter.find(hit.m_parentVoxelID));
+                const int hitId((parentHitId != voxelIdToHitCounter.end()) ? parentHitId->second : ++hitCounter);
+                caloHitParameters.m_pParentAddress = (void *)(static_cast<uintptr_t>(hitId));
                 caloHitParameters.m_hitType = hit.m_view;
                 caloHitParameters.m_larTPCVolumeId = hit.m_tpcID;
 
@@ -1794,7 +1799,7 @@ void MakeCaloHitsFromVoxels(const LArVoxelList &voxels, const MCParticleEnergyMa
                 // Set calo hit voxel to MCParticle relation using trackID
                 const int trackID = hit.m_trackID;
                 const float energyFrac = GetMCEnergyFraction(mcEnergyMap, voxelE, trackID);
-                PandoraApi::SetCaloHitToMCParticleRelationship(*pPrimaryPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
+                PandoraApi::SetCaloHitToMCParticleRelationship(*pPrimaryPandora, (void *)((intptr_t)hitId), (void *)((intptr_t)trackID), energyFrac);
             } // end voxel projection loop
         } // end view loop
     }
