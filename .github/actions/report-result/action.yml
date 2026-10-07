@@ -1,0 +1,108 @@
+name: Report Reconstruction Results
+description: Aggregate matrix validation artifacts and update one PR comment with inline plots
+
+inputs:
+  pull-request-number:
+    description: Pull request number to comment on
+    required: true
+  github-token:
+    description: Token used by gh pr comment
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Prepare Report Directory
+      shell: bash
+      run: mkdir -p reco-validation
+
+    - name: Download Matrix Reports
+      uses: actions/download-artifact@v8
+      continue-on-error: true
+      with:
+        pattern: reco-validation-*
+        path: reco-validation
+        merge-multiple: true
+
+    - name: Prepare PR Comment
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const marker = '<!-- lard-reco-ci-validation -->';
+          const statusFiles = fs.readdirSync('reco-validation')
+            .filter((file) => file.endsWith('-status.json'))
+            .sort();
+          const results = statusFiles.map((file) => {
+            const status = JSON.parse(fs.readFileSync(`reco-validation/${file}`, 'utf8'));
+            const summaryFile = `reco-validation/${status.dataset_id}.json`;
+            const plotFile = `reco-validation/${status.dataset_id}.png`;
+            const summary = fs.existsSync(summaryFile)
+              ? JSON.parse(fs.readFileSync(summaryFile, 'utf8'))
+              : null;
+            return {
+              id: status.dataset_id,
+              name: status.dataset_name,
+              status,
+              summary,
+              plotExists: fs.existsSync(plotFile),
+            };
+          });
+
+          const displayOutcome = (outcome) => outcome || 'not run';
+          const rows = results.map(({ name, status, summary }) => {
+            const job = displayOutcome(status?.job_outcome);
+            const binary = displayOutcome(status?.binary_outcome);
+            const validation = displayOutcome(status?.validation_outcome);
+            const entries = summary?.entries ?? '-';
+            const pfps = summary ? summary.pfp_total.toLocaleString() : '-';
+            const rootOutput = status?.root_file ? 'available' : 'missing';
+            return `| ${name} | ${job} | ${binary} | ${validation} | ${rootOutput} | ${entries} | ${pfps} |`;
+          });
+
+          const commit = context.payload.pull_request.head.sha;
+          const timestamp = new Date().toISOString();
+          const runUrl = `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+          const plotMarkdown = results
+            .filter(({ plotExists }) => plotExists)
+            .map(({ id, name }) => `![${name} distributions](./reco-validation/${id}.png)`);
+          const reportRows = rows.length > 0
+            ? rows
+            : ['| No dataset results were uploaded | not run | not run | not run | missing | - | - |'];
+
+          const body = [
+            marker,
+            '## LArRecoND reconstruction validation',
+            '',
+            '| Dataset | Job | PandoraInterface | Output validation | ROOT file | Events | Reconstructed PFPs (`clusterId`) |',
+            '| --- | --- | --- | --- | --- | ---: | ---: |',
+            ...reportRows,
+            '',
+            ...plotMarkdown,
+            '',
+            `[Download seven-day debug artifacts](${runUrl}#artifacts)`,
+            '',
+            `Commit: \`${commit}\`  `,
+            `Generated: ${timestamp} UTC`,
+          ].join('\n');
+
+          fs.writeFileSync('reco-validation/comment.md', body);
+
+    - name: Update Single PR Comment with Inline Plots
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        PR_NUMBER: ${{ inputs.pull-request-number }}
+      run: |
+        attach_args=()
+        shopt -s nullglob
+        for plot in reco-validation/*.png; do
+          dataset_id="$(basename "$plot" .png)"
+          attach_args+=(--attach "$plot#$dataset_id distributions")
+        done
+
+        gh pr comment "$PR_NUMBER" \
+          --repo "$GITHUB_REPOSITORY" \
+          --edit-last --create-if-none \
+          --body-file reco-validation/comment.md \
+          "${attach_args[@]}"
