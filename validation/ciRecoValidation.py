@@ -5,13 +5,11 @@ from pathlib import Path
 
 import awkward as ak
 import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import uproot
 
 matplotlib.use("Agg")
-
-import matplotlib.pyplot as plt
-
 
 PLOT_BRANCHES = (
     ("n3DHits", "3D hits per PFP"),
@@ -20,6 +18,28 @@ PLOT_BRANCHES = (
     ("purity", "MC match purity"),
     ("completeness", "MC match completeness"),
 )
+
+
+def describe(values):
+    values = np.asarray(values, dtype=np.float64)
+    values = values[np.isfinite(values)]
+    if values.size == 0:
+        return {
+            "count": 0,
+            "min": None,
+            "max": None,
+            "mean": None,
+            "std": None,
+            "median": None,
+        }
+    return {
+        "count": int(values.size),
+        "min": float(values.min()),
+        "max": float(values.max()),
+        "mean": float(values.mean()),
+        "std": float(values.std()),
+        "median": float(np.median(values)),
+    }
 
 
 def validate_and_plot(input_path, dataset_id, dataset_name, output_dir):
@@ -42,18 +62,29 @@ def validate_and_plot(input_path, dataset_id, dataset_name, output_dir):
         required_branches = {"clusterId", *(branch for branch, _ in PLOT_BRANCHES)}
         missing_branches = sorted(required_branches - branches)
         if missing_branches:
-            raise ValueError(f"Missing required branches: {', '.join(missing_branches)}")
+            raise ValueError(
+                f"Missing required branches: {', '.join(missing_branches)}"
+            )
 
         cluster_ids = tree["clusterId"].array(library="ak")
         pfps_per_event = ak.to_numpy(ak.num(cluster_ids, axis=1))
         pfp_total = int(np.sum(pfps_per_event))
         if pfp_total == 0:
-            raise ValueError(f"LArRecoND tree has entries but no reconstructed PFPs: {input_path}")
+            raise ValueError(
+                f"LArRecoND tree has entries but no reconstructed PFPs: {input_path}"
+            )
 
+        branches_to_read = [branch for branch, _ in PLOT_BRANCHES]
         branch_values = {
             branch: ak.to_numpy(ak.flatten(tree[branch].array(library="ak"), axis=None))
-            for branch, _ in PLOT_BRANCHES
+            for branch in branches_to_read
         }
+
+    event_stats = describe(pfps_per_event)
+    branch_stats = [
+        {"branch": branch, **describe(branch_values[branch])}
+        for branch in branches_to_read
+    ]
 
     output_dir.mkdir(parents=True, exist_ok=True)
     figure, axes = plt.subplots(2, 3, figsize=(15, 8))
@@ -70,7 +101,14 @@ def validate_and_plot(input_path, dataset_id, dataset_name, output_dir):
         if values.size:
             axis.hist(values, bins=50, color="#d06b3c", edgecolor="white")
         else:
-            axis.text(0.5, 0.5, "No values", ha="center", va="center", transform=axis.transAxes)
+            axis.text(
+                0.5,
+                0.5,
+                "No values",
+                ha="center",
+                va="center",
+                transform=axis.transAxes,
+            )
         axis.set_title(title)
         axis.set_xlabel(branch)
         axis.set_ylabel("PFPs")
@@ -87,6 +125,8 @@ def validate_and_plot(input_path, dataset_id, dataset_name, output_dir):
         "entries": entries,
         "pfp_total": pfp_total,
         "pfps_per_event": [int(value) for value in pfps_per_event],
+        "event_stats": event_stats,
+        "branch_stats": branch_stats,
         "plot": plot_path.name,
     }
     summary_path = output_dir / f"{dataset_id}.json"
@@ -95,15 +135,23 @@ def validate_and_plot(input_path, dataset_id, dataset_name, output_dir):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Validate and plot a LArRecoND ROOT output file.")
+    parser = argparse.ArgumentParser(
+        description="Validate and plot a LArRecoND ROOT output file."
+    )
     parser.add_argument("--input", required=True, help="LArRecoND.root path")
     parser.add_argument("--dataset-id", required=True, help="Stable dataset identifier")
-    parser.add_argument("--dataset-name", required=True, help="Human-readable dataset name")
-    parser.add_argument("--output-dir", required=True, help="Directory for JSON summary and plot")
+    parser.add_argument(
+        "--dataset-name", required=True, help="Human-readable dataset name"
+    )
+    parser.add_argument(
+        "--output-dir", required=True, help="Directory for JSON summary and plot"
+    )
     args = parser.parse_args()
 
     try:
-        validate_and_plot(args.input, args.dataset_id, args.dataset_name, args.output_dir)
+        validate_and_plot(
+            args.input, args.dataset_id, args.dataset_name, args.output_dir
+        )
     except Exception as error:
         print(f"CI validation failed: {error}", file=sys.stderr)
         return 1

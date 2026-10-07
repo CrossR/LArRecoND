@@ -36,51 +36,52 @@ runs:
           const results = statusFiles.map((file) => {
             const status = JSON.parse(fs.readFileSync(`reco-validation/${file}`, 'utf8'));
             const summaryFile = `reco-validation/${status.dataset_id}.json`;
-            const plotFile = `reco-validation/${status.dataset_id}.png`;
             const summary = fs.existsSync(summaryFile)
               ? JSON.parse(fs.readFileSync(summaryFile, 'utf8'))
               : null;
-            return {
-              id: status.dataset_id,
-              name: status.dataset_name,
-              status,
-              summary,
-              plotExists: fs.existsSync(plotFile),
-            };
+            return { name: status.dataset_name, status, summary };
           });
 
-          const displayOutcome = (outcome) => outcome || 'not run';
-          const rows = results.map(({ name, status, summary }) => {
-            const job = displayOutcome(status?.job_outcome);
-            const binary = displayOutcome(status?.binary_outcome);
-            const validation = displayOutcome(status?.validation_outcome);
-            const entries = summary?.entries ?? '-';
-            const pfps = summary ? summary.pfp_total.toLocaleString() : '-';
-            const rootOutput = status?.root_file ? 'available' : 'missing';
-            return `| ${name} | ${job} | ${binary} | ${validation} | ${rootOutput} | ${entries} | ${pfps} |`;
+          const outcome = (value) => value || 'not run';
+          const fmt = (value) => value === null || value === undefined
+            ? '-'
+            : value.toLocaleString('en-US', { maximumFractionDigits: 3 });
+          const statsRow = (label, stats) =>
+            `| ${label} | ${fmt(stats.count)} | ${fmt(stats.min)} | ${fmt(stats.max)} | ${fmt(stats.mean)} ± ${fmt(stats.std)} | ${fmt(stats.median)} |`;
+
+          const sections = results.map(({ name, status, summary }) => {
+            const lines = [
+              `## ${name}`,
+              '',
+              `Job: ${outcome(status.job_outcome)} · PandoraInterface: ${outcome(status.binary_outcome)} · ` +
+                `Output validation: ${outcome(status.validation_outcome)} · ROOT file: ${status.root_file ? 'available' : 'missing'}`,
+              '',
+            ];
+            if (!summary) {
+              return [...lines, 'No validation results were produced.', ''].join('\n');
+            }
+            return [
+              ...lines,
+              `Events: ${fmt(summary.entries)} · Reconstructed PFPs (\`clusterId\`): ${fmt(summary.pfp_total)}`,
+              '',
+              '| Branch | Count | Min | Max | Mean ± Std | Median |',
+              '| --- | ---: | ---: | ---: | ---: | ---: |',
+              statsRow('PFPs per event', summary.event_stats),
+              ...summary.branch_stats.map((stats) => statsRow(`\`${stats.branch}\``, stats)),
+              '',
+            ].join('\n');
           });
 
           const commit = context.payload.pull_request.head.sha;
           const timestamp = new Date().toISOString();
           const runUrl = `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-          const plotMarkdown = results
-            .filter(({ plotExists }) => plotExists)
-            .map(({ id, name }) => `![${name} distributions](./reco-validation/${id}.png)`);
-          const reportRows = rows.length > 0
-            ? rows
-            : ['| No dataset results were uploaded | not run | not run | not run | missing | - | - |'];
 
           const body = [
             marker,
-            '## LArRecoND reconstruction validation',
+            '# LArRecoND PR Validation',
             '',
-            '| Dataset | Job | PandoraInterface | Output validation | ROOT file | Events | Reconstructed PFPs (`clusterId`) |',
-            '| --- | --- | --- | --- | --- | ---: | ---: |',
-            ...reportRows,
-            '',
-            ...plotMarkdown,
-            '',
-            `[Download seven-day debug artifacts](${runUrl}#artifacts)`,
+            ...(sections.length > 0 ? sections : ['No dataset results were uploaded.', '']),
+            `[Download plots and ROOT output (seven-day artifacts)](${runUrl}#artifacts)`,
             '',
             `Commit: \`${commit}\`  `,
             `Generated: ${timestamp} UTC`,
@@ -88,21 +89,13 @@ runs:
 
           fs.writeFileSync('reco-validation/comment.md', body);
 
-    - name: Update Single PR Comment with Inline Plots
+    - name: Update Single PR Comment
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
         PR_NUMBER: ${{ inputs.pull-request-number }}
       run: |
-        attach_args=()
-        shopt -s nullglob
-        for plot in reco-validation/*.png; do
-          dataset_id="$(basename "$plot" .png)"
-          attach_args+=(--attach "$plot#$dataset_id distributions")
-        done
-
         gh pr comment "$PR_NUMBER" \
           --repo "$GITHUB_REPOSITORY" \
           --edit-last --create-if-none \
-          --body-file reco-validation/comment.md \
-          "${attach_args[@]}"
+          --body-file reco-validation/comment.md
