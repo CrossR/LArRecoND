@@ -34,7 +34,7 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     name: Save PR Info
-    if: github.event_name == 'pull_request' && github.repository_owner == 'CrossR'
+    if: github.event_name == 'pull_request' && github.repository_owner == 'PandoraPFAOrg'
     steps:
 
       - name: Save PR Number
@@ -52,8 +52,8 @@ jobs:
     runs-on: ubuntu-latest
     name: LArRecoND - ${{ matrix.compiler.c }}
 
-    # Only run in the PandoraPFA repos.
-    if: github.repository_owner == 'CrossR'
+    # Only run in the PandoraPFAOrg repos.
+    if: github.repository_owner == 'PandoraPFAOrg'
 
     # Defines the build matrix, so what combinatorics of compiler etc. to test.
     strategy:
@@ -108,7 +108,7 @@ jobs:
   test:
     needs: build
     runs-on: ubuntu-latest
-    if: github.repository_owner == 'CrossR'
+    if: github.repository_owner == 'PandoraPFAOrg'
 
     # Define a matrix of datasets to test against. Each dataset has its own parameters.
     strategy:

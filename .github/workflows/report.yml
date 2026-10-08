@@ -21,7 +21,7 @@ jobs:
   report_and_cleanup:
     runs-on: ubuntu-latest
     if: >
-      github.repository_owner == 'CrossR' &&
+      github.repository_owner == 'PandoraPFAOrg' &&
       github.event.workflow_run.event == 'pull_request' &&
       (github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure')
     permissions:
