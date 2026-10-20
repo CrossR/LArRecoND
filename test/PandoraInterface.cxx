@@ -270,7 +270,7 @@ void MakePandoraTPC(const pandora::Pandora *const pPrimaryPandora, const Paramet
 
         geom.AddTPC(centreX - dx, centreX + dx, centreY - dy, centreY + dy, centreZ - dz, centreZ + dz, tpcNumber);
 
-        std::cout << "Creating TPC: " << centreX - dx << ", " << centreX + dx << ", " << centreY - dy << ", " << centreY + dy << ", "
+        std::cout << "Creating TPC "<<tpcNumber << ": " << centreX - dx << ", " << centreX + dx << ", " << centreY - dy << ", " << centreY + dy << ", "
                   << centreZ - dz << ", " << centreZ + dz << std::endl;
     }
     catch (const pandora::StatusCodeException &)
@@ -533,6 +533,7 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
             const float voxelY = (*larsp->m_y)[isp];
             const float voxelZ = (*larsp->m_z)[isp];
             const float voxelE = (*larsp->m_charge)[isp];
+            const int voxel_io_group = (*larsp->m_io_group)[isp];
 
             // Skip this hit if its coordinates or energy are NaNs
             if (std::isnan(voxelX) || std::isnan(voxelY) || std::isnan(voxelZ) || std::isnan(voxelE))
@@ -545,7 +546,28 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
             const pandora::CartesianVector voxelPos(voxelX, voxelY, voxelZ);
             const float MipE{0.00075};
             const float voxelMipEquivalentE = voxelE / MipE;
-            const int tpcID(geom.GetTPCNumber(voxelPos));
+
+            // TEMPORARY COMMENT: if we read the tpcID from input voxel_io_group
+            // do we actually need to keep the 'geom' input? For now use it as 
+            // fallback option in case voxel_io_group for any reason in null
+            int tpcID = -1; 
+            if ((70 == geom.m_TPCs.size()) && (voxel_io_group >= 0)) // NDLAr
+            {
+              tpcID = ioGroup2tcpIDMap_NDLAr(voxel_io_group);
+            } 
+            else if ((4 == geom.m_TPCs.size()) && (voxel_io_group >= 0)) // 2x2 
+            {
+              tpcID = ioGroup2tcpIDMap_2x2[voxel_io_group];
+            } 
+            else if ((2 == geom.m_TPCs.size()) && (voxel_io_group >= 0)) // FSD
+            {
+              tpcID = ioGroup2tcpIDMap_FSD[voxel_io_group];
+            }
+            else 
+            {
+              tpcID = geom.GetTPCNumber(voxelPos);
+            }
+
             lar_content::LArCaloHitParameters caloHitParameters;
             caloHitParameters.m_positionVector = voxelPos;
             caloHitParameters.m_expectedDirection = pandora::CartesianVector(0.f, 0.f, 1.f);
@@ -2065,7 +2087,7 @@ bool ParseCommandLine(int argc, char *argv[], Parameters &parameters)
 bool PrintOptions()
 {
     std::cout << std::endl
-              << "./bin/PandoraInterface " << std::endl
+              << "./build/PandoraInterface " << std::endl
               << "    -r RecoOption          (required) [Full, AllHitsCR, AllHitsNu, CRRemHitsSliceCR, CRRemHitsSliceNu, AllHitsSliceCR, AllHitsSliceNu]"
               << std::endl
               << "    -i Settings            (required) [Run xml file for setting up the Pandora algorithms]" << std::endl

@@ -1791,7 +1791,7 @@ bool ReadSettings(ParameterStruct &parameters)
 bool PrintOptions()
 {
     std::cout << std::endl
-              << "./bin/PandoraOuterface -x [path/file] -f [path/file] -o [out name] -g [geom file] -t [geom manager] -v [geom volume]"
+              << "./build/PandoraOuterface -x [path/file] -f [path/file] -o [out name] -g [geom file] -t [geom manager] -v [geom volume]"
               << std::endl;
     std::cout << "    -x = mandatory, path and name of XML settings file" << std::endl;
     std::cout << "    -f = mandatory, path and name of input ROOT file" << std::endl;

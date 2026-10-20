@@ -37,7 +37,10 @@ public:
 
 inline LArHitInfo::LArHitInfo(const pandora::CartesianVector &start, const pandora::CartesianVector &stop, const float energy,
     const int trackID, const float lengthScale, const float energyScale) :
-    m_start(start * lengthScale), m_stop(stop * lengthScale), m_energy(energy * energyScale), m_trackID(trackID)
+    m_start(start * lengthScale),
+    m_stop(stop * lengthScale),
+    m_energy(energy * energyScale),
+    m_trackID(trackID)
 {
 }
 } // namespace lar_nd_reco

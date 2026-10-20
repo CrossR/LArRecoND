@@ -117,7 +117,7 @@ If everything has been built correctly, running
 
 ```Shell
 cd $MY_TEST_AREA/LArRecoND
-./bin/PandoraInterface -h
+./build/PandoraInterface -h
 ```
 
 will list all available (required and optional) run options.
@@ -210,7 +210,7 @@ algorithms (without deep learning vertexing) for the first 10 events from a 2x2 
 
 ```Shell
 cd $MY_TEST_AREA/LArRecoND
-./bin/PandoraInterface -i settings/PandoraSettings_LArRecoND_ThreeD.xml \
+./build/PandoraInterface -i settings/PandoraSettings_LArRecoND_ThreeD.xml \
 -r AllHitsNu -e Input2x2Data.root -g Geometry2x2.root -n 10 -N
 ```
 
@@ -240,7 +240,7 @@ algorithms (without deep learning vertexing) for the first 10 events from a 2x2 
 
 ```Shell
 cd $MY_TEST_AREA/LArRecoND
-./bin/PandoraInterface -i settings/PandoraSettings_LArRecoND_ThreeD.xml \
+./build/PandoraInterface -i settings/PandoraSettings_LArRecoND_ThreeD.xml \
 -r AllHitsNu -e Input2x2MC.root -g Geometry2x2.root -f SPMC -n 10 -N
 ```
 
@@ -279,7 +279,7 @@ algorithms (without deep learning vertexing) for the first 10 events from an ede
 
 ```Shell
 cd $MY_TEST_AREA/LArRecoND
-./bin/PandoraInterface -i settings/PandoraSettings_LArRecoND_ThreeD.xml \
+./build/PandoraInterface -i settings/PandoraSettings_LArRecoND_ThreeD.xml \
 -r AllHitsNu -e EDepSimMC.root -g EDepSimMC.root -f EDepSim -n 10 -N
 ```
 

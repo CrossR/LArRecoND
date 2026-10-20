@@ -8,6 +8,7 @@
 #ifndef LAR_CHEATING_STITCHING_TOOL_H
 #define LAR_CHEATING_STITCHING_TOOL_H 1
 
+#include "larpandoracontent/LArThreeDReco/LArPfoStitching/StitchingPfoOperations.h"
 #include "larpandoracontent/LArThreeDReco/LArPfoStitching/StitchingBaseTool.h"
 
 namespace lar_content
@@ -26,16 +27,16 @@ public:
 
 protected:
     /**
-     *  @brief  Run the stitching logic
+     *  @brief  Run the cheating stitching tool, stitching together pfos from different LArTPCs based on MCParticle associations.
      *
      *  @param  pAlgorithm address of the calling algorithm
      *  @param  pStitchingOperations address of the calling algorithm's stitching operations implementation
-     *  @param  pMultiPfoList the list of pfos in multiple lar tpcs
-     *  @param  pfoToLArTPCMap the pfo to lar tpc map
-     *  @param  stitchedPfosToX0Map a map of cosmic-ray pfos that have been stitched between lar tpcs to the X0 shift
+     *  @param  pMultiPfoList the input pfo list to be stitched (unused)
+     *  @param  pfoToLArTPCMap to receive the map from pfos to LArTPCs
+     *  @param  stitchedPfosToX0Map to receive the map from stitched pfos to X0 positions (unused)
      */
     void RunStitching(const pandora::Algorithm *const pAlgorithm, const StitchingPfoOperations *const pStitchingOperations,
-        const pandora::PfoList *const pMultiPfoList, PfoToLArTPCMap &pfoToLArTPCMap, PfoToFloatMap &stitchedPfosToX0Map);
+             const pandora::PfoList *const pMultiPfoList, PfoToLArTPCMap &pfoToLArTPCMap, PfoToFloatMap &stitchedPfosToX0Map);
 
 private:
     pandora::StatusCode ReadSettings(const pandora::TiXmlHandle xmlHandle);

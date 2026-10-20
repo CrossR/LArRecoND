@@ -6,10 +6,9 @@
  *  $Log: $
  */
 
-#include "Pandora/AlgorithmHeaders.h"
-
 #include <larpandoracontent/LArHelpers/LArMCParticleHelper.h>
 #include <larpandoracontent/LArHelpers/LArPfoHelper.h>
+#include <larpandoracontent/LArThreeDReco/LArPfoStitching/StitchingPfoOperations.h>
 
 #include "CheatingStitchingTool.h"
 
@@ -23,8 +22,8 @@ CheatingStitchingTool::CheatingStitchingTool()
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void CheatingStitchingTool::RunStitching(const Algorithm *const pAlgorithm, const StitchingPfoOperations *const pStitchingOperations, const PfoList *const /*pMultiPfoList*/,
-    PfoToLArTPCMap &pfoToLArTPCMap, PfoToFloatMap & /*stitchedPfosToX0Map*/)
+void CheatingStitchingTool::RunStitching(const Algorithm *const pAlgorithm, const StitchingPfoOperations *const pStitchingOperations,
+    const PfoList *const /*pMultiPfoList*/, PfoToLArTPCMap &pfoToLArTPCMap, PfoToFloatMap & /*stitchedPfosToX0Map*/)
 {
     if (PandoraContentApi::GetSettings(*pAlgorithm)->ShouldDisplayAlgorithmInfo())
         std::cout << "----> Running Algorithm : " << this->GetInstanceName() << ", " << this->GetType() << std::endl;

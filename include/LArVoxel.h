@@ -64,7 +64,11 @@ typedef std::vector<LArVoxel> LArVoxelList;
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 inline LArVoxel::LArVoxel(const long voxelID, const float energyInVoxel, const pandora::CartesianVector &voxelPosVect, const int trackID) :
-    m_voxelID(voxelID), m_energyInVoxel(energyInVoxel), m_voxelPosVect(voxelPosVect), m_trackID(trackID), m_tpcID(0)
+    m_voxelID(voxelID),
+    m_energyInVoxel(energyInVoxel),
+    m_voxelPosVect(voxelPosVect),
+    m_trackID(trackID),
+    m_tpcID(0)
 {
 }
 
@@ -72,7 +76,11 @@ inline LArVoxel::LArVoxel(const long voxelID, const float energyInVoxel, const p
 
 inline LArVoxel::LArVoxel(const long voxelID, const float energyInVoxel, const pandora::CartesianVector &voxelPosVect, const int trackID,
     const unsigned int tpcID) :
-    m_voxelID(voxelID), m_energyInVoxel(energyInVoxel), m_voxelPosVect(voxelPosVect), m_trackID(trackID), m_tpcID(tpcID)
+    m_voxelID(voxelID),
+    m_energyInVoxel(energyInVoxel),
+    m_voxelPosVect(voxelPosVect),
+    m_trackID(trackID),
+    m_tpcID(tpcID)
 {
 }
 
@@ -136,7 +144,13 @@ typedef std::vector<LArVoxelProjection> LArVoxelProjectionList;
 
 inline LArVoxelProjection::LArVoxelProjection(
     const float energy, const float w, const float x, const pandora::HitType &view, const int parentid, const int trackid) :
-    m_energy(energy), m_wire(w), m_drift(x), m_view(view), m_parentVoxelID(parentid), m_trackID(trackid), m_tpcID(0)
+    m_energy(energy),
+    m_wire(w),
+    m_drift(x),
+    m_view(view),
+    m_parentVoxelID(parentid),
+    m_trackID(trackid),
+    m_tpcID(0)
 {
 }
 
@@ -144,7 +158,13 @@ inline LArVoxelProjection::LArVoxelProjection(
 
 inline LArVoxelProjection::LArVoxelProjection(const float energy, const float w, const float x, const pandora::HitType &view,
     const int parentid, const int trackid, const unsigned int tpcid) :
-    m_energy(energy), m_wire(w), m_drift(x), m_view(view), m_parentVoxelID(parentid), m_trackID(trackid), m_tpcID(tpcid)
+    m_energy(energy),
+    m_wire(w),
+    m_drift(x),
+    m_view(view),
+    m_parentVoxelID(parentid),
+    m_trackID(trackid),
+    m_tpcID(tpcid)
 {
 }
 
