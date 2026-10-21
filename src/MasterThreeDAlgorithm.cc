@@ -63,7 +63,7 @@ StatusCode MasterThreeDAlgorithm::Run()
     if (m_shouldRunAllHitsCosmicReco)
     {
         PfoToLArTPCMap pfoToLArTPCMap;
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->RunCosmicRayReconstruction(volumeIdToHitListMap, pfoToLArTPCMap));
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->RunCosmicRayReconstruction(volumeIdToHitListMap));
 
         if (m_shouldRunStitching)
             PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->StitchCosmicRayPfos(pfoToLArTPCMap, stitchedPfosToX0Map));
@@ -610,44 +610,6 @@ StatusCode MasterThreeDAlgorithm::InitializeWorkerInstances(WorkerToLArTPCMap &w
     }
 
     m_workerInstancesInitialized = true;
-    return STATUS_CODE_SUCCESS;
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-StatusCode MasterThreeDAlgorithm::RunCosmicRayReconstruction(const VolumeIdToHitListMap &volumeIdToHitListMap, PfoToLArTPCMap &pfoToLArTPCMap) const
-{
-    unsigned int workerCounter(0);
-
-    for (const Pandora *const pCRWorker : m_crWorkerInstances)
-    {
-        const LArTPC &larTPC(pCRWorker->GetGeometry()->GetLArTPC());
-        VolumeIdToHitListMap::const_iterator iter(volumeIdToHitListMap.find(larTPC.GetLArTPCVolumeId()));
-
-        if (volumeIdToHitListMap.end() == iter)
-            continue;
-
-        for (const CaloHit *const pCaloHit : iter->second.m_allHitList)
-            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->Copy(pCRWorker, pCaloHit));
-
-        if (m_printOverallRecoStatus)
-            std::cout << "Running cosmic-ray reconstruction worker instance " << ++workerCounter << " of " << m_crWorkerInstances.size() << std::endl;
-
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles(pCRWorker));
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ProcessEvent(*pCRWorker));
-
-        const PfoList *pCRPfos(nullptr);
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::GetCurrentPfoList(*pCRWorker, pCRPfos));
-
-        PfoList newPfoList;
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, MasterAlgorithm::Recreate(*pCRPfos, newPfoList));
-
-        for (const Pfo *const pNewPfo : newPfoList)
-            pfoToLArTPCMap[pNewPfo] = &larTPC;
-
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::Reset(*pCRWorker));
-    }
-
     return STATUS_CODE_SUCCESS;
 }
 
