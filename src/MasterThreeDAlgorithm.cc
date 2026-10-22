@@ -23,7 +23,7 @@
 #include "larpandoracontent/LArPlugins/LArPseudoLayerPlugin.h"
 #include "larpandoracontent/LArPlugins/LArRotationalTransformationPlugin.h"
 
-#include <larpandoracontent/LArControlFlow/MasterAlgorithm.h>
+#include "larpandoracontent/LArControlFlow/MasterAlgorithm.h"
 
 #ifdef LIBTORCH_DL
 #include "larpandoradlcontent/LArDLContent.h"
@@ -209,16 +209,18 @@ StatusCode MasterThreeDAlgorithm::RunCosmicRayReconstructionThenRecreate(const V
         // Loop over each of the worker's TPCs
         for (const pandora::LArTPC *pLArTPC : workerIter->second)
         {
-            const unsigned int larTPC_id = (*pLArTPC).GetLArTPCVolumeId();
+            const unsigned int larTPCId = (*pLArTPC).GetLArTPCVolumeId();
 
-            // Get all TPC's hits
-            VolumeIdToHitListMap::const_iterator iter(volumeIdToHitListMap.find(larTPC_id));
+            // Get all of the TPC's hits
+            VolumeIdToHitListMap::const_iterator iter(volumeIdToHitListMap.find(larTPCId));
 
             if (volumeIdToHitListMap.end() == iter)
                 continue;
 
-            // Copy hits into the worker
-            std::cout << "Copying " << iter->second.m_allHitList.size() << " hits from LArTPC " << larTPC_id << " to worker " << workerId << std::endl;
+            // Copy the hits into the worker
+            if (m_printOverallRecoStatus)
+                std::cout << "Copying " << iter->second.m_allHitList.size() << " hits from LArTPC " << larTPCId << " to worker " << workerId << std::endl;
+
             for (const CaloHit *const pCaloHit : iter->second.m_allHitList)
                 PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->Copy(pCRWorker, pCaloHit));
         }
