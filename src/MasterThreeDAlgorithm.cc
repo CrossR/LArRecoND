@@ -23,7 +23,7 @@
 #include "larpandoracontent/LArPlugins/LArPseudoLayerPlugin.h"
 #include "larpandoracontent/LArPlugins/LArRotationalTransformationPlugin.h"
 
-#include <larpandoracontent/LArControlFlow/MasterAlgorithm.h>
+#include "larpandoracontent/LArControlFlow/MasterAlgorithm.h"
 
 #ifdef LIBTORCH_DL
 #include "larpandoradlcontent/LArDLContent.h"
