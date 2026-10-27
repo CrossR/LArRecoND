@@ -390,6 +390,7 @@
     </algorithm>
     <algorithm type = "LArNeutrinoHierarchy">
         <NeutrinoPfoListName>NeutrinoParticles3D</NeutrinoPfoListName>
+        <NeutrinoVertexListName>NeutrinoVertices3D</NeutrinoVertexListName>
         <DaughterPfoListNames>TrackParticles3D ShowerParticles3D</DaughterPfoListNames>
         <DisplayPfoInfoMap>false</DisplayPfoInfoMap>
         <PfoRelationTools>

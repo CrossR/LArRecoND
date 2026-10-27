@@ -48,6 +48,10 @@ StatusCode CheatingRockMuonRemovalAlgorithm::Run()
     // Process the hits
     for (const CaloHit *const pCaloHit : *pCaloHitList)
     {
+        // Worker instances can persist hits from earlier slices, which have already been used in clusters/pfos
+        if (!PandoraContentApi::IsAvailable(*this, pCaloHit))
+            continue;
+
         try {
             const MCParticle *const pMCParticle = MCParticleHelper::GetMainMCParticle(pCaloHit);
 
