@@ -75,8 +75,10 @@ StatusCode MasterThreeDAlgorithm::Run()
 
     if (m_shouldRunNeutrinoRecoOption || m_shouldRunCosmicRecoOption)
     {
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles(m_pSliceNuWorkerInstance));
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles(m_pSliceCRWorkerInstance));
+        if (m_shouldRunNeutrinoRecoOption)
+            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles(m_pSliceNuWorkerInstance));
+        if (m_shouldRunCosmicRecoOption)
+            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles(m_pSliceCRWorkerInstance));
 
         SliceHypotheses nuSliceHypotheses, crSliceHypotheses;
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->RunSliceReconstruction(sliceVector, nuSliceHypotheses, crSliceHypotheses));
@@ -134,8 +136,13 @@ StatusCode MasterThreeDAlgorithm::TagCosmicRayPfos(const PfoToFloatMap &stitched
 
 StatusCode MasterThreeDAlgorithm::CopyMCParticles(const Pandora *pPandora) const
 {
+    // ATTN: If we aren't passing MC to instance, stop early.
     if (!m_passMCParticlesToWorkerInstances)
         return STATUS_CODE_SUCCESS;
+
+    // ATTN: If we are passing MC, but the instance isn't initalised, report an error.
+    if (!pPandora)
+        return STATUS_CODE_NOT_INITIALIZED;
 
     const MCParticleList *pMCParticleList(nullptr);
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::GetList(*this, m_inputMCParticleListName, pMCParticleList));
