@@ -56,14 +56,19 @@ StatusCode MasterThreeDAlgorithm::Run()
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->InitializeWorkerInstances(m_workerToLArTPCMap));
     }
 
+    if (m_passMCParticlesToWorkerInstances)
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles());
+
     PfoToFloatMap stitchedPfosToX0Map;
     VolumeIdToHitListMap volumeIdToHitListMap;
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->GetVolumeIdToHitListMap(volumeIdToHitListMap));
 
     if (m_shouldRunAllHitsCosmicReco)
     {
-        PfoToLArTPCMap pfoToLArTPCMap;
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->RunCosmicRayReconstruction(volumeIdToHitListMap));
+
+        PfoToLArTPCMap pfoToLArTPCMap;
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->RecreateCosmicRayPfos(pfosToLArTPCMap));
 
         if (m_shouldRunStitching)
             PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->StitchCosmicRayPfos(pfoToLArTPCMap, stitchedPfosToX0Map));
@@ -247,12 +252,13 @@ StatusCode MasterThreeDAlgorithm::RunSlicing(const VolumeIdToHitListMap &volumeI
             std::cout << "Running slicing worker instance" << std::endl;
 
         const PfoList *pSlicePfos(nullptr);
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles(m_pSlicingWorkerInstance));
+
         const auto startTime(std::chrono::high_resolution_clock::now());
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ProcessEvent(*m_pSlicingWorkerInstance));
         const auto endTime(std::chrono::high_resolution_clock::now());
         const auto duration(std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count());
         std::cout << "Slicing took " << duration << " mseconds" << std::endl;
+
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::GetCurrentPfoList(*m_pSlicingWorkerInstance, pSlicePfos));
 
         if (m_visualizeOverallRecoStatus)
@@ -260,8 +266,6 @@ StatusCode MasterThreeDAlgorithm::RunSlicing(const VolumeIdToHitListMap &volumeI
             PANDORA_MONITORING_API(VisualizeParticleFlowObjects(this->GetPandora(), pSlicePfos, "OnePfoPerSlice", BLUE));
             PANDORA_MONITORING_API(ViewEvent(this->GetPandora()));
         }
-
-        VertexList sliceVertexList;
 
         for (const Pfo *const pSlicePfo : *pSlicePfos)
         {
@@ -497,18 +501,6 @@ const Pandora *MasterThreeDAlgorithm::CreateWorkerInstance(const LArTPCMap &larT
             lineGapParameters.m_lineStartZ = pLineGap->GetLineStartZ();
             lineGapParameters.m_lineEndZ = pLineGap->GetLineEndZ();
             PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::Geometry::LineGap::Create(*pPandora, lineGapParameters));
-        }
-
-        const BoxGap *const pBoxGap(dynamic_cast<const BoxGap *>(pGap));
-
-        if (pBoxGap)
-        {
-            PandoraApi::Geometry::BoxGap::Parameters boxGapParameters;
-            boxGapParameters.m_side1 = pBoxGap->GetSide1();
-            boxGapParameters.m_side2 = pBoxGap->GetSide2();
-            boxGapParameters.m_side3 = pBoxGap->GetSide3();
-            boxGapParameters.m_vertex = pBoxGap->GetVertex();
-            PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::Geometry::BoxGap::Create(*pPandora, boxGapParameters));
         }
     }
 

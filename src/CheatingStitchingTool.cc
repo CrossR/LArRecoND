@@ -26,7 +26,7 @@ void CheatingStitchingTool::RunStitching(const Algorithm *const pAlgorithm, cons
     const PfoList *const /*pMultiPfoList*/, PfoToLArTPCMap &pfoToLArTPCMap, PfoToFloatMap & /*stitchedPfosToX0Map*/)
 {
     if (PandoraContentApi::GetSettings(*pAlgorithm)->ShouldDisplayAlgorithmInfo())
-        std::cout << "----> Running Algorithm : " << this->GetInstanceName() << ", " << this->GetType() << std::endl;
+        std::cout << "----> Running Algorithm Tool : " << this->GetInstanceName() << ", " << this->GetType() << std::endl;
 
     if (this->GetPandora().GetGeometry()->GetLArTPCMap().size() < 2)
         return;

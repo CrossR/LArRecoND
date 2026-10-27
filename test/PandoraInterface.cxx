@@ -113,9 +113,6 @@ int main(int argc, char *argv[])
             PandoraApi::SetLArTransformationPlugin(*pPrimaryPandora, new lar_content::LArRotationalTransformationPlugin));
         PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ReadSettings(*pPrimaryPandora, parameters.m_settingsFile));
 
-        // // INFO: Delayed after geometry creation, to ensure transformation plugins are setup, to enable easier 3D -> 2D projections.
-        // LoadDetectorGaps(pPrimaryPandora);
-
         ProcessEvents(parameters, pPrimaryPandora, simpleGeom);
     }
     catch (const StatusCodeException &statusCodeException)
@@ -292,133 +289,6 @@ void MakePandoraTPC(const pandora::Pandora *const pPrimaryPandora, const Paramet
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void LoadDetectorGaps(const pandora::Pandora *const pPrimaryPandora)
-{
-    if (pPrimaryPandora->GetGeometry()->GetLArTPCMap().empty())
-    {
-        std::cout << "LoadDetectorGaps - no TPCs found in geometry, not loading gaps" << std::endl;
-        return;
-    }
-
-    if (pPrimaryPandora->GetGeometry()->GetDetectorGapList().size() > 0)
-    {
-        std::cout << "LoadDetectorGaps - gaps already found in geometry, not loading gaps" << std::endl;
-        return;
-    }
-
-    // Find the absolute bounds of the whole detector,
-    // and collect all the unique X and Z boundaries of the modules.
-    // TODO:....should we also check Y?
-    float globalMinX = std::numeric_limits<float>::max();
-    float globalMaxX = -std::numeric_limits<float>::max();
-    float globalMinY = std::numeric_limits<float>::max();
-    float globalMaxY = -std::numeric_limits<float>::max();
-    float globalMinZ = std::numeric_limits<float>::max();
-    float globalMaxZ = -std::numeric_limits<float>::max();
-
-    std::vector<float> minXs, maxXs, minZs, maxZs;
-
-    const auto &larTPCMap = pPrimaryPandora->GetGeometry()->GetLArTPCMap();
-    for (const auto &[id, larTPC] : larTPCMap)
-    {
-        const float halfX = 0.5f * larTPC->GetWidthX();
-        const float halfY = 0.5f * larTPC->GetWidthY();
-        const float halfZ = 0.5f * larTPC->GetWidthZ();
-
-        minXs.push_back(larTPC->GetCenterX() - halfX);
-        maxXs.push_back(larTPC->GetCenterX() + halfX);
-        minZs.push_back(larTPC->GetCenterZ() - halfZ);
-        maxZs.push_back(larTPC->GetCenterZ() + halfZ);
-
-        globalMinX = std::min(globalMinX, larTPC->GetCenterX() - halfX);
-        globalMaxX = std::max(globalMaxX, larTPC->GetCenterX() + halfX);
-        globalMinY = std::min(globalMinY, larTPC->GetCenterY() - halfY);
-        globalMaxY = std::max(globalMaxY, larTPC->GetCenterY() + halfY);
-        globalMinZ = std::min(globalMinZ, larTPC->GetCenterZ() - halfZ);
-        globalMaxZ = std::max(globalMaxZ, larTPC->GetCenterZ() + halfZ);
-    }
-
-    // Sort and remove duplicates (within tolerances)
-    auto extractUnique = [](std::vector<float>& vec) {
-        std::sort(vec.begin(), vec.end());
-        vec.erase(std::unique(vec.begin(), vec.end(), [](float a, float b) {
-            return std::fabs(a - b) < 0.1f;
-        }), vec.end());
-    };
-
-    extractUnique(minXs); extractUnique(maxXs);
-    extractUnique(minZs); extractUnique(maxZs);
-
-    // Utility lambda to create a 2D LineGap
-    auto createLineGap = [&](const pandora::HitType view, const float startX, const float endX, const float startZ, const float endZ) {
-        PandoraApi::Geometry::LineGap::Parameters lineParams;
-        lineParams.m_lineGapType = view == pandora::TPC_VIEW_U ? LineGapType::TPC_WIRE_GAP_VIEW_U :
-                                    view == pandora::TPC_VIEW_V ? LineGapType::TPC_WIRE_GAP_VIEW_V :
-                                    view == pandora::TPC_VIEW_W ? LineGapType::TPC_WIRE_GAP_VIEW_W :
-                                                                    LineGapType::TPC_DRIFT_GAP;
-        lineParams.m_lineStartX = std::min(startX, endX);
-        lineParams.m_lineEndX = std::max(startX, endX);
-        lineParams.m_lineStartZ = std::min(startZ, endZ);
-        lineParams.m_lineEndZ = std::max(startZ, endZ);
-
-        try {
-            PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::Geometry::LineGap::Create(*pPrimaryPandora, lineParams));
-        } catch (...) {
-            std::cout << "LoadDetectorGaps - unable to create LineGap for view " << view << std::endl;
-        }
-    };
-
-    // Utility lambda to create a 3D BoxGap and auto-project its 2D LineGaps
-    auto createGap = [&](const float x1, const float x2, const float y1, const float y2, const float z1, const float z2) {
-        // First, create the 3D BoxGap.
-        PandoraApi::Geometry::BoxGap::Parameters boxParams;
-        boxParams.m_vertex = CartesianVector(x1, y1, z1);
-        boxParams.m_side1 = CartesianVector(x2 - x1, 0.0f, 0.0f);
-        boxParams.m_side2 = CartesianVector(0.0f, y2 - y1, 0.0f);
-        boxParams.m_side3 = CartesianVector(0.0f, 0.0f, z2 - z1);
-
-        try {
-            PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::Geometry::BoxGap::Create(*pPrimaryPandora, boxParams));
-        } catch (...) {
-            std::cout << "LoadDetectorGaps - unable to create BoxGap." << std::endl;
-        }
-
-        const pandora::LArTransformationPlugin *pTrans = pPrimaryPandora->GetPlugins()->GetLArTransformationPlugin();
-
-        // Project gap into U, V, and W LineGaps
-        createLineGap(pandora::TPC_VIEW_U, x1, x2, pTrans->YZtoU(0, z1), pTrans->YZtoU(0, z2));
-        createLineGap(pandora::TPC_VIEW_V, x1, x2, pTrans->YZtoV(0, z1), pTrans->YZtoV(0, z2));
-        createLineGap(pandora::TPC_VIEW_W, x1, x2, pTrans->YZtoW(0, z1), pTrans->YZtoW(0, z2));
-    };
-
-    // Build full-length X gaps.
-    // I.e. gaps that go the full length in X.
-    for (size_t i = 0; i < maxXs.size() && i + 1 < minXs.size(); ++i) {
-        const float gapWidth = minXs[i+1] - maxXs[i];
-        if (gapWidth > 0.f && gapWidth < 30.0f) {
-            createGap(maxXs[i], minXs[i+1], globalMinY, globalMaxY, globalMinZ, globalMaxZ);
-        }
-    }
-
-    // Build segmented Z gaps (i.e. gaps that are segmented in X according to the active volumes, but cover the full length in Z).
-    // We want to cover the full detector, but not have any overlaps.
-    for (size_t iz = 0; iz < maxZs.size() && iz + 1 < minZs.size(); ++iz) {
-        const float gapWidth = minZs[iz+1] - maxZs[iz];
-        if (gapWidth > 0.f && gapWidth < 30.0f) {
-
-            // Loop over the active X-widths
-            for (size_t ix = 0; ix < minXs.size(); ++ix) {
-                // The active volume width is from minXs[ix] to maxXs[ix]
-                createGap(minXs[ix], maxXs[ix], globalMinY, globalMaxY, maxZs[iz], minZs[iz+1]);
-            }
-        }
-    }
-
-    std::cout << "Created " << pPrimaryPandora->GetGeometry()->GetDetectorGapList().size() << " gaps" << std::endl;
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-
 void ProcessEvents(const Parameters &parameters, const Pandora *const pPrimaryPandora, const LArNDGeomSimple &geom)
 {
     if (parameters.m_dataFormat == Parameters::LArNDFormat::EDepSim)
@@ -548,22 +418,22 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
             const float voxelMipEquivalentE = voxelE / MipE;
 
             // TEMPORARY COMMENT: if we read the tpcID from input voxel_io_group
-            // do we actually need to keep the 'geom' input? For now use it as 
+            // do we actually need to keep the 'geom' input? For now use it as
             // fallback option in case voxel_io_group for any reason in null
-            int tpcID = -1; 
+            int tpcID = -1;
             if ((70 == geom.m_TPCs.size()) && (voxel_io_group >= 0)) // NDLAr
             {
               tpcID = ioGroup2tcpIDMap_NDLAr(voxel_io_group);
-            } 
-            else if ((4 == geom.m_TPCs.size()) && (voxel_io_group >= 0)) // 2x2 
+            }
+            else if ((4 == geom.m_TPCs.size()) && (voxel_io_group >= 0)) // 2x2
             {
               tpcID = ioGroup2tcpIDMap_2x2[voxel_io_group];
-            } 
+            }
             else if ((2 == geom.m_TPCs.size()) && (voxel_io_group >= 0)) // FSD
             {
               tpcID = ioGroup2tcpIDMap_FSD[voxel_io_group];
             }
-            else 
+            else
             {
               tpcID = geom.GetTPCNumber(voxelPos);
             }
