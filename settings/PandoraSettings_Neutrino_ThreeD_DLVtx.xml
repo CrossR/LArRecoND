@@ -472,13 +472,6 @@
         <VertexListName>DaughterVertices3D</VertexListName>
     </algorithm>
 
-    <algorithm type = "LArDLVertexingMetrics">
-        <InputCaloHitListName>CaloHitList3D</InputCaloHitListName>
-        <InputVertexListName>NeutrinoVertices3D</InputVertexListName>
-        <OutputTreeFileName>threeDVertexMetrics.root</OutputTreeFileName>
-        <OutputTreeName>threeDVertexMetrics</OutputTreeName>
-    </algorithm>
-
     <!-- Output list management -->
     <algorithm type = "LArPostProcessing">
         <PfoListNames>NeutrinoParticles3D TrackParticles3D ShowerParticles3D</PfoListNames>
