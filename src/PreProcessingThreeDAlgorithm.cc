@@ -247,7 +247,8 @@ void PreProcessingThreeDAlgorithm::GetFilteredCaloHitList(const CaloHitList &inp
     }
 
     if (removedHitsCounter > 0 && PandoraContentApi::GetSettings(*this)->ShouldDisplayAlgorithmInfo())
-        std::cout << "PreProcessingThreeDAlgorithm: removed " << removedHitsCounter << " hits that were in the same location as another hit" << std::endl;
+        std::cout << "PreProcessingThreeDAlgorithm: removed " << removedHitsCounter << " hits that were in the same location as another hit"
+                  << std::endl;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

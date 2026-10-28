@@ -40,7 +40,8 @@ public:
    *
    */
     static void GetAllChild2DHits(const pandora::CaloHitList *const caloHitList3D, const pandora::CaloHitList *const caloHitListU,
-        const pandora::CaloHitList *const caloHitListV, const pandora::CaloHitList *const caloHitListW, LArThreeDHitHelper::CaloHitMapping &caloHitMapping);
+        const pandora::CaloHitList *const caloHitListV, const pandora::CaloHitList *const caloHitListW,
+        LArThreeDHitHelper::CaloHitMapping &caloHitMapping);
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------

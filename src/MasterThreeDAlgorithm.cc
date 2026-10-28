@@ -226,12 +226,12 @@ StatusCode MasterThreeDAlgorithm::RunCosmicRayReconstructionThenRecreate(const V
 
             // Copy the hits into the worker
             if (m_printOverallRecoStatus)
-                std::cout << "Copying " << iter->second.m_allHitList.size() << " hits from LArTPC " << larTPCId << " to worker " << workerId << std::endl;
+                std::cout << "Copying " << iter->second.m_allHitList.size() << " hits from LArTPC " << larTPCId << " to worker " << workerId
+                          << std::endl;
 
             for (const CaloHit *const pCaloHit : iter->second.m_allHitList)
                 PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->Copy(pCRWorker, pCaloHit));
         }
-
 
         if (m_printOverallRecoStatus)
             std::cout << "Running cosmic-ray reconstruction worker instance " << ++workerCounter << " of " << m_crWorkerInstances.size() << std::endl;

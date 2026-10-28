@@ -46,7 +46,6 @@ protected:
      */
     pandora::StatusCode CopyMCParticles(const pandora::Pandora *pPandora) const;
 
-
     /**
      * @brief  Run cosmic-ray reconstruction, then recreate the resulting pfos in the current pandora instance.
      *

@@ -69,7 +69,8 @@ StatusCode CheatingRockMuonRemovalAlgorithm::Run()
     }
 
     if (PandoraContentApi::GetSettings(*this)->ShouldDisplayAlgorithmInfo())
-        std::cout << "CheatingRockMuonRemovalAlgorithm: Rock muon hits: " << pRockMuonCaloHitList.size() << ", Neutrino hits: " << pNeutrinoCaloHitList.size() << std::endl;
+        std::cout << "CheatingRockMuonRemovalAlgorithm: Rock muon hits: " << pRockMuonCaloHitList.size()
+                  << ", Neutrino hits: " << pNeutrinoCaloHitList.size() << std::endl;
 
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::SaveList(*this, pRockMuonCaloHitList, m_rockMuonCaloHitListName));
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::SaveList(*this, pNeutrinoCaloHitList, m_neutrinoCaloHitListName));
