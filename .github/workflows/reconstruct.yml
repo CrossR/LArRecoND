@@ -231,9 +231,12 @@ jobs:
 
       # When comparing, grab the reference ROOT files for validation: the latest
       # successful output from master, and the latest baseline run (a fixed
-      # tag, see tag-baseline.yml). Either may be missing; that's just a warning.
+      # tag, see tag-baseline.yml). Either may be missing (no artifact yet, or
+      # the workflow has never run so GitHub can't find it): not fatal, as the
+      # Resolve References step below skips anything that didn't download.
       - name: Download Main Reference File
         if: inputs.compare-references
+        continue-on-error: true
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: main.yml
@@ -244,6 +247,7 @@ jobs:
 
       - name: Download Tag Reference File
         if: inputs.compare-references
+        continue-on-error: true
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: tag-baseline.yml
