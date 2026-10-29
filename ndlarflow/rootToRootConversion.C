@@ -464,7 +464,7 @@ void rootToRootConversion(
             }
         }
 	// in case there are no hits, set up a 0 here so we don't seg fault later and push back an empty match vector
-	if ( Nhits==0 && isMC )
+	if ( Nhits==0 && x.size()==0 && isMC )
 	    all_matches.push_back(0);
 
 	if ( isMC ) {
