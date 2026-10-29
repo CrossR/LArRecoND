@@ -12,7 +12,7 @@ import uproot
 matplotlib.use("Agg")
 
 PLOT_BRANCHES = (
-    ("n3DHits", "3D hits per PFP"),
+    ("n3DHits", "3D hits per PFO"),
     ("trackScore", "Track score"),
     ("energy", "Reconstructed energy"),
     ("purity", "MC match purity"),
@@ -20,11 +20,85 @@ PLOT_BRANCHES = (
 )
 
 
-def describe(values):
+N_BINS = 50
+CURRENT_COLOUR = "#d06b3c"
+REFERENCE_COLOURS = ("#2878a5", "#4c9a5a", "#8e6bb0", "#b8a02a", "#6b6b6b")
+REFERENCE_STYLES = ("-", "--", ":", "-.")
+
+
+def finite(values):
     values = np.asarray(values, dtype=np.float64)
-    values = values[np.isfinite(values)]
+    return values[np.isfinite(values)]
+
+
+def make_bins(values, ref_arrays=(), integer=False):
+    """Common bin edges covering the current and all reference values."""
+    arrays = [a for a in (values, *ref_arrays) if a is not None and a.size]
+    if not arrays:
+        return np.linspace(0.0, 1.0, N_BINS + 1)
+
+    low = min(a.min() for a in arrays)
+    high = max(a.max() for a in arrays)
+    if integer and high - low < N_BINS:
+        return np.arange(np.floor(low), np.floor(high) + 2) - 0.5
+    if high == low:
+        low, high = low - 0.5, high + 0.5
+    return np.linspace(low, high, N_BINS + 1)
+
+
+def chi2_test(values, ref_values, bins):
+    """Shape-only chi-squared between two histograms with differing totals.
+
+    Uses chi2 = sum (sqrt(N_ref/N) n - sqrt(N/N_ref) n_ref)^2 / (n + n_ref) over
+    bins that are populated in at least one histogram, with ndf = bins - 1.
+    Returns (chi2, ndf), or (-1, -1) if the test is not possible.
+    """
+    if values is None or ref_values is None or values.size == 0 or ref_values.size == 0:
+        return -1.0, -1
+
+    n, _ = np.histogram(values, bins=bins)
+    n_ref, _ = np.histogram(ref_values, bins=bins)
+    used = (n + n_ref) > 0
+    ndf = int(used.sum()) - 1
+    if ndf < 1:
+        return -1.0, -1
+
+    scale = np.sqrt(n_ref.sum() / n.sum())
+    diff = scale * n[used] - n_ref[used] / scale
+    chi2 = float(np.sum(diff**2 / (n[used] + n_ref[used])))
+    return chi2, ndf
+
+
+def compare(values, ref_values, bins):
+    """chi2 comparison of values against one reference (-1 if unavailable)."""
+    chi2, ndf = chi2_test(values, ref_values, bins)
+    return {
+        "chi2": chi2,
+        "ndf": ndf,
+        "chi2_ndf": chi2 / ndf if ndf > 0 else -1.0,
+        "ref_mean": float(ref_values.mean())
+        if ref_values is not None and ref_values.size
+        else None,
+    }
+
+
+def describe(values, refs=None, bins=None):
+    """Summary statistics plus chi2 against each reference.
+
+    refs maps reference name -> values. Per-reference results are under
+    "comparisons"; the first reference's results are also copied to the top
+    level (chi2, ndf, chi2_ndf, ref_mean), all -1/None if there are none.
+    """
+    values = finite(values)
+    refs = {name: finite(ref) for name, ref in (refs or {}).items()}
+
+    if bins is None:
+        bins = make_bins(values, refs.values())
+    comparisons = {name: compare(values, ref, bins) for name, ref in refs.items()}
+    primary = next(iter(comparisons.values()), compare(values, None, bins))
+
     if values.size == 0:
-        return {
+        base = {
             "count": 0,
             "min": None,
             "max": None,
@@ -32,41 +106,166 @@ def describe(values):
             "std": None,
             "median": None,
         }
-    return {
-        "count": int(values.size),
-        "min": float(values.min()),
-        "max": float(values.max()),
-        "mean": float(values.mean()),
-        "std": float(values.std()),
-        "median": float(np.median(values)),
+    else:
+        base = {
+            "count": int(values.size),
+            "min": float(values.min()),
+            "max": float(values.max()),
+            "mean": float(values.mean()),
+            "std": float(values.std()),
+            "median": float(np.median(values)),
+        }
+    return {**base, **primary, "comparisons": comparisons}
+
+
+def read_tree(tree):
+    """Return (PFOs per event, {branch: flattened values}) from a LArRecoND tree."""
+    cluster_ids = tree["clusterId"].array(library="ak")
+    pfps_per_event = ak.to_numpy(ak.num(cluster_ids, axis=1))
+    branch_values = {
+        branch: ak.to_numpy(ak.flatten(tree[branch].array(library="ak"), axis=None))
+        for branch, _ in PLOT_BRANCHES
     }
+    return pfps_per_event, branch_values
+
+
+def parse_reference(spec):
+    """Split "name=path" (or a bare path, named after its file stem)."""
+    if "=" in spec:
+        name, path = spec.split("=", 1)
+        return name.strip(), path.strip()
+    return Path(spec).stem, spec
+
 
 def populate_stats(file_path):
+    """Read a reference file; returns None (with a message) if unusable."""
     if file_path is None:
-        return
+        return None
 
     file_path = Path(file_path)
     if not file_path.is_file() or file_path.stat().st_size == 0:
-        print(f"File is missing or empty: {file_path}")
-        return
+        print(f"File is missing or empty: {file_path}", file=sys.stderr)
+        return None
 
     with uproot.open(file_path) as root_file:
         if "LArRecoND" not in root_file:
-            print(f"Missing LArRecoND tree in reference file: {file_path}")
-            return
+            print(f"Missing LArRecoND tree in reference file: {file_path}", file=sys.stderr)
+            return None
 
         tree = root_file["LArRecoND"]
-        cluster_ids = tree["clusterId"].array(library="ak")
-        pfps = ak.to_numpy(ak.flatten(cluster_ids, axis=1))
-        branch_values = {
-            branch: ak.to_numpy(ak.flatten(tree[branch].array(library="ak"), axis=None))
-            for branch, _ in PLOT_BRANCHES
-        }
+        missing = {"clusterId", *(b for b, _ in PLOT_BRANCHES)} - set(tree.keys())
+        if missing:
+            print(f"Reference file is missing branches: {', '.join(sorted(missing))}", file=sys.stderr)
+            return None
 
-        return pfps, branch_values
+        return read_tree(tree)
 
 
-def validate_and_plot(input_path, dataset_id, dataset_name, output_dir, reference_path):
+def load_references(reference_specs):
+    """Load every usable reference as {name: (pfps_per_event, branch_values)}."""
+    references = {}
+    for spec in reference_specs or []:
+        name, path = parse_reference(spec)
+        base, suffix = name, 2
+        while name in references:
+            name, suffix = f"{base}_{suffix}", suffix + 1
+        loaded = populate_stats(path)
+        if loaded is not None:
+            references[name] = loaded
+    return references
+
+
+def draw_panel(figure, spec, title, xlabel, ylabel, values, refs, bins, comparisons):
+    """Draw one distribution; with references, add normalised overlays + ratio."""
+    refs = {name: ref for name, ref in refs.items() if ref.size}
+    has_ref = bool(refs)
+    if has_ref:
+        inner = spec.subgridspec(2, 1, height_ratios=(3, 1), hspace=0.05)
+        axis = figure.add_subplot(inner[0])
+        ratio_axis = figure.add_subplot(inner[1], sharex=axis)
+        axis.tick_params(labelbottom=False)
+    else:
+        axis = figure.add_subplot(spec)
+        ratio_axis = None
+
+    axis.set_title(title)
+
+    if values.size == 0:
+        axis.text(0.5, 0.5, "No values", ha="center", va="center", transform=axis.transAxes)
+        return
+
+    # Compare shapes (unit area) when references are present, as the samples
+    # generally contain different numbers of PFOs.
+    n, _ = np.histogram(values, bins=bins)
+    cur_norm = n.sum() if has_ref else 1.0
+    cur = n / cur_norm
+    centres = 0.5 * (bins[1:] + bins[:-1])
+    widths = np.diff(bins)
+
+    if not has_ref:
+        axis.stairs(cur, bins, fill=True, color=CURRENT_COLOUR, alpha=0.6)
+        axis.stairs(cur, bins, color=CURRENT_COLOUR, linewidth=1.2)
+        axis.set_xlabel(xlabel)
+        axis.set_ylabel(ylabel)
+    else:
+        ratio_axis.axhline(1.0, color="black", linewidth=0.8)
+        for index, (name, ref_values) in enumerate(refs.items()):
+            colour = REFERENCE_COLOURS[index % len(REFERENCE_COLOURS)]
+            style = REFERENCE_STYLES[index % len(REFERENCE_STYLES)]
+            n_ref, _ = np.histogram(ref_values, bins=bins)
+            ref = n_ref / n_ref.sum()
+            if index == 0:
+                axis.stairs(ref, bins, fill=True, color=colour, alpha=0.25)
+            axis.stairs(ref, bins, color=colour, linewidth=1.4, linestyle=style, label=name)
+
+            # Ratio of current to this reference, offset a little per
+            # reference so overlapping points stay readable.
+            ok = n_ref > 0
+            ratio = np.full(len(cur), np.nan)
+            err = np.full(len(cur), np.nan)
+            ratio[ok] = cur[ok] / ref[ok]
+            err[ok] = np.sqrt(n[ok]) / cur_norm / ref[ok]
+            offset = (index - (len(refs) - 1) / 2) * 0.25 * widths
+            ratio_axis.errorbar(
+                centres + offset, ratio, yerr=err, fmt="o", color=colour,
+                markersize=3, elinewidth=1,
+            )
+
+        # Poisson errors on the current file, propagated through the normalisation.
+        axis.errorbar(
+            centres, cur, yerr=np.sqrt(n) / cur_norm, fmt="none",
+            ecolor=CURRENT_COLOUR, elinewidth=1, capsize=0,
+        )
+        axis.stairs(cur, bins, color=CURRENT_COLOUR, linewidth=1.8, label="Current")
+
+        ratio_axis.set_ylim(0, 2)
+        ratio_axis.set_ylabel("Ratio")
+        ratio_axis.set_xlabel(xlabel)
+        axis.set_ylabel("Fraction (unit area)")
+        axis.legend(loc="upper right", fontsize=8)
+
+        lines = []
+        for name in refs:
+            comparison = comparisons[name]
+            if comparison["ndf"] > 0:
+                lines.append(
+                    f"$\\chi^2$/ndf vs {name}: {comparison['chi2']:.1f}/{comparison['ndf']}"
+                    f" = {comparison['chi2_ndf']:.2f}"
+                )
+            else:
+                lines.append(f"$\\chi^2$ vs {name}: n/a")
+        axis.text(
+            0.03, 0.95, "\n".join(lines), transform=axis.transAxes, va="top", fontsize=8,
+            bbox={"boxstyle": "round", "facecolor": "white", "alpha": 0.8, "edgecolor": "0.7"},
+        )
+
+    axis.margins(x=0)
+    axis.grid(alpha=0.25)
+    if ratio_axis is not None:
+        ratio_axis.grid(alpha=0.25)
+
+
+def validate_and_plot(input_path, dataset_id, dataset_name, output_dir, reference_specs):
     input_path = Path(input_path)
     output_dir = Path(output_dir)
 
@@ -90,89 +289,65 @@ def validate_and_plot(input_path, dataset_id, dataset_name, output_dir, referenc
                 f"Missing required branches: {', '.join(missing_branches)}"
             )
 
-        cluster_ids = tree["clusterId"].array(library="ak")
-        pfps_per_event = ak.to_numpy(ak.num(cluster_ids, axis=1))
-        pfp_total = int(np.sum(pfps_per_event))
-        if pfp_total == 0:
-            raise ValueError(
-                f"LArRecoND tree has entries but no reconstructed PFPs: {input_path}"
-            )
+        pfps_per_event, branch_values = read_tree(tree)
 
-        branches_to_read = [branch for branch, _ in PLOT_BRANCHES]
-        branch_values = {
-            branch: ak.to_numpy(ak.flatten(tree[branch].array(library="ak"), axis=None))
-            for branch in branches_to_read
-        }
+    pfp_total = int(np.sum(pfps_per_event))
+    if pfp_total == 0:
+        raise ValueError(
+            f"LArRecoND tree has entries but no reconstructed PFOs: {input_path}"
+        )
 
-    # Next, read in the reference file if provided and compare the distributions.
-    ref_pfps = None
-    ref_branch_values = {}
-    ref_stats = populate_stats(reference_path)
+    # Read in any reference files so the distributions can be compared.
+    references = load_references(reference_specs)
 
-    if ref_stats is not None:
-        ref_pfps, ref_branch_values = ref_stats
-
-    event_stats = describe(pfps_per_event)
-    branch_stats = [
-        {"branch": branch, **describe(branch_values[branch])}
-        for branch in branches_to_read
+    # (key, title, xlabel, ylabel, current values, {ref name: values}, integer bins)
+    panels = [
+        (
+            "pfps_per_event", "Reconstructed PFOs per event", "PFO count", "Events",
+            finite(pfps_per_event),
+            {name: finite(ref[0]) for name, ref in references.items()}, True,
+        )
     ]
+    for branch, title in PLOT_BRANCHES:
+        panels.append(
+            (
+                branch, title, branch, "PFOs", finite(branch_values[branch]),
+                {name: finite(ref[1][branch]) for name, ref in references.items()},
+                branch == "n3DHits",
+            )
+        )
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    figure, axes = plt.subplots(2, 3, figsize=(15, 8))
-    axes = axes.flatten()
+    figure = plt.figure(figsize=(15, 9), constrained_layout=False)
+    grid = figure.add_gridspec(2, 3, hspace=0.35, wspace=0.25)
 
-    if ref_pfps is not None:
-        axes[0].hist(ref_pfps, bins="auto", color="gray", alpha=0.5, label="Main")
+    stats = {}
+    for index, (key, title, xlabel, ylabel, values, refs, integer) in enumerate(panels):
+        bins = make_bins(values, refs.values(), integer=integer)
+        stats[key] = describe(values, refs, bins)
+        draw_panel(
+            figure, grid[index // 3, index % 3], title, xlabel, ylabel, values,
+            refs, bins, stats[key]["comparisons"],
+        )
 
-    axes[0].hist(pfps_per_event, bins="auto", color="#2878a5", edgecolor="white")
-    axes[0].set_title("Reconstructed PFPs per event")
-    axes[0].set_xlabel("PFP count")
-    axes[0].set_ylabel("Events")
-
-    if ref_pfps is not None:
-        axes[0].legend()
-
-    for axis, (branch, title) in zip(axes[1:], PLOT_BRANCHES):
-        values = np.asarray(branch_values[branch], dtype=np.float64)
-        values = values[np.isfinite(values)]
-
-        if branch in ref_branch_values:
-            ref_values = np.asarray(ref_branch_values[branch], dtype=np.float64)
-            ref_values = ref_values[np.isfinite(ref_values)]
-            axis.hist(
-                ref_values, bins=50, color="gray", alpha=0.5, label="Reference"
-            )
-
-        if values.size:
-            axis.hist(values, bins=50, color="#d06b3c", edgecolor="white")
-        else:
-            axis.text(
-                0.5,
-                0.5,
-                "No values",
-                ha="center",
-                va="center",
-                transform=axis.transAxes,
-            )
-        axis.set_title(title)
-        axis.set_xlabel(branch)
-        axis.set_ylabel("PFPs")
-
-        if branch in ref_branch_values:
-            axis.legend()
-
-    figure.suptitle(f"{dataset_name}: {entries} events, {pfp_total:,} PFPs")
-    figure.tight_layout()
+    suffix = " (vs " + ", ".join(references) + ")" if references else ""
+    figure.suptitle(
+        f"{dataset_name}: {entries} events, {pfp_total:,} PFOs{suffix}", fontsize=14
+    )
+    figure.subplots_adjust(top=0.9, bottom=0.07, left=0.06, right=0.98)
     plot_path = output_dir / f"{dataset_id}.png"
     figure.savefig(plot_path, dpi=150)
     plt.close(figure)
+
+    event_stats = stats["pfps_per_event"]
+    branch_stats = [{"branch": branch, **stats[branch]} for branch, _ in PLOT_BRANCHES]
 
     summary = {
         "dataset_id": dataset_id,
         "dataset_name": dataset_name,
         "entries": entries,
         "pfp_total": pfp_total,
+        "references": list(references),
         "pfps_per_event": [int(value) for value in pfps_per_event],
         "event_stats": event_stats,
         "branch_stats": branch_stats,
@@ -198,8 +373,11 @@ def main():
     parser.add_argument(
         "--reference",
         required=False,
-        help="Path to reference ROOT file for validation",
-        default=None,
+        action="append",
+        metavar="[NAME=]PATH",
+        help="Reference ROOT file to compare against, e.g. main=ref.root. "
+        "May be given multiple times; unnamed files are named after their stem.",
+        default=[],
     )
     args = parser.parse_args()
 

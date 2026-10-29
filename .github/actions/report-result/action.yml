@@ -63,8 +63,33 @@ runs:
           const fmt = (value) => value === null || value === undefined
             ? '-'
             : value.toLocaleString('en-US', { maximumFractionDigits: 3 });
-          const statsRow = (label, stats) =>
-            `| ${label} | ${fmt(stats.count)} | ${fmt(stats.min)} | ${fmt(stats.max)} | ${fmt(stats.mean)} ± ${fmt(stats.std)} | ${fmt(stats.median)} |`;
+          // Highlight (not pass/fail) how much a distribution differs from the
+          // reference. The arrow gives the direction of the mean shift, since
+          // a change can be an improvement or a regression.
+          const CHI2_NOTABLE = 1.5;
+          const CHI2_LARGE = 3;
+          const CHI2_HUGE = 10;
+          const compare = (stats, comparison) => {
+            const chi2 = comparison ? comparison.chi2_ndf : null;
+            if (chi2 === null || chi2 === undefined || chi2 < 0) return { cell: '-', flag: '' };
+            const shift = comparison.ref_mean === null || comparison.ref_mean === undefined
+              ? ''
+              : stats.mean > comparison.ref_mean ? ' ↑' : stats.mean < comparison.ref_mean ? ' ↓' : '';
+            const value = fmt(chi2);
+            if (chi2 >= CHI2_HUGE) return { cell: `**${value}${shift}**`, flag: '🔴' };
+            if (chi2 >= CHI2_LARGE) return { cell: `**${value}${shift}**`, flag: '🟠' };
+            if (chi2 >= CHI2_NOTABLE) return { cell: `${value}${shift}`, flag: '🟡' };
+            return { cell: value, flag: '' };
+          };
+          // One χ²/ndf column per reference; the row label carries the flag of
+          // the most significant comparison.
+          const statsRow = (label, stats, refs) => {
+            const compared = refs.map((name) => compare(stats, (stats.comparisons || {})[name]));
+            const order = ['', '🟡', '🟠', '🔴'];
+            const flag = compared.reduce((worst, c) => (order.indexOf(c.flag) > order.indexOf(worst) ? c.flag : worst), '');
+            const cells = compared.map((c) => ` ${c.cell} |`).join('');
+            return `| ${flag ? flag + ' ' : ''}${label} | ${fmt(stats.count)} | ${fmt(stats.min)} | ${fmt(stats.max)} | ${fmt(stats.mean)} ± ${fmt(stats.std)} | ${fmt(stats.median)} |${cells}`;
+          };
 
           const sections = results.map(({ name, status, summary }) => {
             const lines = [
@@ -85,14 +110,18 @@ runs:
               .sort();
             const plotsMd = plotFiles.map((file) => fs.readFileSync(`reco-validation/${file}`, 'utf8')).join('\n\n');
 
+            const refs = summary.references || [];
             return [
               ...lines,
-              `Events: ${fmt(summary.entries)} · Reconstructed PFPs (\`clusterId\`): ${fmt(summary.pfp_total)}`,
+              `Events: ${fmt(summary.entries)} · Reconstructed PFOs (\`clusterId\`): ${fmt(summary.pfp_total)}`,
               '',
-              '| Branch | Count | Min | Max | Mean ± Std | Median |',
-              '| --- | ---: | ---: | ---: | ---: | ---: |',
-              statsRow('PFPs per event', summary.event_stats),
-              ...summary.branch_stats.map((stats) => statsRow(`\`${stats.branch}\``, stats)),
+              `| Branch | Count | Min | Max | Mean ± Std | Median |${refs.map((name) => ` χ²/ndf vs ${name} |`).join('')}`,
+              `| --- | ---: | ---: | ---: | ---: | ---: |${refs.map(() => ' ---: |').join('')}`,
+              statsRow('PFOs per event', summary.event_stats, refs),
+              ...summary.branch_stats.map((stats) => statsRow(`\`${stats.branch}\``, stats, refs)),
+              '',
+              `<sub>χ²/ndf compares shape to the reference: 🟡 ≥ ${CHI2_NOTABLE}, 🟠 ≥ ${CHI2_LARGE}, 🔴 ≥ ${CHI2_HUGE}. ` +
+                'Arrows show the direction of the mean shift. A large change is flagged for review and may be an improvement.</sub>',
               '',
               plotsMd,
             ].join('\n');
