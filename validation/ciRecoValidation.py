@@ -6,6 +6,7 @@ from pathlib import Path
 import awkward as ak
 import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 import numpy as np
 import uproot
 
@@ -21,6 +22,9 @@ PLOT_BRANCHES = (
 
 
 N_BINS = 50
+HEAVY_TAILED = ("n3DHits", "energy")  # robust range and log bins
+LOG_SPAN = 100  # use log bins when the (robust) range spans more than this
+MIN_RATIO_COUNTS = 5  # hide ratio points with fewer counts than this
 CURRENT_COLOUR = "#d06b3c"
 REFERENCE_COLOURS = ("#2878a5", "#4c9a5a", "#8e6bb0", "#b8a02a", "#6b6b6b")
 REFERENCE_STYLES = ("-", "--", ":", "-.")
@@ -31,19 +35,45 @@ def finite(values):
     return values[np.isfinite(values)]
 
 
-def make_bins(values, ref_arrays=(), integer=False):
-    """Common bin edges covering the current and all reference values."""
+def make_bins(values, ref_arrays=(), integer=False, heavy_tail=False):
+    """Common bin edges for the current and all reference values.
+
+    Bounded quantities use the full range. For heavy_tail quantities the range
+    is robust to outliers (0.5-99.5 percentiles of the pooled values; values
+    outside it are put in the edge bins by hist()), and strictly positive ones
+    get log-spaced bins, as a linear axis would squash them into one bin.
+    """
     arrays = [a for a in (values, *ref_arrays) if a is not None and a.size]
     if not arrays:
         return np.linspace(0.0, 1.0, N_BINS + 1)
 
-    low = min(a.min() for a in arrays)
-    high = max(a.max() for a in arrays)
+    pooled = np.concatenate(arrays)
+    low, high = pooled.min(), pooled.max()
     if integer and high - low < N_BINS:
         return np.arange(np.floor(low), np.floor(high) + 2) - 0.5
-    if high == low:
-        low, high = low - 0.5, high + 0.5
+
+    if heavy_tail:
+        low, high = np.percentile(pooled, [0.5, 99.5])
+    if integer:
+        low, high = np.floor(low), np.ceil(high)
+    if high <= low:
+        low, high = pooled.min() - 0.5, pooled.max() + 0.5
+    if heavy_tail and low > 0 and high / low > LOG_SPAN:
+        return np.geomspace(low, high, N_BINS + 1)
+    if integer:
+        step = max(1, int(np.ceil((high - low) / N_BINS)))
+        return np.arange(low, high + step, step) - 0.5
     return np.linspace(low, high, N_BINS + 1)
+
+
+def is_log_bins(bins):
+    widths = np.diff(bins)
+    return bins[0] > 0 and not np.allclose(widths, widths[0])
+
+
+def hist(values, bins):
+    """Histogram with outliers folded into the first and last bins."""
+    return np.histogram(np.clip(values, bins[0], bins[-1]), bins=bins)[0]
 
 
 def chi2_test(values, ref_values, bins):
@@ -56,8 +86,8 @@ def chi2_test(values, ref_values, bins):
     if values is None or ref_values is None or values.size == 0 or ref_values.size == 0:
         return -1.0, -1
 
-    n, _ = np.histogram(values, bins=bins)
-    n_ref, _ = np.histogram(ref_values, bins=bins)
+    n = hist(values, bins)
+    n_ref = hist(ref_values, bins)
     used = (n + n_ref) > 0
     ndf = int(used.sum()) - 1
     if ndf < 1:
@@ -142,9 +172,14 @@ def populate_stats(file_path):
     if file_path is None:
         return None
 
-    file_path = Path(file_path)
-    if not file_path.is_file() or file_path.stat().st_size == 0:
-        print(f"File is missing or empty: {file_path}", file=sys.stderr)
+    file_path = Path(file_path).expanduser()
+
+    if not file_path.is_file():
+        print(f"File is missing: {file_path}", file=sys.stderr)
+        return None
+
+    if file_path.stat().st_size == 0:
+        print(f"File is empty: {file_path}", file=sys.stderr)
         return None
 
     with uproot.open(file_path) as root_file:
@@ -196,7 +231,9 @@ def draw_panel(figure, spec, title, xlabel, ylabel, values, refs, bins, comparis
 
     # Compare shapes (unit area) when references are present, as the samples
     # generally contain different numbers of PFOs.
-    n, _ = np.histogram(values, bins=bins)
+    n = hist(values, bins)
+    clipped = np.mean((values < bins[0]) | (values > bins[-1]))
+    log_x = is_log_bins(bins)
     cur_norm = n.sum() if has_ref else 1.0
     cur = n / cur_norm
     centres = 0.5 * (bins[1:] + bins[:-1])
@@ -212,7 +249,7 @@ def draw_panel(figure, spec, title, xlabel, ylabel, values, refs, bins, comparis
         for index, (name, ref_values) in enumerate(refs.items()):
             colour = REFERENCE_COLOURS[index % len(REFERENCE_COLOURS)]
             style = REFERENCE_STYLES[index % len(REFERENCE_STYLES)]
-            n_ref, _ = np.histogram(ref_values, bins=bins)
+            n_ref = hist(ref_values, bins)
             ref = n_ref / n_ref.sum()
             if index == 0:
                 axis.stairs(ref, bins, fill=True, color=colour, alpha=0.25)
@@ -220,7 +257,7 @@ def draw_panel(figure, spec, title, xlabel, ylabel, values, refs, bins, comparis
 
             # Ratio of current to this reference, offset a little per
             # reference so overlapping points stay readable.
-            ok = n_ref > 0
+            ok = (n_ref >= MIN_RATIO_COUNTS) & (n >= MIN_RATIO_COUNTS)
             ratio = np.full(len(cur), np.nan)
             err = np.full(len(cur), np.nan)
             ratio[ok] = cur[ok] / ref[ok]
@@ -238,7 +275,10 @@ def draw_panel(figure, spec, title, xlabel, ylabel, values, refs, bins, comparis
         )
         axis.stairs(cur, bins, color=CURRENT_COLOUR, linewidth=1.8, label="Current")
 
+        # Ticks stop short of the limits so labels don't collide where the
+        # main and ratio axes meet.
         ratio_axis.set_ylim(0, 2)
+        ratio_axis.set_yticks([0.5, 1.0, 1.5])
         ratio_axis.set_ylabel("Ratio")
         ratio_axis.set_xlabel(xlabel)
         axis.set_ylabel("Fraction (unit area)")
@@ -261,13 +301,29 @@ def draw_panel(figure, spec, title, xlabel, ylabel, values, refs, bins, comparis
 
     axis.margins(x=0)
     axis.grid(alpha=0.25)
+    axis.yaxis.set_major_locator(mticker.MaxNLocator(nbins=6, prune="lower"))
+    if has_ref:
+        # Leave headroom for the legend and chi2 box.
+        top = max(cur.max(), *(hist(r, bins).max() / r.size for r in refs.values()))
+        axis.set_ylim(0, top * (1.2 + 0.1 * len(refs)))
+
+    bottom_axis = ratio_axis if has_ref else axis
+    if log_x:
+        bottom_axis.set_xscale("log")
+        bottom_axis.xaxis.set_major_formatter(mticker.EngFormatter())
+    else:
+        bottom_axis.xaxis.set_major_locator(mticker.MaxNLocator(nbins=6))
+        if max(abs(bins[0]), abs(bins[-1])) >= 1000:
+            bottom_axis.xaxis.set_major_formatter(mticker.EngFormatter())
+    if clipped > 0:
+        bottom_axis.set_xlabel(f"{xlabel}  (outliers, {clipped:.1%}, in edge bins)")
     if ratio_axis is not None:
         ratio_axis.grid(alpha=0.25)
 
 
 def validate_and_plot(input_path, dataset_id, dataset_name, output_dir, reference_specs):
-    input_path = Path(input_path)
-    output_dir = Path(output_dir)
+    input_path = Path(input_path).expanduser()
+    output_dir = Path(output_dir).expanduser()
 
     if not input_path.is_file() or input_path.stat().st_size == 0:
         raise ValueError(f"Output file is missing or empty: {input_path}")
@@ -300,12 +356,13 @@ def validate_and_plot(input_path, dataset_id, dataset_name, output_dir, referenc
     # Read in any reference files so the distributions can be compared.
     references = load_references(reference_specs)
 
-    # (key, title, xlabel, ylabel, current values, {ref name: values}, integer bins)
+    # (key, title, xlabel, ylabel, current values, {ref name: values}, integer bins,
+    #  heavy tailed)
     panels = [
         (
             "pfps_per_event", "Reconstructed PFOs per event", "PFO count", "Events",
             finite(pfps_per_event),
-            {name: finite(ref[0]) for name, ref in references.items()}, True,
+            {name: finite(ref[0]) for name, ref in references.items()}, True, False,
         )
     ]
     for branch, title in PLOT_BRANCHES:
@@ -314,6 +371,7 @@ def validate_and_plot(input_path, dataset_id, dataset_name, output_dir, referenc
                 branch, title, branch, "PFOs", finite(branch_values[branch]),
                 {name: finite(ref[1][branch]) for name, ref in references.items()},
                 branch == "n3DHits",
+                branch in HEAVY_TAILED,
             )
         )
 
@@ -322,8 +380,8 @@ def validate_and_plot(input_path, dataset_id, dataset_name, output_dir, referenc
     grid = figure.add_gridspec(2, 3, hspace=0.35, wspace=0.25)
 
     stats = {}
-    for index, (key, title, xlabel, ylabel, values, refs, integer) in enumerate(panels):
-        bins = make_bins(values, refs.values(), integer=integer)
+    for index, (key, title, xlabel, ylabel, values, refs, integer, heavy) in enumerate(panels):
+        bins = make_bins(values, refs.values(), integer=integer, heavy_tail=heavy)
         stats[key] = describe(values, refs, bins)
         draw_panel(
             figure, grid[index // 3, index % 3], title, xlabel, ylabel, values,
