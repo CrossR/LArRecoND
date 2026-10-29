@@ -1,6 +1,12 @@
 name: "Build Pandora Software Stack"
 description: "Builds Pandora stack using the native Alma9-style script with CI dependency setup"
 
+inputs:
+  source-dir:
+    description: LArRecoND source tree to build (defaults to the workspace)
+    required: false
+    default: ${{ github.workspace }}
+
 runs:
   using: "composite"
   steps:
@@ -8,7 +14,7 @@ runs:
       shell: bash
       run: |
         rm -rf /pandora/LArRecoND
-        cp -r $GITHUB_WORKSPACE /pandora/LArRecoND
+        cp -r "${{ inputs.source-dir }}" /pandora/LArRecoND
         chmod +x /pandora/LArRecoND/scripts/build/build.sh
 
     - name: Define Environment

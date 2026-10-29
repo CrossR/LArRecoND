@@ -136,7 +136,7 @@ runs:
             '# LArRecoND PR Validation',
             '',
             ...(sections.length > 0 ? sections : ['No dataset results were uploaded.', '']),
-            `[Download plots and ROOT output (seven-day artifacts)](${runUrl}#artifacts)`,
+            `[Download plots and ROOT output](${runUrl}#artifacts)`,
             '',
             `Commit: \`${commit}\`  `,
             `Generated: ${timestamp} UTC`,
