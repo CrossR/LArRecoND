@@ -28,7 +28,7 @@ env:
 jobs:
   # Read the dataset matrix from the shared definition.
   datasets:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.repository_owner == 'PandoraPFAOrg'
     outputs:
       matrix: ${{ steps.read.outputs.matrix }}
@@ -41,7 +41,7 @@ jobs:
         run: echo "matrix=$(jq -c . .github/datasets.json)" >> "$GITHUB_OUTPUT"
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: LArRecoND - ${{ matrix.compiler.c }}
 
     # Only run in the PandoraPFAOrg repos.
@@ -112,7 +112,7 @@ jobs:
   # and it means we don't bother doing a test if one of the build failed.
   test:
     needs: [build, datasets]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.repository_owner == 'PandoraPFAOrg'
 
     # The datasets to test against live in datasets.json, shared by all callers.
