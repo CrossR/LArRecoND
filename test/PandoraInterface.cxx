@@ -14,9 +14,7 @@
 #include "TGeoMatrix.h"
 #include "TGeoShape.h"
 #include "TGeoVolume.h"
-#include <Objects/CartesianVector.h>
-#include <Pandora/PandoraEnumeratedTypes.h>
-#include <Pandora/PandoraInternal.h>
+#include <regex>
 
 #ifdef USE_EDEPSIM
 #include "TG4PrimaryVertex.h"
@@ -58,16 +56,6 @@
 #include <random>
 #include <string>
 #include <vector>
-
-// TEMP: GCC12.1 has a weird regex warning...avoid for now, sort later.
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#endif
-#include <regex>
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 using namespace pandora;
 using namespace lar_nd_reco;
@@ -266,9 +254,6 @@ void MakePandoraTPC(const pandora::Pandora *const pPrimaryPandora, const Paramet
         geoparameters.m_isDriftInPositiveX = tpcNumber % 2;
 
         geom.AddTPC(centreX - dx, centreX + dx, centreY - dy, centreY + dy, centreZ - dz, centreZ + dz, tpcNumber);
-
-        std::cout << "Creating TPC "<<tpcNumber << ": " << centreX - dx << ", " << centreX + dx << ", " << centreY - dy << ", " << centreY + dy << ", "
-                  << centreZ - dz << ", " << centreZ + dz << std::endl;
     }
     catch (const pandora::StatusCodeException &)
     {
@@ -376,23 +361,28 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
             CreateSPMCParticles(*larspmc, pPrimaryPandora, parameters);
         }
 
-        // Set the event level information...
-        unsigned int run(0);
-        unsigned int subrun(0);
-        const unsigned int event(larsp->m_event);
+        // And event level information...
+        int run{0};
+        int subrun{0};
+        const int event{larsp->m_event};
 
-        // INFO: For now...we don't have run/subrun info in the inputs. So pull a unique ID out of the filename.
+        // INFO: Currently, the run + subrun fields are seemingly not set in the
+        // input ROOT files, so we can instead parse it from the input file
+        // name, if possible.
+        //
+        // This should pull out 12 from
+        // MiniProdN5p1_NDComplex_FHC.flow.full.sanddrift.0000012.FLOW.hdf5_hits.root
         std::regex fileNameRegex(".*\\.(\\d+)\\.FLOW.*");
         std::smatch matches;
+
         if (std::regex_match(parameters.m_inputFileName, matches, fileNameRegex) && matches.size() > 1)
         {
             run = std::stoi(matches[1].str());
-            subrun = run; // Duplicate for now.
+            subrun = run;
         }
 
         std::cout << "Event info: run " << run << ", subrun " << subrun << ", event " << event << std::endl;
         PandoraApi::SetEventInformation(*pPrimaryPandora, run, subrun, event);
-        std::cout << pPrimaryPandora->GetRun() << ", " << pPrimaryPandora->GetSubrun() << ", " << pPrimaryPandora->GetEvent() << std::endl;
 
         int hitCounter(0);
 
@@ -538,8 +528,8 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
                         *pPrimaryPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
             }
 
-            // Increment hit counter for unique ID assignment
-            hitCounter++;
+            // Increment hit counter for unique Hit IDs
+            ++hitCounter;
 
         } // end space point loop
 
@@ -1711,6 +1701,7 @@ void MakeCaloHitsFromVoxels(const LArVoxelList &voxels, const MCParticleEnergyMa
     const float voxelWidth(parameters.m_voxelWidth);
     const float MipE = 0.00075;
     lar_content::LArCaloHitParameters caloHitParameters = MakeDefaultCaloHitParams(voxelWidth);
+    std::map<long, int> voxelIdToHitCounter;
 
     if (parameters.m_use3D)
     {
@@ -1730,7 +1721,9 @@ void MakeCaloHitsFromVoxels(const LArVoxelList &voxels, const MCParticleEnergyMa
             caloHitParameters.m_mipEquivalentEnergy = voxelMipEquivalentE;
             caloHitParameters.m_electromagneticEnergy = voxelE;
             caloHitParameters.m_hadronicEnergy = voxelE;
-            caloHitParameters.m_pParentAddress = (void *)(static_cast<uintptr_t>(++hitCounter));
+            const int hitId(++hitCounter);
+            voxelIdToHitCounter[voxel.m_voxelID] = hitId;
+            caloHitParameters.m_pParentAddress = (void *)(static_cast<uintptr_t>(hitId));
             caloHitParameters.m_larTPCVolumeId = voxel.m_tpcID;
 
             PANDORA_THROW_RESULT_IF(
@@ -1739,7 +1732,7 @@ void MakeCaloHitsFromVoxels(const LArVoxelList &voxels, const MCParticleEnergyMa
             // Set calo hit voxel to MCParticle relation using trackID
             const int trackID = voxel.m_trackID;
             const float energyFrac = GetMCEnergyFraction(mcEnergyMap, voxelE, trackID);
-            PandoraApi::SetCaloHitToMCParticleRelationship(*pPrimaryPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
+            PandoraApi::SetCaloHitToMCParticleRelationship(*pPrimaryPandora, (void *)((intptr_t)hitId), (void *)((intptr_t)trackID), energyFrac);
         }
     }
 
@@ -1794,7 +1787,9 @@ void MakeCaloHitsFromVoxels(const LArVoxelList &voxels, const MCParticleEnergyMa
                 caloHitParameters.m_mipEquivalentEnergy = voxelMipEquivalentE;
                 caloHitParameters.m_electromagneticEnergy = voxelE;
                 caloHitParameters.m_hadronicEnergy = voxelE;
-                caloHitParameters.m_pParentAddress = (void *)(static_cast<uintptr_t>(++hitCounter));
+                const auto parentHitId(voxelIdToHitCounter.find(hit.m_parentVoxelID));
+                const int hitId((parentHitId != voxelIdToHitCounter.end()) ? parentHitId->second : ++hitCounter);
+                caloHitParameters.m_pParentAddress = (void *)(static_cast<uintptr_t>(hitId));
                 caloHitParameters.m_hitType = hit.m_view;
                 caloHitParameters.m_larTPCVolumeId = hit.m_tpcID;
 
@@ -1805,7 +1800,7 @@ void MakeCaloHitsFromVoxels(const LArVoxelList &voxels, const MCParticleEnergyMa
                 // Set calo hit voxel to MCParticle relation using trackID
                 const int trackID = hit.m_trackID;
                 const float energyFrac = GetMCEnergyFraction(mcEnergyMap, voxelE, trackID);
-                PandoraApi::SetCaloHitToMCParticleRelationship(*pPrimaryPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
+                PandoraApi::SetCaloHitToMCParticleRelationship(*pPrimaryPandora, (void *)((intptr_t)hitId), (void *)((intptr_t)trackID), energyFrac);
             } // end voxel projection loop
         } // end view loop
     }

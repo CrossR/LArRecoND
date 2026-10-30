@@ -36,10 +36,14 @@ bool CheatingRockMuonRemovalAlgorithm::IsRockMuon(const Pandora &pandora, const 
 
 StatusCode CheatingRockMuonRemovalAlgorithm::Run()
 {
-
     // Load the input lists
-    const CaloHitList *pCaloHitList = NULL;
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::GetCurrentList(*this, pCaloHitList, m_inputCaloHitListName));
+    const CaloHitList *pCaloHitList(nullptr);
+
+    if (PandoraContentApi::GetList(*this, m_inputCaloHitListName, pCaloHitList) != STATUS_CODE_SUCCESS)
+    {
+        std::cout << "CheatingRockMuonRemovalAlgorithm: No calo hit list found with name: " << m_inputCaloHitListName << ", skipping!" << std::endl;
+        return STATUS_CODE_FAILURE;
+    }
 
     // Create the output lists
     CaloHitList pRockMuonCaloHitList;
@@ -48,29 +52,25 @@ StatusCode CheatingRockMuonRemovalAlgorithm::Run()
     // Process the hits
     for (const CaloHit *const pCaloHit : *pCaloHitList)
     {
-        // Worker instances can persist hits from earlier slices, which have already been used in clusters/pfos
-        if (!PandoraContentApi::IsAvailable(*this, pCaloHit))
-            continue;
-
-        try {
+        try
+        {
             const MCParticle *const pMCParticle = MCParticleHelper::GetMainMCParticle(pCaloHit);
-
-            if (!pMCParticle)
-                throw std::runtime_error("CaloHit with no associated MCParticle");
 
             if (this->IsRockMuon(this->GetPandora(), pMCParticle))
                 pRockMuonCaloHitList.push_back(pCaloHit);
             else
                 pNeutrinoCaloHitList.push_back(pCaloHit);
         }
-        catch (StatusCodeException &statusCodeException)
+        catch (StatusCodeException &)
         {
-            if (statusCodeException.GetStatusCode() != pandora::STATUS_CODE_NOT_INITIALIZED)
-                throw;
-            else
-                std::cout << "CaloHit with no associated MCParticle, skipping..." << std::endl;
+            // INFO: There may be small number of hits with no associated MC... we don't want to break on them.
+            continue;
         }
     }
+
+    if (PandoraContentApi::GetSettings(*this)->ShouldDisplayAlgorithmInfo())
+        std::cout << "CheatingRockMuonRemovalAlgorithm: Rock muon hits: " << pRockMuonCaloHitList.size()
+                  << ", Neutrino hits: " << pNeutrinoCaloHitList.size() << std::endl;
 
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::SaveList(*this, pRockMuonCaloHitList, m_rockMuonCaloHitListName));
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::SaveList(*this, pNeutrinoCaloHitList, m_neutrinoCaloHitListName));
