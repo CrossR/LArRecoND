@@ -211,7 +211,10 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
             const auto parent(LArMCParticleHelper::GetParentMCParticle(mc));
 
             if (mcWeight.second > largestWeight)
+            {
+                largestWeight = mcWeight.second;
                 largestContributor = parent;
+            }
         }
 
         try
