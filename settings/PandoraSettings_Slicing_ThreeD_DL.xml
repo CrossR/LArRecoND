@@ -19,7 +19,7 @@
         <InputCaloHitListName>CaloHitList3D</InputCaloHitListName>
         <OutputClusterListName>DLSlicingClusters3D</OutputClusterListName>
         <OutputVertexListName>DLSlicingVertices3D</OutputVertexListName>
-        <ModelFileName>hepacc_347/torchscript_slicing_model_149.pt</ModelFileName>
+        <ModelFileName>hepacc_349/torchscript_slicing_model_149.pt</ModelFileName>
         <VertexScoreThreshold>0.5</VertexScoreThreshold>
         <NmsRadius>8.0</NmsRadius>
     </algorithm>
