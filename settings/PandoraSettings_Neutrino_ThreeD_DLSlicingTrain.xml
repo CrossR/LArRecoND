@@ -1,0 +1,38 @@
+<pandora>
+    <!-- GLOBAL SETTINGS -->
+    <IsMonitoringEnabled>true</IsMonitoringEnabled>
+    <ShouldDisplayAlgorithmInfo>false</ShouldDisplayAlgorithmInfo>
+    <SingleHitTypeClusteringMode>true</SingleHitTypeClusteringMode>
+
+    <!-- ALGORITHM SETTINGS -->
+    <algorithm type = "LArPreProcessingThreeD">
+        <OutputCaloHitListNameU>CaloHitListU</OutputCaloHitListNameU>
+        <OutputCaloHitListNameV>CaloHitListV</OutputCaloHitListNameV>
+        <OutputCaloHitListNameW>CaloHitListW</OutputCaloHitListNameW>
+        <OutputCaloHitListName3D>CaloHitList3D</OutputCaloHitListName3D>
+        <FilteredCaloHitListName>CaloHitList2D</FilteredCaloHitListName>
+        <CurrentCaloHitListReplacement>CaloHitList2D</CurrentCaloHitListReplacement>
+    </algorithm>
+
+    <!-- Use 3D hits to make the 2D clusters -->
+    <algorithm type = "LArSimpleClusterCreationThreeD">
+        <InputCaloHitListNameU>CaloHitListU</InputCaloHitListNameU>
+        <InputCaloHitListNameV>CaloHitListV</InputCaloHitListNameV>
+        <InputCaloHitListNameW>CaloHitListW</InputCaloHitListNameW>
+        <InputCaloHitListName3D>CaloHitList3D</InputCaloHitListName3D>
+        <OutputClusterListNameU>ClustersU</OutputClusterListNameU>
+        <OutputClusterListNameV>ClustersV</OutputClusterListNameV>
+        <OutputClusterListNameW>ClustersW</OutputClusterListNameW>
+        <OutputClusterListName3D>Clusters3D</OutputClusterListName3D>
+    </algorithm>
+
+    <!-- Output list management -->
+    <algorithm type = "LArPostProcessing">
+        <PfoListNames>NeutrinoParticles3D TrackParticles3D ShowerParticles3D</PfoListNames>
+        <VertexListNames>NeutrinoVertices3D DaughterVertices3D CandidateVertices3D</VertexListNames>
+        <ClusterListNames>ClustersU ClustersV ClustersW TrackClusters3D ShowerClusters3D</ClusterListNames>
+        <CaloHitListNames>CaloHitListU CaloHitListV CaloHitListW CaloHitList2D CaloHitList3D</CaloHitListNames>
+        <CurrentPfoListReplacement>NeutrinoParticles3D</CurrentPfoListReplacement>
+    </algorithm>
+
+</pandora>

@@ -1,0 +1,58 @@
+<pandora>
+    <!-- GLOBAL SETTINGS -->
+    <IsMonitoringEnabled>true</IsMonitoringEnabled>
+    <ShouldDisplayAlgorithmInfo>false</ShouldDisplayAlgorithmInfo>
+    <SingleHitTypeClusteringMode>true</SingleHitTypeClusteringMode>
+
+    <!-- ALGORITHM SETTINGS -->
+    <algorithm type = "LArPreProcessingThreeD">
+        <OutputCaloHitListNameU>CaloHitListU</OutputCaloHitListNameU>
+        <OutputCaloHitListNameV>CaloHitListV</OutputCaloHitListNameV>
+        <OutputCaloHitListNameW>CaloHitListW</OutputCaloHitListNameW>
+        <OutputCaloHitListName3D>CaloHitList3D</OutputCaloHitListName3D>
+        <FilteredCaloHitListName>CaloHitList2D</FilteredCaloHitListName>
+        <CurrentCaloHitListReplacement>CaloHitList2D</CurrentCaloHitListReplacement>
+    </algorithm>
+
+    <!-- DL Slicing -->
+    <algorithm type = "LArDLSlicing">
+        <InputCaloHitListName>CaloHitList3D</InputCaloHitListName>
+        <OutputClusterListName>DLSlicingClusters3D</OutputClusterListName>
+        <OutputVertexListName>DLSlicingVertices3D</OutputVertexListName>
+        <ModelFileName>hepacc_349/torchscript_slicing_model_149.pt</ModelFileName>
+        <VertexScoreThreshold>0.5</VertexScoreThreshold>
+        <NmsRadius>8.0</NmsRadius>
+        <TrainingMode>true</TrainingMode>
+        <TrainingFileName>dl_slicing_training_data.csv</TrainingFileName>
+    </algorithm>
+
+    <!-- SliceCreation -->
+    <algorithm type = "LArSlicingThreeD">
+        <InputCaloHitListNameU>CaloHitListU</InputCaloHitListNameU>
+        <InputCaloHitListNameV>CaloHitListV</InputCaloHitListNameV>
+        <InputCaloHitListNameW>CaloHitListW</InputCaloHitListNameW>
+        <InputCaloHitListName3D>CaloHitList3D</InputCaloHitListName3D>
+        <InputClusterListNameU>ClustersU</InputClusterListNameU>
+        <InputClusterListNameV>ClustersV</InputClusterListNameV>
+        <InputClusterListNameW>ClustersW</InputClusterListNameW>
+        <InputClusterListName3D>DLSlicingClusters3D</InputClusterListName3D>
+        <OutputClusterListName>SliceClusters</OutputClusterListName>
+        <OutputPfoListName>SliceParticles</OutputPfoListName>
+        <EvaluateSlices>false</EvaluateSlices>
+        <tool type = "LArDLEventSlicingThreeD" description = "SliceCreation">
+            <InputVertexListName3D>DLSlicingVertices3D</InputVertexListName3D>
+        </tool>
+        <algorithm type = "LArListDeletion" description = "SlicingListDeletion">
+            <PfoListNames>TrackParticles3D ShowerParticles3D</PfoListNames>
+            <ClusterListNames>ClustersU ClustersV ClustersW TrackClusters3D ShowerClusters3D DLSlicingClusters3D</ClusterListNames>
+        </algorithm>
+    </algorithm>
+    <algorithm type = "LArListChanging">
+        <PfoListName>SliceParticles</PfoListName>
+    </algorithm>
+
+    <algorithm type = "LArVisualMonitoring">
+        <PfoListNames>SliceParticles</PfoListNames>
+        <ShowDetector>true</ShowDetector>
+    </algorithm>
+</pandora>
