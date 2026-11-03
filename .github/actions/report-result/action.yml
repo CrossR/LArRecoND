@@ -29,18 +29,6 @@ runs:
     - name: Setup CML
       uses: iterative/setup-cml@v2
 
-    - name: Publish Images
-      shell: bash
-      env:
-        REPO_TOKEN: ${{ inputs.github-token }}
-      run: |
-        # Upload the distribution plots to the PR using CML, storing the links.
-        for img in reco-validation/*.png; do
-          if [[ -f "$img" ]]; then
-            cml publish "$img" --md >> "${img}.md"
-          fi
-        done
-
     - name: Prepare PR Comment
       uses: actions/github-script@v7
       with:
@@ -104,11 +92,11 @@ runs:
               return [...lines, 'No validation results were produced.', ''].join('\n');
             }
 
-            // Read any markdown plot links associated with this dataset.
+            // Reference the plots as local images; `cml comment` uploads them.
             const plotFiles = fs.readdirSync('reco-validation')
-              .filter((file) => file.startsWith(status.dataset_id) && file.endsWith('.png.md'))
+              .filter((file) => file.startsWith(status.dataset_id) && file.endsWith('.png'))
               .sort();
-            const plotsMd = plotFiles.map((file) => fs.readFileSync(`reco-validation/${file}`, 'utf8')).join('\n\n');
+            const plotsMd = plotFiles.map((file) => `![${file}](./reco-validation/${file})`).join('\n\n');
 
             const refs = summary.references || [];
             return [
@@ -147,10 +135,6 @@ runs:
     - name: Update Single PR Comment
       shell: bash
       env:
-        GH_TOKEN: ${{ inputs.github-token }}
-        PR_NUMBER: ${{ inputs.pull-request-number }}
+        REPO_TOKEN: ${{ inputs.github-token }}
       run: |
-        gh pr comment "$PR_NUMBER" \
-          --repo "$GITHUB_REPOSITORY" \
-          --edit-last --create-if-none \
-          --body-file reco-validation/comment.md
+        cml comment update --target="pr/${{ inputs.pull-request-number }}" reco-validation/comment.md
