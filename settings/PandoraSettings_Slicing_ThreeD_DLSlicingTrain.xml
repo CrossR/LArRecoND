@@ -51,8 +51,8 @@
         <PfoListName>SliceParticles</PfoListName>
     </algorithm>
 
-    <algorithm type = "LArVisualMonitoring">
+    <!-- <algorithm type = "LArVisualMonitoring">
         <PfoListNames>SliceParticles</PfoListNames>
         <ShowDetector>true</ShowDetector>
-    </algorithm>
+    </algorithm> -->
 </pandora>
