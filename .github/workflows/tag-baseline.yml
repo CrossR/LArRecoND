@@ -22,7 +22,6 @@ concurrency:
 jobs:
   resolve:
     runs-on: ubuntu-latest
-    if: github.repository_owner == 'PandoraPFAOrg'
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:

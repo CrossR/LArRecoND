@@ -10,7 +10,7 @@ on:
       - master
   pull_request:
     branches:
-      - "*"
+      - "**"
   workflow_dispatch:
 
 # Concurrency group ensures that only one workflow run is active for a given PR
@@ -27,7 +27,7 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     name: Save PR Info
-    if: github.event_name == 'pull_request' && github.repository_owner == 'PandoraPFAOrg'
+    if: github.event_name == 'pull_request'
     steps:
 
       - name: Save PR Number

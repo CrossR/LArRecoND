@@ -29,7 +29,6 @@ jobs:
   # Read the dataset matrix from the shared definition.
   datasets:
     runs-on: ubuntu-24.04
-    if: github.repository_owner == 'PandoraPFAOrg'
     outputs:
       matrix: ${{ steps.read.outputs.matrix }}
     steps:
@@ -44,8 +43,6 @@ jobs:
     runs-on: ubuntu-24.04
     name: LArRecoND - ${{ matrix.compiler.c }}
 
-    # Only run in the PandoraPFAOrg repos.
-    if: github.repository_owner == 'PandoraPFAOrg'
 
     # Defines the build matrix, so what combinatorics of compiler etc. to test.
     strategy:
@@ -113,7 +110,6 @@ jobs:
   test:
     needs: [build, datasets]
     runs-on: ubuntu-24.04
-    if: github.repository_owner == 'PandoraPFAOrg'
 
     # The datasets to test against live in datasets.json, shared by all callers.
     strategy:
