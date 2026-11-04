@@ -672,19 +672,6 @@ HierarchyAnalysisAlgorithm::RecoMCMatch::RecoMCMatch(const pandora::MCParticle *
 StatusCode HierarchyAnalysisAlgorithm::ReadSettings(const TiXmlHandle xmlHandle)
 {
     PANDORA_RETURN_RESULT_IF_AND_IF(STATUS_CODE_SUCCESS, STATUS_CODE_NOT_FOUND, !=, XmlHelper::ReadValue(xmlHandle, "EventFileName", m_eventFileName));
-
-    // The real input file, if given externally, takes precedence over the xml (which is typically a link to it)
-    if (this->ExternalParametersPresent())
-    {
-        const ExternalEventFileParameters *const pExternalParameters(dynamic_cast<ExternalEventFileParameters *>(this->GetExternalParameters()));
-
-        if (!pExternalParameters)
-            return STATUS_CODE_FAILURE;
-
-        if (pExternalParameters->m_eventFileName.IsInitialized())
-            m_eventFileName = pExternalParameters->m_eventFileName.Get();
-    }
-
     PANDORA_RETURN_RESULT_IF_AND_IF(STATUS_CODE_SUCCESS, STATUS_CODE_NOT_FOUND, !=, XmlHelper::ReadValue(xmlHandle, "EventTreeName", m_eventTreeName));
     PANDORA_RETURN_RESULT_IF_AND_IF(STATUS_CODE_SUCCESS, STATUS_CODE_NOT_FOUND, !=, XmlHelper::ReadValue(xmlHandle, "EventLeafName", m_eventLeafName));
     PANDORA_RETURN_RESULT_IF_AND_IF(STATUS_CODE_SUCCESS, STATUS_CODE_NOT_FOUND, !=, XmlHelper::ReadValue(xmlHandle, "RunLeafName", m_runLeafName));
@@ -707,6 +694,24 @@ StatusCode HierarchyAnalysisAlgorithm::ReadSettings(const TiXmlHandle xmlHandle)
     PANDORA_RETURN_RESULT_IF_AND_IF(STATUS_CODE_SUCCESS, STATUS_CODE_NOT_FOUND, !=, XmlHelper::ReadValue(xmlHandle, "EventsToSkip", m_eventsToSkip));
 
     PANDORA_RETURN_RESULT_IF_AND_IF(STATUS_CODE_SUCCESS, STATUS_CODE_NOT_FOUND, !=, XmlHelper::ReadValue(xmlHandle, "MinHitsToSkip", m_minHitsToSkip));
+
+    // Details of the real input file, if given externally, take precedence over the xml (which is typically a link to the file)
+    if (this->ExternalParametersPresent())
+    {
+        const ExternalEventFileParameters *const pExternalParameters(dynamic_cast<ExternalEventFileParameters *>(this->GetExternalParameters()));
+
+        if (!pExternalParameters)
+            return STATUS_CODE_FAILURE;
+
+        if (pExternalParameters->m_eventFileName.IsInitialized())
+            m_eventFileName = pExternalParameters->m_eventFileName.Get();
+
+        if (pExternalParameters->m_eventTreeName.IsInitialized())
+            m_eventTreeName = pExternalParameters->m_eventTreeName.Get();
+
+        if (pExternalParameters->m_eventsToSkip.IsInitialized())
+            m_eventsToSkip = pExternalParameters->m_eventsToSkip.Get();
+    }
 
     // Setup the event ROOT file
     if (m_eventFileName.size() > 0)

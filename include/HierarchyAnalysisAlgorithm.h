@@ -31,14 +31,17 @@ class HierarchyAnalysisAlgorithm : public pandora::ExternallyConfiguredAlgorithm
 {
 public:
     /**
-     *  @brief  External parameters class, used to pass the path of the real input events file to the algorithm.
-     *          If the file name is set it takes precedence over the EventFileName in the xml settings, so no
-     *          link to the input file (which can go stale) needs to be made in the working directory.
+     *  @brief  External parameters class, used to pass the real input events file details to the algorithm.
+     *          Any value that is set takes precedence over the matching xml setting (EventFileName, EventTreeName and
+     *          EventsToSkip), so there is no need to make a link to the input file in the working directory (which can
+     *          go stale) or to keep the xml in step with the -s run option.
      */
     class ExternalEventFileParameters : public pandora::ExternalParameters
     {
     public:
         pandora::InputString m_eventFileName; ///< The path to the ROOT file with the events tree
+        pandora::InputString m_eventTreeName; ///< The name of the events tree in that file
+        pandora::InputInt m_eventsToSkip;     ///< The number of events skipped from the start of the event file
     };
 
     /**

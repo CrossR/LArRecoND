@@ -2205,6 +2205,12 @@ void ProcessExternalParameters(const Parameters &parameters, const Pandora *cons
     // The hierarchy analysis reads the event numbers etc. from the input events file
     auto *const pHierarchyParameters = new lar_content::HierarchyAnalysisAlgorithm::ExternalEventFileParameters;
     pHierarchyParameters->m_eventFileName = parameters.m_inputFileName;
+    pHierarchyParameters->m_eventsToSkip = parameters.m_nEventsToSkip;
+
+    // For the space point formats the input tree is the events tree; other formats use a different input tree, so leave the xml value
+    if (parameters.m_dataFormat == Parameters::LArNDFormat::SP || parameters.m_dataFormat == Parameters::LArNDFormat::SPMC)
+        pHierarchyParameters->m_eventTreeName = parameters.m_inputTreeName;
+
     PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::SetExternalParameters(*pPandora, "LArHierarchyAnalysis", pHierarchyParameters));
 
 #ifdef LIBTORCH_DL
