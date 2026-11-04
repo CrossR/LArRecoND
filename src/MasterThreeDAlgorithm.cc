@@ -160,16 +160,12 @@ StatusCode MasterThreeDAlgorithm::RunSliceReconstructionAndSelectionPerSlice(Sli
         PfoList newSlicePfoList;
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, MasterAlgorithm::Recreate(selectedSlicePfos, newSlicePfoList));
 
-        // Everything needed from the workers now lives in the master, so reset them, and give them the mc particles again for the next slice
+        // Everything needed from the workers now lives in the master, so reset them for the next slice. The mc particles (which are the same
+        // for every slice) are kept, so they do not need to be destroyed and passed to the workers again.
         ++sliceCounter;
 
         for (unsigned int i = 0; i < 2; ++i)
-        {
-            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::Reset(*workers[i]));
-
-            if (sliceCounter < selectedSliceVector.size())
-                PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles(workers[i]));
-        }
+            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::Reset(*workers[i], false));
     }
 
     return STATUS_CODE_SUCCESS;
