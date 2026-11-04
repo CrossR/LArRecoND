@@ -129,14 +129,14 @@ void CreateGeometry(const Parameters &parameters, const Pandora *const pPrimaryP
     TFile *fileSource = TFile::Open(parameters.m_geomFileName.c_str(), "READ");
     if (!fileSource)
     {
-        std::cout << "Error in CreateGeometry(): can't open file " << parameters.m_geomFileName << std::endl;
+        std::cout << "TEST Error in CreateGeometry(): can't open file " << parameters.m_geomFileName << std::endl;
         return;
     }
 
     TGeoManager *pSimGeom = dynamic_cast<TGeoManager *>(fileSource->Get(parameters.m_geomManagerName.c_str()));
     if (!pSimGeom)
     {
-        std::cout << "Could not find the geometry manager named " << parameters.m_geomManagerName << std::endl;
+        std::cout << "TEST Could not find the geometry manager named " << parameters.m_geomManagerName << std::endl;
         fileSource->Close();
         return;
     }
