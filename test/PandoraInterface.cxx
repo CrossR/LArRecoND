@@ -39,6 +39,7 @@
 #include "larpandoradlcontent/LArDLContent.h"
 #endif
 
+#include "HierarchyAnalysisAlgorithm.h"
 #include "LArNDContent.h"
 #include "LArNDGeomSimple.h"
 #include "LArRay.h"
@@ -2200,6 +2201,11 @@ void ProcessExternalParameters(const Parameters &parameters, const Pandora *cons
     {
         PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::SetExternalParameters(*pPandora, "LArMasterThreeD", pEventSteeringParameters));
     }
+
+    // The hierarchy analysis reads the event numbers etc. from the input events file
+    auto *const pHierarchyParameters = new lar_content::HierarchyAnalysisAlgorithm::ExternalEventFileParameters;
+    pHierarchyParameters->m_eventFileName = parameters.m_inputFileName;
+    PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::SetExternalParameters(*pPandora, "LArHierarchyAnalysis", pHierarchyParameters));
 
 #ifdef LIBTORCH_DL
     auto *const pEventSettingsParametersCopy = new lar_content::MasterAlgorithm::ExternalSteeringParameters(*pEventSteeringParameters);

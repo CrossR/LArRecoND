@@ -12,6 +12,7 @@
 #include "Objects/Cluster.h"
 #include "Objects/ParticleFlowObject.h"
 #include "Pandora/Algorithm.h"
+#include "Pandora/ExternallyConfiguredAlgorithm.h"
 
 #include "larpandoracontent/LArHelpers/LArHierarchyHelper.h"
 
@@ -26,9 +27,20 @@ typedef std::map<long, long> MCIdUniqueLocalMap;
 /**
  *  @brief  HierarchyAnalysisAlgorithm class
  */
-class HierarchyAnalysisAlgorithm : public pandora::Algorithm
+class HierarchyAnalysisAlgorithm : public pandora::ExternallyConfiguredAlgorithm
 {
 public:
+    /**
+     *  @brief  External parameters class, used to pass the path of the real input events file to the algorithm.
+     *          If the file name is set it takes precedence over the EventFileName in the xml settings, so no
+     *          link to the input file (which can go stale) needs to be made in the working directory.
+     */
+    class ExternalEventFileParameters : public pandora::ExternalParameters
+    {
+    public:
+        pandora::InputString m_eventFileName; ///< The path to the ROOT file with the events tree
+    };
+
     /**
      *  @brief  Default constructor
      */
