@@ -47,6 +47,15 @@ protected:
     pandora::StatusCode CopyMCParticles(const pandora::Pandora *pPandora) const;
 
     /**
+     *  @brief  Reconstruct and select slice by slice: after each slice is reconstructed by the neutrino and cosmic-ray slice workers, pick the
+     *          hypothesis with the slice id tools, recreate only that one in this (master) instance, and reset the workers (so they do not
+     *          accumulate the hits, mc relationships and pfos of every previous slice).
+     *
+     *  @param  sliceVector the slices (hits) to reconstruct
+     */
+    pandora::StatusCode RunSliceReconstructionAndSelectionPerSlice(SliceVector &sliceVector) const;
+
+    /**
      * @brief  Run cosmic-ray reconstruction, then recreate the resulting pfos in the current pandora instance.
      *
      * @param  volumeIdToHitListMap the LArTPC Volume ID to Hit List Map

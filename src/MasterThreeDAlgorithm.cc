@@ -80,15 +80,103 @@ StatusCode MasterThreeDAlgorithm::Run()
         if (m_shouldRunCosmicRecoOption)
             PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles(m_pSliceCRWorkerInstance));
 
-        SliceHypotheses nuSliceHypotheses, crSliceHypotheses;
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->RunSliceReconstruction(sliceVector, nuSliceHypotheses, crSliceHypotheses));
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->SelectBestSliceHypotheses(nuSliceHypotheses, crSliceHypotheses));
+        // ND: slices are reconstructed and selected one at a time (see RunSliceReconstructionAndSelectionPerSlice); the slice id tools
+        // therefore see one slice at a time. Other option combinations keep the generic all-slices-then-select behaviour.
+        if (m_shouldRunNeutrinoRecoOption && m_shouldRunCosmicRecoOption && m_shouldPerformSliceId && !m_sliceIdToolVector.empty())
+        {
+            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->RunSliceReconstructionAndSelectionPerSlice(sliceVector));
+        }
+        else
+        {
+            SliceHypotheses nuSliceHypotheses, crSliceHypotheses;
+            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->RunSliceReconstruction(sliceVector, nuSliceHypotheses, crSliceHypotheses));
+            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->SelectBestSliceHypotheses(nuSliceHypotheses, crSliceHypotheses));
+        }
     }
 
     return STATUS_CODE_SUCCESS;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+StatusCode MasterThreeDAlgorithm::RunSliceReconstructionAndSelectionPerSlice(SliceVector &sliceVector) const
+{
+    // Same slice selection as MasterAlgorithm::RunSliceReconstruction
+    SliceVector selectedSliceVector;
+    if (m_shouldRunSlicing && !m_sliceSelectionToolVector.empty())
+    {
+        SliceVector inputSliceVector(sliceVector);
+        for (SliceSelectionBaseTool *const pSliceSelectionTool : m_sliceSelectionToolVector)
+        {
+            pSliceSelectionTool->SelectSlices(this, inputSliceVector, selectedSliceVector);
+            inputSliceVector = selectedSliceVector;
+        }
+    }
+    else
+    {
+        selectedSliceVector = std::move(sliceVector);
+    }
+
+    unsigned int sliceCounter(0);
+
+    for (const CaloHitList &sliceHits : selectedSliceVector)
+    {
+        for (const CaloHit *const pSliceCaloHit : sliceHits)
+        {
+            // ATTN Must ensure we copy the hit actually owned by master instance; access differs with/without slicing enabled
+            const CaloHit *const pCaloHitInMaster(m_shouldRunSlicing ? static_cast<const CaloHit *>(pSliceCaloHit->GetParentAddress()) : pSliceCaloHit);
+            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->Copy(m_pSliceNuWorkerInstance, pCaloHitInMaster));
+            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->Copy(m_pSliceCRWorkerInstance, pCaloHitInMaster));
+        }
+
+        PfoList sliceHypotheses[2]; // neutrino, cosmic-ray
+        const Pandora *const workers[2] = {m_pSliceNuWorkerInstance, m_pSliceCRWorkerInstance};
+        const char *const workerLabels[2] = {"nu", "cr"};
+
+        for (unsigned int i = 0; i < 2; ++i)
+        {
+            if (m_printOverallRecoStatus)
+                std::cout << "Running " << workerLabels[i] << " worker instance for slice " << (sliceCounter + 1) << " of " << selectedSliceVector.size() << std::endl;
+
+            const PfoList *pSlicePfos(nullptr);
+            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ProcessEvent(*workers[i]));
+            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::GetCurrentPfoList(*workers[i], pSlicePfos));
+            sliceHypotheses[i] = *pSlicePfos;
+
+            for (const ParticleFlowObject *const pPfo : *pSlicePfos)
+            {
+                PandoraContentApi::ParticleFlowObject::Metadata metadata;
+                metadata.m_propertiesToAdd["SliceIndex"] = sliceCounter;
+                PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::ParticleFlowObject::AlterMetadata(*this, pPfo, metadata));
+            }
+        }
+
+        // Choose this slice's hypothesis and recreate only that one in the master instance
+        // ATTN The tools only ever see this one slice, e.g. a cap on the number of neutrinos applies per slice and so never bites
+        const SliceHypotheses nuHypotheses(1, sliceHypotheses[0]), crHypotheses(1, sliceHypotheses[1]);
+        PfoList selectedSlicePfos;
+        for (SliceIdBaseTool *const pSliceIdTool : m_sliceIdToolVector)
+            pSliceIdTool->SelectOutputPfos(this, nuHypotheses, crHypotheses, selectedSlicePfos);
+
+        PfoList newSlicePfoList;
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, MasterAlgorithm::Recreate(selectedSlicePfos, newSlicePfoList));
+
+        // Everything needed from the workers now lives in the master, so reset them, and give them the mc particles again for the next slice
+        ++sliceCounter;
+
+        for (unsigned int i = 0; i < 2; ++i)
+        {
+            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::Reset(*workers[i]));
+
+            if (sliceCounter < selectedSliceVector.size())
+                PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles(workers[i]));
+        }
+    }
+
+    return STATUS_CODE_SUCCESS;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
 StatusCode MasterThreeDAlgorithm::TagCosmicRayPfos(const PfoToFloatMap &stitchedPfosToX0Map, PfoList &clearCosmicRayPfos, PfoList &ambiguousPfos) const
 {
 
