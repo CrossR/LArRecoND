@@ -31,20 +31,6 @@ class HierarchyAnalysisAlgorithm : public pandora::ExternallyConfiguredAlgorithm
 {
 public:
     /**
-     *  @brief  External parameters class, used to pass the real input events file details to the algorithm.
-     *          Any value that is set takes precedence over the matching xml setting (EventFileName, EventTreeName and
-     *          EventsToSkip), so there is no need to make a link to the input file in the working directory (which can
-     *          go stale) or to keep the xml in step with the -s run option.
-     */
-    class ExternalEventFileParameters : public pandora::ExternalParameters
-    {
-    public:
-        pandora::InputString m_eventFileName; ///< The path to the ROOT file with the events tree
-        pandora::InputString m_eventTreeName; ///< The name of the events tree in that file
-        pandora::InputInt m_eventsToSkip;     ///< The number of events skipped from the start of the event file
-    };
-
-    /**
      *  @brief  Default constructor
      */
     HierarchyAnalysisAlgorithm();
@@ -58,14 +44,14 @@ public:
     {
     public:
         /**
-         *  @brief  Constructor
+     *  @brief  Constructor
 	 *
 	 *  @param  pNuRoot The neutrino parent MC particle
 	 *  @param  pLeadingMC The leading best matched MC particle
 	 *  @param  nSharedHits The number of shared hits between the matched reco and MC
 	 *  @param  completeness The completeness of the match
 	 *  @param  purity The purity of the match
-         */
+     */
         RecoMCMatch(const pandora::MCParticle *pNuRoot, const pandora::MCParticle *pLeadingMC, const int nSharedHits,
             const float completeness, const float purity);
 
@@ -74,6 +60,17 @@ public:
         int m_nSharedHits;                       ///< The number of shared hits between the matched reco and MC
         float m_completeness;                    ///< The completeness of the match
         float m_purity;                          ///< The purity of the match
+    };
+
+    /**
+     *  @brief  External parameters class, used to pass CLI args to the algorithm.
+     */
+    class ExternalEventFileParameters : public pandora::ExternalParameters
+    {
+    public:
+        pandora::InputString m_eventFileName; ///< The path to the input ROOT file with the events tree
+        pandora::InputString m_eventTreeName; ///< The name of the events tree in that file
+        pandora::InputInt m_eventsToSkip;     ///< The number of events skipped from the start of the event file
     };
 
 private:

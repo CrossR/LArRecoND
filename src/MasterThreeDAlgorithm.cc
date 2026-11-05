@@ -80,8 +80,6 @@ StatusCode MasterThreeDAlgorithm::Run()
         if (m_shouldRunCosmicRecoOption)
             PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles(m_pSliceCRWorkerInstance));
 
-        // ND: slices are reconstructed and selected one at a time (see RunSliceReconstructionAndSelectionPerSlice); the slice id tools
-        // therefore see one slice at a time. Other option combinations keep the generic all-slices-then-select behaviour.
         if (m_shouldRunNeutrinoRecoOption && m_shouldRunCosmicRecoOption && m_shouldPerformSliceId && !m_sliceIdToolVector.empty())
         {
             PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->RunSliceReconstructionAndSelectionPerSlice(sliceVector));
@@ -98,10 +96,18 @@ StatusCode MasterThreeDAlgorithm::Run()
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+
 StatusCode MasterThreeDAlgorithm::RunSliceReconstructionAndSelectionPerSlice(SliceVector &sliceVector) const
 {
-    // Same slice selection as MasterAlgorithm::RunSliceReconstruction
+    // INFO: This is essentially the same as RunSliceReconstruction, but it runs in a single slice mode.
+    //  I.e. Instead of "Reco All Slices -> Select Best Hypotheses", it does
+    //  "Reco 1 -> Select 1 -> Reco 2 -> Select 2 -> ...".
+    //
+    // This is advantageous in cases where there is a large number of slices, such as ND-LAr,
+    // but is not appropriate in cases where the slice selection tool needs to see all slices at once, say to apply
+    // a "max number of neutrinos" cut across all slices.
     SliceVector selectedSliceVector;
+
     if (m_shouldRunSlicing && !m_sliceSelectionToolVector.empty())
     {
         SliceVector inputSliceVector(sliceVector);
@@ -112,9 +118,7 @@ StatusCode MasterThreeDAlgorithm::RunSliceReconstructionAndSelectionPerSlice(Sli
         }
     }
     else
-    {
         selectedSliceVector = std::move(sliceVector);
-    }
 
     unsigned int sliceCounter(0);
 
@@ -128,7 +132,7 @@ StatusCode MasterThreeDAlgorithm::RunSliceReconstructionAndSelectionPerSlice(Sli
             PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->Copy(m_pSliceCRWorkerInstance, pCaloHitInMaster));
         }
 
-        PfoList sliceHypotheses[2]; // neutrino, cosmic-ray
+        PfoList sliceHypotheses[2];
         const Pandora *const workers[2] = {m_pSliceNuWorkerInstance, m_pSliceCRWorkerInstance};
         const char *const workerLabels[2] = {"nu", "cr"};
 
@@ -154,16 +158,16 @@ StatusCode MasterThreeDAlgorithm::RunSliceReconstructionAndSelectionPerSlice(Sli
         // ATTN The tools only ever see this one slice, e.g. a cap on the number of neutrinos applies per slice and so never bites
         const SliceHypotheses nuHypotheses(1, sliceHypotheses[0]), crHypotheses(1, sliceHypotheses[1]);
         PfoList selectedSlicePfos;
+
         for (SliceIdBaseTool *const pSliceIdTool : m_sliceIdToolVector)
             pSliceIdTool->SelectOutputPfos(this, nuHypotheses, crHypotheses, selectedSlicePfos);
 
         PfoList newSlicePfoList;
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, MasterAlgorithm::Recreate(selectedSlicePfos, newSlicePfoList));
 
-        // Everything needed from the workers now lives in the master, so reset them for the next slice. The mc particles (which are the same
-        // for every slice) are kept, so they do not need to be destroyed and passed to the workers again.
         ++sliceCounter;
 
+        // ATTN: We can now reset the workers, clearing the hits (and maybe MC), before the next slice.
         for (unsigned int i = 0; i < 2; ++i)
             PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::Reset(*workers[i], false));
     }
@@ -190,8 +194,7 @@ StatusCode MasterThreeDAlgorithm::TagCosmicRayPfos(const PfoToFloatMap &stitched
     for (RockMuonTaggingTool *const pRockMuonTaggingTool : m_rockMuonTaggingToolVector)
         pRockMuonTaggingTool->FindAmbiguousPfos(ambiguousPfos_wRock, ambiguousPfos, this);
 
-    // filter ambiguousPfos form rocks
-
+    // Filter ambiguousPfos from rock muons.
     const PfoList *pRecreatedCRPfos(nullptr);
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::GetCurrentPfoList(this->GetPandora(), pRecreatedCRPfos));
 
@@ -220,11 +223,11 @@ StatusCode MasterThreeDAlgorithm::TagCosmicRayPfos(const PfoToFloatMap &stitched
 
 StatusCode MasterThreeDAlgorithm::CopyMCParticles(const Pandora *pPandora) const
 {
-    // ATTN: If we aren't passing MC to instance, stop early.
+    // ATTN: If we aren't passing MC to instance, stop earl.
     if (!m_passMCParticlesToWorkerInstances)
         return STATUS_CODE_SUCCESS;
 
-    // ATTN: If we are passing MC, but the instance isn't initalised, report an error.
+    // ATTN: If we are passing MC, but the instance isn't initialised, report an error.
     if (!pPandora)
         return STATUS_CODE_NOT_INITIALIZED;
 

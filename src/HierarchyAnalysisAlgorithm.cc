@@ -695,7 +695,7 @@ StatusCode HierarchyAnalysisAlgorithm::ReadSettings(const TiXmlHandle xmlHandle)
 
     PANDORA_RETURN_RESULT_IF_AND_IF(STATUS_CODE_SUCCESS, STATUS_CODE_NOT_FOUND, !=, XmlHelper::ReadValue(xmlHandle, "MinHitsToSkip", m_minHitsToSkip));
 
-    // Details of the real input file, if given externally, take precedence over the xml (which is typically a link to the file)
+    // ATTN: If we have external parameters, populated from the CLI, then override the XML settings with those values
     if (this->ExternalParametersPresent())
     {
         const ExternalEventFileParameters *const pExternalParameters(dynamic_cast<ExternalEventFileParameters *>(this->GetExternalParameters()));
