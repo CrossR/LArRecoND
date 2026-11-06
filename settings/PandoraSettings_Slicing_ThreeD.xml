@@ -1,6 +1,6 @@
 <pandora>
     <!-- GLOBAL SETTINGS -->
-    <IsMonitoringEnabled>false</IsMonitoringEnabled>
+    <IsMonitoringEnabled>true</IsMonitoringEnabled>
     <ShouldDisplayAlgorithmInfo>false</ShouldDisplayAlgorithmInfo>
     <SingleHitTypeClusteringMode>true</SingleHitTypeClusteringMode>
 
@@ -51,10 +51,10 @@
         <OverwriteExistingId>true</OverwriteExistingId>
     </algorithm>
 
-    <algorithm type = "LArVisualMonitoring">
+    <!-- <algorithm type = "LArVisualMonitoring">
         <ClusterListNames>Clusters3D</ClusterListNames>
         <ShowDetector>true</ShowDetector>
-    </algorithm>
+    </algorithm> -->
 
     <algorithm type = "LArMergeClearTracksThreeD">
         <InputClusterListName>Clusters3D</InputClusterListName>
@@ -123,10 +123,11 @@
         </TrackTools>
         <algorithm type = "LArSimpleClusterCreation" description = "ClusterRebuilding"/>
     </algorithm>
-    <algorithm type = "LArVisualMonitoring">
+
+    <!-- <algorithm type = "LArVisualMonitoring">
         <PfoListNames>TrackParticles3D</PfoListNames>
         <ShowDetector>true</ShowDetector>
-    </algorithm>
+    </algorithm> -->
 
     <!-- ThreeDShowerAlgorithms -->
     <algorithm type = "LArCutPfoCharacterisation">
@@ -160,10 +161,11 @@
             <tool type = "LArSimpleShowers"/>
         </ShowerTools>
     </algorithm>
-    <algorithm type = "LArVisualMonitoring">
+
+    <!-- <algorithm type = "LArVisualMonitoring">
         <PfoListNames>TrackParticles3D ShowerParticles3D</PfoListNames>
         <ShowDetector>true</ShowDetector>
-    </algorithm>
+    </algorithm> -->
 
     <!-- Repeat ThreeDTrackAlgorithms -->
     <algorithm type = "LArThreeDTransverseTracks">
@@ -228,11 +230,10 @@
         <MinClusterLength>1.</MinClusterLength>
     </algorithm>
 
-
-    <algorithm type = "LArVisualMonitoring">
+    <!-- <algorithm type = "LArVisualMonitoring">
         <PfoListNames>TrackParticles3D ShowerParticles3D</PfoListNames>
         <ShowDetector>true</ShowDetector>
-    </algorithm>
+    </algorithm> -->
 
     <!-- ThreeDHitAlgorithms -->
     <algorithm type = "LArCutPfoCharacterisation">
@@ -252,10 +253,10 @@
         <MinLocalHits>15</MinLocalHits>
     </algorithm>
 
-    <algorithm type = "LArVisualMonitoring">
+    <!-- <algorithm type = "LArVisualMonitoring">
         <PfoListNames>TrackParticles3D ShowerParticles3D</PfoListNames>
         <ShowDetector>true</ShowDetector>
-    </algorithm>
+    </algorithm> -->
 
     <!-- SliceCreation -->
     <algorithm type = "LArSlicingThreeD">
@@ -268,6 +269,7 @@
         <InputClusterListNameW>ClustersW</InputClusterListNameW>
         <OutputClusterListName>SliceClusters</OutputClusterListName>
         <OutputPfoListName>SliceParticles</OutputPfoListName>
+        <EvaluateSlices>true</EvaluateSlices>
         <tool type = "LArEventSlicingThreeD" description = "SliceCreation">
             <TrackPfoListName>TrackParticles3D</TrackPfoListName>
             <ShowerPfoListName>ShowerParticles3D</ShowerPfoListName>
@@ -279,7 +281,7 @@
         </tool>
         <algorithm type = "LArListDeletion" description = "SlicingListDeletion">
             <PfoListNames>TrackParticles3D ShowerParticles3D</PfoListNames>
-            <ClusterListNames>ClustersU ClustersV ClustersW TrackClusters3D ShowerClusters3D</ClusterListNames>
+            <ClusterListNames>ClustersU ClustersV ClustersW Clusters3D TrackClusters3D ShowerClusters3D</ClusterListNames>
         </algorithm>
     </algorithm>
     <algorithm type = "LArListChanging">
