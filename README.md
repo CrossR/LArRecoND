@@ -64,6 +64,16 @@ compatible with your system.
 
 This will build a full build of Pandora, including DL support.
 
+### Build type
+
+The build scripts default to `RelWithDebInfo` (`-O2 -g`), which suits development and profiling.
+For production running (e.g. grid jobs) opt in to an optimised `Release` build (`-O3`, no debug symbols) by setting
+`PANDORA_BUILD_TYPE` when running whichever build script you use above:
+
+```sh
+PANDORA_BUILD_TYPE=Release ./LArRecoND/scripts/build/build_al9.sh
+```
+
 ### LArMachineLearningData
 
 Various neutrino algorithms need to use MicroBooNE/SBND and DUNE training files from the
