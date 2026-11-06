@@ -25,6 +25,7 @@ public:
     pandora::CaloHitList m_caloHitListV;  ///< The TPC_VIEW_V calo hit list
     pandora::CaloHitList m_caloHitListW;  ///< The TPC_VIEW_W calo hit list
     pandora::CaloHitList m_caloHitList3D; ///< The TPC_3D calo hit list
+    pandora::VertexList  m_vertexList;    ///< The list of vertices associated to this slice
 };
 
 typedef std::vector<Slice3D> Slice3DList;
