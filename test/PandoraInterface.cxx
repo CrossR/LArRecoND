@@ -2202,7 +2202,7 @@ void ProcessExternalParameters(const Parameters &parameters, const Pandora *cons
         PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::SetExternalParameters(*pPandora, "LArMasterThreeD", pEventSteeringParameters));
     }
 
-    // Pass over the CLI args to "LArHierarchyAnalysis" algorithm such that it can find the input files and more.
+    // Pass over the CLI args to "LArHierarchyAnalysis" algorithm such that it can find the input files and more
     auto *const pHierarchyParameters = new lar_content::HierarchyAnalysisAlgorithm::ExternalEventFileParameters;
     pHierarchyParameters->m_eventFileName = parameters.m_inputFileName;
     pHierarchyParameters->m_eventsToSkip = parameters.m_nEventsToSkip;
