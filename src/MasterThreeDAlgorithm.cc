@@ -296,7 +296,7 @@ StatusCode MasterThreeDAlgorithm::RunCosmicRayReconstructionThenRecreate(const V
 
         if (workerIter == m_workerToLArTPCMap.end())
         {
-            std::cout << "Problem: worker_id " << workerId << "not present in the m_workerToLArTPCMap. Skipping this worker.\n";
+            std::cout << "Problem: worker_id " << workerId << " not present in the m_workerToLArTPCMap. Skipping this worker." << std::endl;
             continue;
         }
 
@@ -562,12 +562,16 @@ const Pandora *MasterThreeDAlgorithm::CreateWorkerInstance(const LArTPCMap &larT
         parentMaxZ = std::max(parentMaxZ, pLArTPC->GetCenterZ() + 0.5f * pLArTPC->GetWidthZ());
     }
 
-    std::cout << "Creating worker instance " << name << " with boundaries X = (" << parentMinX << ", " << parentMaxX << ") , Y = ("
-              << parentMinY << ", " << parentMaxY << ") , Z = (" << parentMinZ << ", " << parentMaxZ << ")";
-    std::cout << " worker's tpcs : ";
-    for (const int tpc_id : lof_tpcs)
-        std::cout << tpc_id << ",";
-    std::cout << "\n";
+    if (m_printOverallRecoStatus)
+    {
+        std::cout << "Creating Worker Instance " << name << " with boundaries X = (" << parentMinX << ", " << parentMaxX << "), Y = ("
+                << parentMinY << ", " << parentMaxY << "), Z = (" << parentMinZ << ", " << parentMaxZ << ")";
+        std::cout << " based on TPCs with IDs: ";
+
+        for (const int tpc_id : lof_tpcs)
+            std::cout << tpc_id << ",";
+        std::cout << std::endl;
+    }
 
     PandoraApi::Geometry::LArTPC::Parameters larTPCParameters;
     larTPCParameters.m_larTPCVolumeId = id;
