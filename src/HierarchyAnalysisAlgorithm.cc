@@ -722,10 +722,6 @@ StatusCode HierarchyAnalysisAlgorithm::ReadSettings(const TiXmlHandle xmlHandle)
             m_eventTree = dynamic_cast<TTree *>(m_eventFile->Get(m_eventTreeName.c_str()));
             if (m_eventTree)
             {
-                // Only a few small leaves are read, one entry at a time. ROOT would otherwise size a read cache from the tree's
-                // auto-flush setting, which here is hundreds of MB.
-                m_eventTree->SetCacheSize(0);
-
                 // Only enable the event and run number leaves as well as the trigger timing.
                 // Also enable the vertex_id leaf
                 m_eventTree->SetBranchStatus("*", 0);
