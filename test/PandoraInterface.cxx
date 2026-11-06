@@ -316,7 +316,7 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
         parameters.m_dataFormat == Parameters::LArNDFormat::SPMC ? std::make_unique<LArSPMC>(ndsptree) : std::make_unique<LArSP>(ndsptree);
 
     // Factory for creating LArCaloHits
-    lar_content::LArCaloHitFactory m_larCaloHitFactory;
+    lar_content::LArHitFactory m_larCaloHitFactory;
 
     // Voxel width
     const float voxelWidth(parameters.m_voxelWidth);
@@ -428,7 +428,7 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
               tpcID = geom.GetTPCNumber(voxelPos);
             }
 
-            lar_content::LArCaloHitParameters caloHitParameters;
+            lar_content::LArHitParameters caloHitParameters;
             caloHitParameters.m_positionVector = voxelPos;
             caloHitParameters.m_expectedDirection = pandora::CartesianVector(0.f, 0.f, 1.f);
             caloHitParameters.m_cellNormalVector = pandora::CartesianVector(0.f, 0.f, 1.f);
@@ -491,7 +491,7 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
                 const float z0_cm(voxelPos.GetZ());
 
                 // U view
-                lar_content::LArCaloHitParameters caloHitPars_UView(caloHitParameters);
+                lar_content::LArHitParameters caloHitPars_UView(caloHitParameters);
                 caloHitPars_UView.m_hitType = pandora::TPC_VIEW_U;
                 caloHitPars_UView.m_pParentAddress = (void *)(intptr_t(hitCounter));
                 const float upos_cm(pPrimaryPandora->GetPlugins()->GetLArTransformationPlugin()->YZtoU(y0_cm, z0_cm));
@@ -504,7 +504,7 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
                         *pPrimaryPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
 
                 // V view
-                lar_content::LArCaloHitParameters caloHitPars_VView(caloHitParameters);
+                lar_content::LArHitParameters caloHitPars_VView(caloHitParameters);
                 caloHitPars_VView.m_hitType = pandora::TPC_VIEW_V;
                 caloHitPars_VView.m_pParentAddress = (void *)(intptr_t(hitCounter));
                 const float vpos_cm(pPrimaryPandora->GetPlugins()->GetLArTransformationPlugin()->YZtoV(y0_cm, z0_cm));
@@ -515,7 +515,7 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
                     PandoraApi::SetCaloHitToMCParticleRelationship(
                         *pPrimaryPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
                 // W view
-                lar_content::LArCaloHitParameters caloHitPars_WView(caloHitParameters);
+                lar_content::LArHitParameters caloHitPars_WView(caloHitParameters);
                 caloHitPars_WView.m_hitType = pandora::TPC_VIEW_W;
                 caloHitPars_WView.m_pParentAddress = (void *)(intptr_t(hitCounter));
                 const float wpos_cm(pPrimaryPandora->GetPlugins()->GetLArTransformationPlugin()->YZtoW(y0_cm, z0_cm));
@@ -714,7 +714,7 @@ void ProcessEDepSimEvents(const Parameters &parameters, const Pandora *const pPr
     pEDepSimTree->SetBranchAddress("Event", &pEDepSimEvent);
 
     // Factory for creating LArCaloHits
-    lar_content::LArCaloHitFactory m_larCaloHitFactory;
+    lar_content::LArHitFactory m_larCaloHitFactory;
 
     const LArGrid grid = parameters.m_useModularGeometry ? MakeVoxelisationGrid(geom, parameters) : MakeVoxelisationGrid(pPrimaryPandora, parameters);
 
@@ -1697,10 +1697,10 @@ void MakeCaloHitsFromVoxels(const LArVoxelList &voxels, const MCParticleEnergyMa
 {
 
     // Factory for creating LArCaloHits
-    lar_content::LArCaloHitFactory m_larCaloHitFactory;
+    lar_content::LArHitFactory m_larCaloHitFactory;
     const float voxelWidth(parameters.m_voxelWidth);
     const float MipE = 0.00075;
-    lar_content::LArCaloHitParameters caloHitParameters = MakeDefaultCaloHitParams(voxelWidth);
+    lar_content::LArHitParameters caloHitParameters = MakeDefaultCaloHitParams(voxelWidth);
     std::map<long, int> voxelIdToHitCounter;
 
     if (parameters.m_use3D)
@@ -1824,9 +1824,9 @@ float GetMCEnergyFraction(const MCParticleEnergyMap &mcEnergyMap, const float vo
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-lar_content::LArCaloHitParameters MakeDefaultCaloHitParams(float voxelWidth)
+lar_content::LArHitParameters MakeDefaultCaloHitParams(float voxelWidth)
 {
-    lar_content::LArCaloHitParameters caloHitParameters;
+    lar_content::LArHitParameters caloHitParameters;
     caloHitParameters.m_positionVector = pandora::CartesianVector(0.f, 0.f, 1.f);
     caloHitParameters.m_expectedDirection = pandora::CartesianVector(0.f, 0.f, 1.f);
     caloHitParameters.m_cellNormalVector = pandora::CartesianVector(0.f, 0.f, 1.f);
