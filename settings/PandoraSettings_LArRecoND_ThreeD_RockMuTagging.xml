@@ -14,10 +14,16 @@
         <CurrentCaloHitListReplacement>CaloHitList2D</CurrentCaloHitListReplacement>
     </algorithm>
 
+    <!-- <algorithm type = "LArVisualMonitoring">
+        <CaloHitListNames>CaloHitListU CaloHitListV CaloHitListW CaloHitList3D</CaloHitListNames>
+        <ShowCurrentCaloHits>true</ShowCurrentCaloHits>
+        <ShowDetector>true</ShowDetector>
+    </algorithm> -->
+
     <algorithm type = "LArMasterThreeD">
         <CRSettingsFile>PandoraSettings_Cosmic_ThreeD.xml</CRSettingsFile>
         <NuSettingsFile>PandoraSettings_Neutrino_ThreeD.xml</NuSettingsFile>
-        <SlicingSettingsFile>PandoraSettings_Slicing_ThreeD.xml</SlicingSettingsFile>
+        <SlicingSettingsFile>PandoraSettings_Slicing_ThreeD_DL.xml</SlicingSettingsFile>
         <ShouldRunRockMus_Xworkers>true</ShouldRunRockMus_Xworkers>
         <TagRockMuons>true</TagRockMuons>
         <StitchingTools>
