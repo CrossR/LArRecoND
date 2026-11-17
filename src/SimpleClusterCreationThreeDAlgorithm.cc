@@ -31,10 +31,18 @@ void SimpleClusterCreationThreeDAlgorithm::BuildAssociationMap(const CaloHitVect
 
 StatusCode SimpleClusterCreationThreeDAlgorithm::ReadSettings(const TiXmlHandle xmlHandle)
 {
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, SimpleClusterCreationAlgorithm::ReadSettings(xmlHandle));
+
+    if (!m_inputCaloHitListName.empty() || !m_outputClusterListName.empty())
+    {
+        std::cout << "SimpleClusterCreationThreeDAlgorithm: 2D calo hit list XML settings are set for 3D clustering!" << std::endl;
+        return STATUS_CODE_INVALID_PARAMETER;
+    }
+
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "InputCaloHitListName3D", m_inputCaloHitListName));
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "OutputClusterListName3D", m_outputClusterListName));
 
-    return SimpleClusterCreationAlgorithm::ReadSettings(xmlHandle);
+    return STATUS_CODE_SUCCESS;
 }
 
 } // namespace lar_content

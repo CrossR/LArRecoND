@@ -45,12 +45,12 @@ public:
     public:
         /**
      *  @brief  Constructor
-	 *
-	 *  @param  pNuRoot The neutrino parent MC particle
-	 *  @param  pLeadingMC The leading best matched MC particle
-	 *  @param  nSharedHits The number of shared hits between the matched reco and MC
-	 *  @param  completeness The completeness of the match
-	 *  @param  purity The purity of the match
+     *
+     *  @param  pNuRoot The neutrino parent MC particle
+     *  @param  pLeadingMC The leading best matched MC particle
+     *  @param  nSharedHits The number of shared hits between the matched reco and MC
+     *  @param  completeness The completeness of the match
+     *  @param  purity The purity of the match
      */
         RecoMCMatch(const pandora::MCParticle *pNuRoot, const pandora::MCParticle *pLeadingMC, const int nSharedHits,
             const float completeness, const float purity);
