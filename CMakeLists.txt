@@ -78,7 +78,6 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 target_compile_options(${PROJECT_NAME} PRIVATE ${LAR_RECO_COMPILE_OPTIONS})
-target_compile_options(${PROJECT_NAME} PRIVATE $<$<CXX_COMPILER_ID:GNU>:-fno-semantic-interposition>)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     PandoraPFA::PandoraSDK
