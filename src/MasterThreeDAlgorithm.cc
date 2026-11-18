@@ -610,7 +610,11 @@ StatusCode MasterThreeDAlgorithm::InitializeWorkerInstances(WorkerToLArTPCMap &w
         }
 
         if (m_shouldRunSlicing)
+        {
             m_pSlicingWorkerInstance = this->CreateWorkerInstance(larTPCMap, gapList, m_slicingSettingsFile, "SlicingWorker");
+            PandoraApi::SetEventInformation(
+                *m_pSlicingWorkerInstance, this->GetPandora().GetRun(), this->GetPandora().GetSubrun(), this->GetPandora().GetEvent());
+        }
 
         if (m_shouldRunNeutrinoRecoOption)
             m_pSliceNuWorkerInstance = this->CreateWorkerInstance(larTPCMap, gapList, m_nuSettingsFile, "SliceNuWorker");
