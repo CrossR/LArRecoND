@@ -102,9 +102,6 @@ private:
         const LArHierarchyHelper::MatchInfo &matchInfo, pandora::MCParticleList &rootMCParticles) const;
 
     int m_count;                        ///< The number of times the Run() function has been called
-    int m_event;                        ///< The actual event number
-    int m_run;                          ///< The run number
-    int m_subRun;                       ///< The subrun number
     int m_unixTime;                     ///< The unix trigger time (seconds)
     int m_unixTimeUsec;                 ///< The unix trigger time (microsecond component)
     int m_startTime;                    ///< The event trigger start time (ticks = 0.1 usec)
@@ -115,9 +112,6 @@ private:
     std::vector<long> *m_mcLocalIDs;    ///< The vector of local MC particle IDs for the event
     std::string m_eventFileName;        ///< Name of the ROOT TFile containing the event numbers
     std::string m_eventTreeName;        ///< Name of the ROOT TTree containing the event numbers
-    std::string m_eventLeafName;        ///< Name of the event number leaf/variable
-    std::string m_runLeafName;          ///< Name of the run number leaf/variable
-    std::string m_subRunLeafName;       ///< Name of the subrun number leaf/variable
     std::string m_unixTimeLeafName;     ///< Name of the unix time leaf/variable
     std::string m_unixTimeUsecLeafName; ///< Name of the unix time microsecond component leaf/variable
     std::string m_startTimeLeafName;    ///< Name of the event start time leaf/variable
