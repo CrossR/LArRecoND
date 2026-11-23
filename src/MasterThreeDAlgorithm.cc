@@ -283,6 +283,9 @@ StatusCode MasterThreeDAlgorithm::RunSlicing(const VolumeIdToHitListMap &volumeI
         if (m_printOverallRecoStatus)
             std::cout << "Running slicing worker instance" << std::endl;
 
+        PandoraApi::SetEventInformation(
+            *m_pSlicingWorkerInstance, this->GetPandora().GetRun(), this->GetPandora().GetSubrun(), this->GetPandora().GetEvent());
+
         const PfoList *pSlicePfos(nullptr);
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles(m_pSlicingWorkerInstance));
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ProcessEvent(*m_pSlicingWorkerInstance));
@@ -610,11 +613,7 @@ StatusCode MasterThreeDAlgorithm::InitializeWorkerInstances(WorkerToLArTPCMap &w
         }
 
         if (m_shouldRunSlicing)
-        {
             m_pSlicingWorkerInstance = this->CreateWorkerInstance(larTPCMap, gapList, m_slicingSettingsFile, "SlicingWorker");
-            PandoraApi::SetEventInformation(
-                *m_pSlicingWorkerInstance, this->GetPandora().GetRun(), this->GetPandora().GetSubrun(), this->GetPandora().GetEvent());
-        }
 
         if (m_shouldRunNeutrinoRecoOption)
             m_pSliceNuWorkerInstance = this->CreateWorkerInstance(larTPCMap, gapList, m_nuSettingsFile, "SliceNuWorker");
