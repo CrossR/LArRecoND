@@ -268,6 +268,7 @@
         <InputClusterListNameW>ClustersW</InputClusterListNameW>
         <OutputClusterListName>SliceClusters</OutputClusterListName>
         <OutputPfoListName>SliceParticles</OutputPfoListName>
+        <EvaluateSlices>true</EvaluateSlices>
         <tool type = "LArEventSlicingThreeD" description = "SliceCreation">
             <TrackPfoListName>TrackParticles3D</TrackPfoListName>
             <ShowerPfoListName>ShowerParticles3D</ShowerPfoListName>
