@@ -1,6 +1,6 @@
 <pandora>
   <Main>
-    <Settings>settings/PandoraSettings_LArRecoND_Main.xml</Settings>
+    <Settings>PandoraSettings_LArRecoND_Main.xml</Settings>
     <Instances>TMS</Instances>
     <EventsToProcess>1</EventsToProcess>
     <EventsToSkip>0</EventsToSkip>
@@ -11,7 +11,7 @@
   </Main>
   <TMS>
     <VolType>TMS</VolType>
-    <Settings>settings/PandoraSettings_LArRecoND_TMS.xml</Settings>
+    <Settings>PandoraSettings_LArRecoND_TMS.xml</Settings>
     <InputFile>data/ND-LAr/MicroProdN3p1_NDLAr_2E18_FHC.tmsreco.nu.0000001.TMSRECOREADOUT.root</InputFile>
     <InputTree>TMS</InputTree>
     <DataFormat>TMSMC</DataFormat>
