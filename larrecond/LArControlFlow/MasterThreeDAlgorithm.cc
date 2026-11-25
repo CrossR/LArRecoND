@@ -209,7 +209,7 @@ StatusCode MasterThreeDAlgorithm::RunCosmicRayReconstructionThenRecreate(const V
 
         if (workerIter == m_workerToLArTPCMap.end())
         {
-            std::cout << "Problem: worker_id " << workerId << "not present in the m_workerToLArTPCMap. Skipping this worker.\n";
+            std::cout << "Problem: worker_id " << workerId << " not present in the m_workerToLArTPCMap. Skipping this worker.\n";
             continue;
         }
 

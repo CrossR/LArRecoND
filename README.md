@@ -218,7 +218,7 @@ where the mandatory settings `-i`, `-r`, `-e` and `-g` specify the xml steering 
 the input data ROOT file containing the hits and the geometry ROOT file, respectively. The `-n` option sets the
 number of events (in this case 10) while `-N` prints out event information.
 
-The input hit data ROOT file uses the default [SpacePoint](include/LArSP.h) format, which needs to be previously
+The input hit data ROOT file uses the default [SpacePoint](larrecond/LArObjects/LArSP.h) format, which needs to be previously
 converted from the original HDF5 format (see relevant section above):
 
 ```Shell
@@ -246,7 +246,7 @@ cd $MY_TEST_AREA/LArRecoND
 
 where the mandatory settings `-i`, `-r`, `-e` and `-g` specify the xml steering run file, reconstruction hit method,
 the input MC ROOT file containing the hits and the geometry ROOT file, respectively. The `-f SPMC` option sets the
-input to use the [SpacePoint MC](include/LArSPMC.h) format, which stores all of the MC truth information;
+input to use the [SpacePoint MC](larrecond/LArObjects/LArSPMC.h) format, which stores all of the MC truth information;
 this is not done by the default `-f SP` format option (the ROOT data structures are different).
 The `-n` option sets the number of events (in this case 10) while `-N` prints out event information.
 

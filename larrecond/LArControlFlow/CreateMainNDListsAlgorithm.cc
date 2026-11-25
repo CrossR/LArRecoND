@@ -41,10 +41,10 @@ StatusCode CreateMainNDListsAlgorithm::Reset()
 
 StatusCode CreateMainNDListsAlgorithm::Run()
 {
-    std::cout << "Running CreateMainNDListsAlgorithm for Pandora instance " << this->GetPandora().GetName() << std::endl;
-    return this->CreateLists();
+    if (this->GetPandora().GetSettings()->ShouldDisplayAlgorithmInfo())
+        std::cout << "Running CreateMainNDListsAlgorithm for Pandora instance " << this->GetPandora().GetName() << std::endl;
 
-    return STATUS_CODE_SUCCESS;
+    return this->CreateLists();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -93,9 +93,7 @@ StatusCode CreateMainNDListsAlgorithm::CreateLists()
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::SaveList(*this, caloHitList3D, m_outputCaloHitListName3D));
 
     // Save PFOs
-    this->CreateMainPFOList();
-
-    return STATUS_CODE_SUCCESS;
+    return this->CreateMainPFOList();
 }
 
 StatusCode CreateMainNDListsAlgorithm::CreateMainPFOList()
@@ -119,11 +117,11 @@ StatusCode CreateMainNDListsAlgorithm::CreateMainPFOList()
 
     // Save the main PFO list to the main instance by creating new PFO deep copies.
     // Based on LArContent/LArControlFlow/MasterAlgorithm::Recreate(oldPFOs, newPFOs)
-    std::cout << "Main Pandora PFO list size = " << inputPfoList.size() << std::endl;
-    PfoList copiedPfoList;
-    this->Recreate(inputPfoList, copiedPfoList);
+    if (this->GetPandora().GetSettings()->ShouldDisplayAlgorithmInfo())
+        std::cout << "Main Pandora PFO list size = " << inputPfoList.size() << std::endl;
 
-    return STATUS_CODE_SUCCESS;
+    PfoList copiedPfoList;
+    return this->Recreate(inputPfoList, copiedPfoList);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

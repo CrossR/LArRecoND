@@ -127,7 +127,7 @@ void NDGeometryHelper::AddTPC(
     const double dx = (pBox != nullptr) ? pBox->GetDX() * m_lengthScale : 0.0; // Note these are the half widths
     const double dy = (pBox != nullptr) ? pBox->GetDY() * m_lengthScale : 0.0;
     const double dz = (pBox != nullptr) ? pBox->GetDZ() * m_lengthScale : 0.0;
-    const double *pOrigin = pBox->GetOrigin();
+    const double *pOrigin = (pBox != nullptr) ? pBox->GetOrigin() : nullptr;
 
     // Translate local origin to global coordinates
     double level1[3] = {0.0, 0.0, 0.0};
