@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
-project(LArRecoND VERSION 01.05.00 LANGUAGES CXX)
+project(LArRecoND VERSION 01.06.00 LANGUAGES CXX)
 
 # Automatically add the path of the linked libraries to the RPATH
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
@@ -38,6 +38,9 @@ if(PANDORA_MONITORING)
         find_package(PandoraMonitoring 05.00.00 REQUIRED)
     endif()
     find_package(ROOT 6.18.04 REQUIRED COMPONENTS Eve Geom RGL EG)
+
+    # By marking ROOT includes as system headers, we suppress any warnings from them.
+    include_directories(SYSTEM ${ROOT_INCLUDE_DIRS})
 endif()
 
 if(USE_EDEPSIM)

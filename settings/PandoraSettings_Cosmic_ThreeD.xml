@@ -75,7 +75,6 @@
 
     <!-- ThreeDTrackAlgorithms -->
     <algorithm type = "LArThreeDTransverseTracks">
-        <!--adding this to reduce execution time, preserving physics performances (hopefully???)--> 
         <NMaxTensorToolRepeats>100</NMaxTensorToolRepeats>
         <InputClusterListNameU>ClustersU</InputClusterListNameU>
         <InputClusterListNameV>ClustersV</InputClusterListNameV>
@@ -97,7 +96,6 @@
       </algorithm>
 
     <algorithm type = "LArThreeDLongitudinalTracks">
-        <!--adding this to reduce execution time, preserving physics performances (hopefully???)--> 
         <NMaxTensorToolRepeats>100</NMaxTensorToolRepeats>
         <InputClusterListNameU>ClustersU</InputClusterListNameU>
         <InputClusterListNameV>ClustersV</InputClusterListNameV>
@@ -110,7 +108,6 @@
     </algorithm>
 
     <algorithm type = "LArThreeDTrackFragments">
-        <!--adding this to reduce execution time, preserving physics performances (hopefully???)--> 
         <NMaxTensorToolRepeats>100</NMaxTensorToolRepeats>
         <MinClusterLength>10.</MinClusterLength>
         <InputClusterListNameU>ClustersU</InputClusterListNameU>
@@ -219,7 +216,6 @@
 
     <!-- ThreeDRemnantAlgorithms -->
     <algorithm type = "LArThreeDRemnants">
-        <!--adding this to reduce execution time, preserving physics performances (hopefully???)--> 
         <NMaxTensorToolRepeats>100</NMaxTensorToolRepeats>
         <MinClusterCaloHits>5</MinClusterCaloHits>
         <InputClusterListNameU>ClustersU</InputClusterListNameU>
@@ -268,7 +264,7 @@
         <InputPfoListName>MuonParticles3D</InputPfoListName>
         <OutputVertexListName>CRVertices3D</OutputVertexListName>
     </algorithm>
-    
+
     <!-- Track and shower building -->
     <algorithm type = "LArTrackParticleBuilding">
         <PfoListName>MuonParticles3D</PfoListName>
