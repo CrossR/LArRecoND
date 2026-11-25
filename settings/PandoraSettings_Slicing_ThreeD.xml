@@ -1,6 +1,6 @@
 <pandora>
     <!-- GLOBAL SETTINGS -->
-    <IsMonitoringEnabled>false</IsMonitoringEnabled>
+    <IsMonitoringEnabled>true</IsMonitoringEnabled>
     <ShouldDisplayAlgorithmInfo>false</ShouldDisplayAlgorithmInfo>
     <SingleHitTypeClusteringMode>true</SingleHitTypeClusteringMode>
 
@@ -51,10 +51,10 @@
         <OverwriteExistingId>true</OverwriteExistingId>
     </algorithm>
 
-    <algorithm type = "LArVisualMonitoring">
-        <ClusterListNames>Clusters3D</ClusterListNames>
-        <ShowDetector>true</ShowDetector>
-    </algorithm>
+    <!-- <algorithm type = "LArVisualMonitoring"> -->
+    <!--     <ClusterListNames>Clusters3D</ClusterListNames> -->
+    <!--     <ShowDetector>true</ShowDetector> -->
+    <!-- </algorithm> -->
 
     <algorithm type = "LArMergeClearTracksThreeD">
         <InputClusterListName>Clusters3D</InputClusterListName>
@@ -123,10 +123,11 @@
         </TrackTools>
         <algorithm type = "LArSimpleClusterCreation" description = "ClusterRebuilding"/>
     </algorithm>
-    <algorithm type = "LArVisualMonitoring">
-        <PfoListNames>TrackParticles3D</PfoListNames>
-        <ShowDetector>true</ShowDetector>
-    </algorithm>
+
+    <!-- <algorithm type = "LArVisualMonitoring"> -->
+    <!--     <PfoListNames>TrackParticles3D</PfoListNames> -->
+    <!--     <ShowDetector>true</ShowDetector> -->
+    <!-- </algorithm> -->
 
     <!-- ThreeDShowerAlgorithms -->
     <algorithm type = "LArCutPfoCharacterisation">
@@ -160,10 +161,11 @@
             <tool type = "LArSimpleShowers"/>
         </ShowerTools>
     </algorithm>
-    <algorithm type = "LArVisualMonitoring">
-        <PfoListNames>TrackParticles3D ShowerParticles3D</PfoListNames>
-        <ShowDetector>true</ShowDetector>
-    </algorithm>
+
+    <!-- <algorithm type = "LArVisualMonitoring"> -->
+    <!--     <PfoListNames>TrackParticles3D ShowerParticles3D</PfoListNames> -->
+    <!--     <ShowDetector>true</ShowDetector> -->
+    <!-- </algorithm> -->
 
     <!-- Repeat ThreeDTrackAlgorithms -->
     <algorithm type = "LArThreeDTransverseTracks">
@@ -228,11 +230,10 @@
         <MinClusterLength>1.</MinClusterLength>
     </algorithm>
 
-
-    <algorithm type = "LArVisualMonitoring">
-        <PfoListNames>TrackParticles3D ShowerParticles3D</PfoListNames>
-        <ShowDetector>true</ShowDetector>
-    </algorithm>
+    <!-- <algorithm type = "LArVisualMonitoring"> -->
+    <!--     <PfoListNames>TrackParticles3D ShowerParticles3D</PfoListNames> -->
+    <!--     <ShowDetector>true</ShowDetector> -->
+    <!-- </algorithm> -->
 
     <!-- ThreeDHitAlgorithms -->
     <algorithm type = "LArCutPfoCharacterisation">
@@ -252,10 +253,10 @@
         <MinLocalHits>15</MinLocalHits>
     </algorithm>
 
-    <algorithm type = "LArVisualMonitoring">
-        <PfoListNames>TrackParticles3D ShowerParticles3D</PfoListNames>
-        <ShowDetector>true</ShowDetector>
-    </algorithm>
+    <!-- <algorithm type = "LArVisualMonitoring"> -->
+    <!--     <PfoListNames>TrackParticles3D ShowerParticles3D</PfoListNames> -->
+    <!--     <ShowDetector>true</ShowDetector> -->
+    <!-- </algorithm> -->
 
     <!-- SliceCreation -->
     <algorithm type = "LArSlicingThreeD">
