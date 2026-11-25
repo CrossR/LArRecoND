@@ -6,16 +6,15 @@
  *  $Log: $
  */
 
-
 #include <iostream>
 #include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include <Pandora/StatusCodes.h>
 #include "Helpers/XmlHelper.h"
 #include "Xml/tinyxml.h"
+#include <Pandora/StatusCodes.h>
 
 #include "larpandoracontent/LArHelpers/LArFileHelper.h"
 

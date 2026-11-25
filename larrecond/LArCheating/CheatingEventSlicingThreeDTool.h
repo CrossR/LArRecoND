@@ -17,8 +17,8 @@
 #include "larpandoracontent/LArObjects/LArThreeDSlidingConeFitResult.h"
 
 #include "larrecond/LArControlFlow/EventSlicingThreeDBaseTool.h"
-#include "larrecond/LArObjects/LArSlice3D.h"
 #include "larrecond/LArControlFlow/SlicingThreeDAlgorithm.h"
+#include "larrecond/LArObjects/LArSlice3D.h"
 
 namespace lar_content
 {

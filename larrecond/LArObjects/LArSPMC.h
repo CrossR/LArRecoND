@@ -110,7 +110,8 @@ public:
     TBranch *m_b_ccnc = nullptr;
 };
 
-inline LArSPMC::LArSPMC(TTree *tree) : LArSP(tree)
+inline LArSPMC::LArSPMC(TTree *tree) :
+    LArSP(tree)
 {
     if (tree == nullptr)
     {

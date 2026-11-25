@@ -19,17 +19,17 @@
 
 #include "larrecond/LArControlFlow/CreateMainNDListsAlgorithm.h"
 #include "larrecond/LArControlFlow/EventSlicingThreeDTool.h"
-#include "larrecond/LArControlFlow/PreProcessingThreeDAlgorithm.h"
-#include "larrecond/LArControlFlow/SlicingThreeDAlgorithm.h"
-#include "larrecond/LArControlFlow/ReplaceHitAndClusterListsAlgorithm.h"
 #include "larrecond/LArControlFlow/MasterThreeDAlgorithm.h"
+#include "larrecond/LArControlFlow/PreProcessingThreeDAlgorithm.h"
+#include "larrecond/LArControlFlow/ReplaceHitAndClusterListsAlgorithm.h"
+#include "larrecond/LArControlFlow/SlicingThreeDAlgorithm.h"
 
 #include "larrecond/LArMonitoring/HierarchyAnalysisAlgorithm.h"
 
 #include "larrecond/LArThreeDReco/LArClusterCreation/CreateTwoDClustersFromThreeDAlgorithm.h"
 #include "larrecond/LArThreeDReco/LArClusterCreation/SimpleClusterCreationThreeDAlgorithm.h"
-#include "larrecond/LArThreeDReco/LArTrackReco/MergeClearTracksThreeDAlgorithm.h"
 #include "larrecond/LArThreeDReco/LArHitCreation/PfoThreeDHitAssignmentAlgorithm.h"
+#include "larrecond/LArThreeDReco/LArTrackReco/MergeClearTracksThreeDAlgorithm.h"
 
 #include "larrecond/LArTrackShowerId/CutClusterCharacterisationThreeDAlgorithm.h"
 

@@ -6,7 +6,6 @@
  *  $Log: $
  */
 
-
 #include <algorithm>
 #include <cmath>
 #include <getopt.h>
@@ -59,7 +58,6 @@
 #ifdef USE_EDEPSIM
 #include "TG4PrimaryVertex.h"
 #endif
-
 
 using namespace pandora;
 using namespace lar_nd_reco;
@@ -416,19 +414,19 @@ void ProcessSPEvents(const Parameters &parameters, const Pandora *const pPrimary
             int tpcID = -1;
             if ((70 == geom.m_TPCs.size()) && (voxel_io_group >= 0)) // NDLAr
             {
-              tpcID = ioGroup2tcpIDMap_NDLAr(voxel_io_group);
+                tpcID = ioGroup2tcpIDMap_NDLAr(voxel_io_group);
             }
             else if ((4 == geom.m_TPCs.size()) && (voxel_io_group >= 0)) // 2x2
             {
-              tpcID = ioGroup2tcpIDMap_2x2[voxel_io_group];
+                tpcID = ioGroup2tcpIDMap_2x2[voxel_io_group];
             }
             else if ((2 == geom.m_TPCs.size()) && (voxel_io_group >= 0)) // FSD
             {
-              tpcID = ioGroup2tcpIDMap_FSD[voxel_io_group];
+                tpcID = ioGroup2tcpIDMap_FSD[voxel_io_group];
             }
             else
             {
-              tpcID = geom.GetTPCNumber(voxelPos);
+                tpcID = geom.GetTPCNumber(voxelPos);
             }
 
             lar_content::LArCaloHitParameters caloHitParameters;
@@ -754,7 +752,7 @@ void ProcessEDepSimEvents(const Parameters &parameters, const Pandora *const pPr
         // Loop over (EDep) hits, which are stored in the hit segment detectors.
         // Only process hits from the detector we are interested in
         for (TG4HitSegmentDetectors::iterator detector = pEDepSimEvent->SegmentDetectors.begin();
-             detector != pEDepSimEvent->SegmentDetectors.end(); ++detector)
+            detector != pEDepSimEvent->SegmentDetectors.end(); ++detector)
         {
             if (detector->first.find(parameters.m_sensitiveDetName) == std::string::npos)
             {

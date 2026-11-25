@@ -101,7 +101,7 @@ protected:
      */
     struct MCLink
     {
-        long m_trackID;    ///< The (file-based) ID of the MCParticle
+        long m_trackID;     ///< The (file-based) ID of the MCParticle
         float m_energyFrac; ///< The fraction of the hit energy from the MCParticle
     };
 

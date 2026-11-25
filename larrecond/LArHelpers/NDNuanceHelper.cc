@@ -86,8 +86,7 @@ int GetNuanceCode(const std::string &reaction)
 std::string GetNuanceReaction(const int ccnc, const int mode)
 {
     // GENIE interaction mode -> reaction process string
-    static const std::map<int, std::string> modeToProcess = {
-        {0, "QES"}, {1, "RES"}, {2, "DIS"}, {3, "COH"}, {5, "NuEEL"}, {6, "IMD"}, {10, "MEC"}};
+    static const std::map<int, std::string> modeToProcess = {{0, "QES"}, {1, "RES"}, {2, "DIS"}, {3, "COH"}, {5, "NuEEL"}, {6, "IMD"}, {10, "MEC"}};
 
     std::string reaction;
 

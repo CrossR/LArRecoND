@@ -26,8 +26,8 @@
 #include "larpandoradlcontent/LArDLContent.h"
 #endif
 
-#include "larrecond/LArNDContent.h"
 #include "larrecond/LArControlFlow/MasterThreeDAlgorithm.h"
+#include "larrecond/LArNDContent.h"
 
 using namespace pandora;
 

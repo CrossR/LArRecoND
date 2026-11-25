@@ -87,10 +87,9 @@ void RockMuonTaggingTool::FindAmbiguousPfos(const PfoList &parentCosmicRayPfos, 
 
     if (this->GetPandora().GetSettings()->ShouldDisplayAlgorithmInfo())
     {
-        std::cout << "RockMuonTaggingTool: Detector boundaries to tag Clear Rock Muons : " <<
-                "X [" << m_face_Xa + m_marginX << ","  << m_face_Xc - m_marginX << "] " <<
-                "Y [" << m_face_Yb + m_marginY << ", " << m_face_Yt - m_marginY << "] " <<
-                "Z [" << m_face_Zu + m_marginZ << ", " << m_face_Zd - m_marginZ << "]" << std::endl;
+        std::cout << "RockMuonTaggingTool: Detector boundaries to tag Clear Rock Muons : " << "X [" << m_face_Xa + m_marginX << ","
+                  << m_face_Xc - m_marginX << "] " << "Y [" << m_face_Yb + m_marginY << ", " << m_face_Yt - m_marginY << "] " << "Z ["
+                  << m_face_Zu + m_marginZ << ", " << m_face_Zd - m_marginZ << "]" << std::endl;
     }
 
     int nof_tagged_rockmus = 0;

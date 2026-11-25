@@ -150,8 +150,7 @@ void NDEventInput::CreateVoxelCaloHits(const lar_content::LArCaloHitParameters &
         void *const pHitAddress = (void *)(static_cast<intptr_t>(hitID));
         hitParameters.m_pParentAddress = pHitAddress;
 
-        PANDORA_THROW_RESULT_IF(
-            pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::CaloHit::Create(*m_pMainPandora, hitParameters, m_LArCaloHitFactory));
+        PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::CaloHit::Create(*m_pMainPandora, hitParameters, m_LArCaloHitFactory));
         PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::CaloHit::Create(*m_pPandora, hitParameters, m_LArCaloHitFactory));
 
         if (pMCLink)

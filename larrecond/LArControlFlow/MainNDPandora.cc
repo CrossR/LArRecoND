@@ -6,27 +6,27 @@
  *  $Log: $
  */
 
+#include "Api/PandoraApi.h"
 #include "Pandora/PandoraSettings.h"
 #include "Pandora/StatusCodes.h"
-#include "Api/PandoraApi.h"
 #include "PandoraMonitoringApi.h"
 
 #include "larpandoracontent/LArContent.h"
 #include "larpandoracontent/LArControlFlow/MasterAlgorithm.h"
 #include "larpandoracontent/LArControlFlow/MultiPandoraApi.h"
+#include "larpandoracontent/LArHelpers/LArFileHelper.h"
 #include "larpandoracontent/LArPlugins/LArPseudoLayerPlugin.h"
 #include "larpandoracontent/LArPlugins/LArRotationalTransformationPlugin.h"
-#include "larpandoracontent/LArHelpers/LArFileHelper.h"
 
 #ifdef LIBTORCH_DL
 #include "larpandoradlcontent/LArDLContent.h"
 #endif
 
+#include "larrecond/LArControlFlow/MainNDPandora.h"
+#include "larrecond/LArHelpers/NDGeometryHelper.h"
 #include "larrecond/LArNDContent.h"
 #include "larrecond/LArObjects/LArNDEventInput.h"
-#include "larrecond/LArHelpers/NDGeometryHelper.h"
 #include "larrecond/LArObjects/TMSEventInput.h"
-#include "larrecond/LArControlFlow/MainNDPandora.h"
 
 using namespace pandora;
 
@@ -35,11 +35,11 @@ namespace
 
 // ATTN: The wire parameters below are placeholders for the ND (voxel-based) geometry,
 // taken from the MicroBooNE LArTPC definition.
-constexpr float WirePitch{0.300000011921f}; ///< Wire pitch for the U, V and W views
-constexpr float WireAngleU{1.04719758034f}; ///< Wire angle for the U view (rad), +60 degrees
+constexpr float WirePitch{0.300000011921f};  ///< Wire pitch for the U, V and W views
+constexpr float WireAngleU{1.04719758034f};  ///< Wire angle for the U view (rad), +60 degrees
 constexpr float WireAngleV{-1.04719758034f}; ///< Wire angle for the V view (rad), -60 degrees
-constexpr float WireAngleW{0.f};            ///< Wire angle for the W view (rad)
-constexpr float SigmaUVW{1.f};              ///< Wire position uncertainty
+constexpr float WireAngleW{0.f};             ///< Wire angle for the W view (rad)
+constexpr float SigmaUVW{1.f};               ///< Wire position uncertainty
 
 /**
  *  @brief  Make the Pandora LArTPC parameters from a simple ND TPC box
