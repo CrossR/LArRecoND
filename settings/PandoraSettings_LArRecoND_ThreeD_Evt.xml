@@ -21,7 +21,7 @@
     </algorithm>
 
     <algorithm type = "LArMasterThreeD">
-        <CRSettingsFile>PandoraSettings_Cosmic_Standard.xml</CRSettingsFile>
+        <CRSettingsFile>PandoraSettings_Cosmic_ThreeD.xml</CRSettingsFile>
         <NuSettingsFile>PandoraSettings_Neutrino_ThreeD.xml</NuSettingsFile>
         <SlicingSettingsFile>PandoraSettings_Slicing_ThreeD.xml</SlicingSettingsFile>
         <StitchingTools>
@@ -122,4 +122,3 @@
     </algorithm>
 
 </pandora>
-

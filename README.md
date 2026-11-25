@@ -83,10 +83,12 @@ source download.sh uboone
 
 ## Running LArRecoND
 
-For each new terminal/interactive session, make sure the environment is setup by first running either the
-[tags.sh](scripts/tags.sh), [Alma9_FNAL.sh](scripts/Alma9_FNAL.sh) or [SL7_FNAL.sh](scripts/SL7_FNAL.sh) scripts, where
-the optional MyTestAreaDirPath parameter sets the $MY_TEST_AREA environment variable (which defaults to the current
-working directory if this is not provided):
+For each new terminal/interactive session, make sure the environment is setup by
+first running either the [tags.sh](scripts/tags.sh),
+[Alma9_FNAL.sh](scripts/setup/Alma9_FNAL.sh) or [SL7_FNAL.sh](scripts/setup/SL7_FNAL.sh)
+scripts, where the optional MyTestAreaDirPath parameter sets the $MY_TEST_AREA
+environment variable (which defaults to the current working directory if this is
+not provided):
 
 ```Shell
 source tags.sh MyTestAreaDirPath
@@ -134,7 +136,7 @@ Python and ROOT. It does however, require some non-standard Python packages, and
 of a virtual environment. First, source the relevant setup script from `LArRecoND`, e.g. assuming Alma9 and a Fermilab gpvm:
 
 ```Shell
-source scripts/Alma9_FNAL.sh
+source scripts/setup/Alma9_FNAL.sh
 ```
 
 then
@@ -150,12 +152,14 @@ pip3 install uproot
 ```
 
 Then to run the conversion, this takes place in 2 steps:
+
 - hdf5 to ROOT: make a first ROOT file from the hdf5 file, but it is in a
-"subevent" format which may have more than 1 entry per event
+  "subevent" format which may have more than 1 entry per event
 - ROOT to ROOT: take the "subevent" level ROOT file and package it with one entry per event
 
 **STEP 1:**
 This hdf5-to-ROOT conversion works as follows:
+
 ```
 python h5_to_root_ndlarflow.py FileList IsData IsFinalHits OutName
 -- Parameters
@@ -201,7 +205,6 @@ The GDML files for the 2x2 ArgonCube-based prototype geometry are available in t
 [2x2_sim/geometry](https://github.com/DUNE/2x2_sim/tree/develop/geometry) repository,
 and the current recommended file to use is
 [Merged2x2MINERvA_v4_withRock.gdml](https://github.com/DUNE/2x2_sim/blob/develop/geometry/Merged2x2MINERvA_v4/Merged2x2MINERvA_v4_withRock.gdml).
-
 
 ### 2x2 data
 
@@ -381,7 +384,6 @@ The xml file also contains (commented out) examples of using the MicroBooNE vali
 [LArNeutrinoEventValidation](https://github.com/PandoraPFA/LArContent/blob/master/larpandoracontent/LArMonitoring/NeutrinoEventValidationAlgorithm.h),
 which only works for events containing single neutrino interactions (with cosmic rays).
 
-
 ## Fermigrid jobs
 
 The template python script [createFNALJobs.py](scripts/createFNALJobs.py) can be used to submit LArRecoND jobs
@@ -424,19 +426,18 @@ to catch any major changes in the reconstruction output.
 
 It does a few things:
 
- - It builds the software using the `build.sh` script, which builds Pandora and
- LArRecoND with all dependencies.
- - It runs a few basic tests, which include running the `PandoraInterface`
- executable with a few different settings files and input files, and checking
- that the output ROOT files are created and look vaguely valid.
- - It compares the output ROOT files against 2 refence ROOT files: one dynamically
- built on the master branch, and another for a given tagged release. This
- comparison is doing using the `validation/ciRecoValidation.py` script.
- - Finally, the result of this check, both a table of the raw max, min, average
- etc, is commented on any new PRs, and a full image of the output plots is
- uploaded to the PR for inspection.
-   - The data used for the plots is also uploaded to the CI, for manual inspection if needed.
-
+- It builds the software using the `build.sh` script, which builds Pandora and
+  LArRecoND with all dependencies.
+- It runs a few basic tests, which include running the `PandoraInterface`
+  executable with a few different settings files and input files, and checking
+  that the output ROOT files are created and look vaguely valid.
+- It compares the output ROOT files against 2 refence ROOT files: one dynamically
+  built on the master branch, and another for a given tagged release. This
+  comparison is doing using the `validation/ciRecoValidation.py` script.
+- Finally, the result of this check, both a table of the raw max, min, average
+  etc, is commented on any new PRs, and a full image of the output plots is
+  uploaded to the PR for inspection.
+  - The data used for the plots is also uploaded to the CI, for manual inspection if needed.
 
 ## License and Copyright
 
@@ -453,8 +454,8 @@ the Free Software Foundation, either version 3 of the License, or
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+along with this program. If not, see <http://www.gnu.org/licenses/>.
