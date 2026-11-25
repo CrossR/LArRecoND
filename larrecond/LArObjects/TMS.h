@@ -106,9 +106,8 @@ public:
 inline TMS::TMS(TTree *tree)
 {
     if (tree == nullptr)
-    {
         std::cout << "Warning: null tree passed to TMS" << std::endl;
-    }
+
     Init(tree);
 }
 
@@ -134,13 +133,17 @@ inline void TMS::Init(TTree *tree)
     // Init() will be called many times when running on PROOF
     // (once per file to be processed).
 
-    std::cout << "Calling TMS::Init for TTree " << tree->GetName() << std::endl;
+    // Set to default values
+    m_fChain = nullptr;
+    m_fCurrent = -1;
 
     // Set branch addresses and branch pointers
     if (!tree)
         return;
+
+    std::cout << "Calling TMS::Init for TTree " << tree->GetName() << std::endl;
+
     m_fChain = tree;
-    m_fCurrent = -1;
     m_fChain->SetMakeClass(1);
 
     m_fChain->SetBranchAddress("NTrueHits", &m_NTrueHits, &m_b_NTrueHits);

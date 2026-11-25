@@ -54,7 +54,7 @@ int TMSEventInput::CreateCaloHits(int eventIndex, int startHitIndex) const
     int hitCounter{startHitIndex};
 
     // Loop over the hits and make them into CaloHits
-    for (size_t iHit = 0; iHit < nHits; ++iHit)
+    for (int iHit = 0; iHit < nHits; ++iHit)
     {
         //std::cout<<"iHit = "<<iHit<<std::endl;
         //const float voxelX = m_tms->m_RecoHitX[iHit] * m_parameters.m_lengthScale;
@@ -85,6 +85,9 @@ int TMSEventInput::CreateCaloHits(int eventIndex, int startHitIndex) const
         const int tpcID(m_tpcGeom.GetTPCNumber(voxelPos, ignoreY));
         //std::cout<<"tpcID = "<<tpcID<<std::endl;
         const float voxelWidth(m_parameters.m_voxelWidth);
+
+        if (tpcID < 0)
+            std::cout << "TMSEventInput::CreateCaloHits: hit " << iHit << " is outside of TPC volume: (" << voxelX << ", " << voxelY << ", " << voxelZ << ")" << std::endl;
 
         lar_content::LArCaloHitParameters caloHitParameters;
         caloHitParameters.m_positionVector = voxelPos;

@@ -6,6 +6,7 @@
  *  $Log: $
  */
 
+#include "Pandora/StatusCodes.h"
 #include "Api/PandoraApi.h"
 #include "PandoraMonitoringApi.h"
 
@@ -52,6 +53,12 @@ MainNDPandora::~MainNDPandora()
     // Delete all Pandora instances, including the main one
     std::cout << "DeletePandoraInstances" << std::endl;
     MultiPandoraApi::DeletePandoraInstances(m_pMainPandora);
+
+    for (const auto &pair : m_NDEventInputMap)
+    {
+        const NDEventInput *pEventInput = pair.second;
+        delete pEventInput;
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -254,13 +261,15 @@ void MainNDPandora::ConfigureEventInputs()
         const NDSimpleTPCGeom tpcGeom = this->GetNDSimpleTPCGeom(pandoraName);
 
         // Create the NDEventInput pointer
-        const NDEventInput *pEventInput;
+        const NDEventInput *pEventInput{nullptr};
         const int volType = parameters.m_volType;
 
         if (volType == NDParameters::VolType::LArND)
             pEventInput = new LArNDEventInput(pPandora, parameters, tpcGeom);
         else if (volType == NDParameters::VolType::TMS)
             pEventInput = new TMSEventInput(pPandora, parameters, tpcGeom);
+        else
+            throw pandora::StatusCodeException(pandora::STATUS_CODE_INVALID_PARAMETER);
 
         // Insert into the event input map
         m_NDEventInputMap.insert(std::make_pair(pandoraName, pEventInput));
@@ -272,6 +281,12 @@ void MainNDPandora::ConfigureEventInputs()
 void MainNDPandora::ProcessEvents()
 {
     std::cout << "MainNDPandora::ProcessEvents()" << std::endl;
+
+    if (m_NDEventInputMap.empty())
+    {
+        std::cout << "MainNDPandora::ProcessEvents() - no NDEventInputs found, nothing to process" << std::endl;
+        return;
+    }
 
     // Find the total number of events
     const NDEventInput *pFirstEventInput = m_NDEventInputMap.begin()->second;

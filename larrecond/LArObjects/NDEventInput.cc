@@ -60,12 +60,18 @@ void NDEventInput::Initialize()
         {
             std::cout << "Error in NDEventInput: can't find tree " << m_parameters.m_inputTreeName << std::endl;
             m_pFile->Close();
+            delete m_pFile;
+            m_pFile = nullptr;
+            throw pandora::StatusCodeException(pandora::STATUS_CODE_NOT_FOUND);
         }
         else
             m_nEntries = m_pTree->GetEntries();
     }
     else
+    {
         std::cout << "Error in NDEventInput: can't open file " << m_parameters.m_inputFileName << std::endl;
+        throw pandora::StatusCodeException(pandora::STATUS_CODE_NOT_FOUND);
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -73,7 +79,10 @@ void NDEventInput::Initialize()
 NDEventInput::~NDEventInput()
 {
     if (m_pFile)
+    {
         m_pFile->Close();
+        delete m_pFile;
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

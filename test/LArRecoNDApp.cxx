@@ -9,7 +9,9 @@
 
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
+#include <vector>
 
 #include <Pandora/StatusCodes.h>
 #include "Helpers/XmlHelper.h"
@@ -39,6 +41,8 @@ struct LArRecoNDConfig
     InstanceMap inputFiles;
     // Geometry file names.
     InstanceMap geometryFiles;
+    // Whether the help message was requested.
+    bool showHelp = false;
     // TODO: Expand this to match all the expected CLI options for "Main" in the XML.
 };
 
@@ -96,7 +100,8 @@ LArRecoNDConfig ParseCommandLine(int argc, char *argv[])
                       << "  -i, --input <InstanceName:FilePath>  Specify input file for a Pandora instance\n"
                       << "  -g, --geometry <InstanceName:FilePath>  Specify geometry file for a Pandora instance\n"
                       << "  -h, --help                Show this help message\n";
-            exit(0);
+            options.showHelp = true;
+            return options;
         }
         else
         {
@@ -107,8 +112,7 @@ LArRecoNDConfig ParseCommandLine(int argc, char *argv[])
     return options;
 }
 
-template <typename T>
-T GetValue(InstanceMap &cliOptions, const TiXmlHandle &xmlHandle, const std::string &xmlKey, const std::string &instanceName)
+std::string GetValue(InstanceMap &cliOptions, const TiXmlHandle &xmlHandle, const std::string &xmlKey, const std::string &instanceName)
 {
     // Check if the CLI option is provided for this instance
     auto cliIt = cliOptions.find(instanceName);
@@ -119,7 +123,7 @@ T GetValue(InstanceMap &cliOptions, const TiXmlHandle &xmlHandle, const std::str
     TiXmlHandle instanceHandle = xmlHandle.FirstChildElement(instanceName.c_str());
     if (instanceHandle.Element())
     {
-        T value;
+        std::string value;
         if (XmlHelper::ReadValue(instanceHandle, xmlKey, value) == STATUS_CODE_SUCCESS)
             return value;
     }
@@ -133,15 +137,21 @@ int main(int argc, char *argv[])
     int errorNo(0);
 
     LArRecoNDConfig cliOptions = ParseCommandLine(argc, argv);
+    if (cliOptions.showHelp)
+        return 0;
+
     const std::string configFileName = cliOptions.configFileName;
     const std::string configFilePath(lar_content::LArFileHelper::FindFileInPath(configFileName, "FW_SEARCH_PATH"));
     std::cout << "XML ConfigFileName = " << configFilePath << std::endl;
 
+#ifdef MONITORING
+    std::unique_ptr<TApplication> pTApplication;
+#endif
+
     try
     {
-
 #ifdef MONITORING
-        TApplication *pTApplication = new TApplication("LArRecoNDApp", &argc, argv);
+        pTApplication = std::make_unique<TApplication>("LArRecoNDApp", &argc, argv);
         pTApplication->SetReturnFromRun(kTRUE);
 #endif
 
@@ -149,7 +159,7 @@ int main(int argc, char *argv[])
         if (!xmlDocument.LoadFile(configFilePath.c_str()))
         {
             std::cerr << "Error: Failed to load XML config file: " << configFilePath << std::endl;
-            return 1;
+            throw StatusCodeException(STATUS_CODE_FAILURE);
         }
 
         // INFO: The XML document will be the full file...we want inside the <pandora> element.
@@ -161,7 +171,7 @@ int main(int argc, char *argv[])
         if (!mainHandle.Element())
         {
             std::cerr << "Error: Could not find 'Main' element in XML config." << std::endl;
-            return 1;
+            throw StatusCodeException(STATUS_CODE_FAILURE);
         }
 
         NDParameters mainParameters;
@@ -177,7 +187,7 @@ int main(int argc, char *argv[])
 
         mainParameters.SetViewOption(viewOption);
         if (!mainParameters.SetRecoOption(recoOption))
-            return 1;
+            throw StatusCodeException(STATUS_CODE_FAILURE);
 
         MainNDPandora mainND("Main", mainParameters);
 
@@ -196,7 +206,7 @@ int main(int argc, char *argv[])
             if (!xmlHandle.FirstChildElement(instanceName.c_str()).Element())
             {
                 std::cerr << "Error: Could not find '" << instanceName << "' element in XML config." << std::endl;
-                return 1;
+                throw StatusCodeException(STATUS_CODE_FAILURE);
             }
 
             const auto instanceHandle = xmlHandle.FirstChildElement(instanceName.c_str());
@@ -216,8 +226,8 @@ int main(int argc, char *argv[])
             NDPars.m_settingsFile = lar_content::LArFileHelper::FindFileInPath(settingsFile, "FW_SEARCH_PATH");
 
             // Process any options that may have CLI overrides, otherwise use the XML values
-            NDPars.m_inputFileName = GetValue<std::string>(cliOptions.inputFiles, instanceHandle, "InputFile", instanceName);
-            NDPars.m_geomFileName = GetValue<std::string>(cliOptions.geometryFiles, instanceHandle, "GeomFile", instanceName);
+            NDPars.m_inputFileName = GetValue(cliOptions.inputFiles, instanceHandle, "InputFile", instanceName);
+            NDPars.m_geomFileName = GetValue(cliOptions.geometryFiles, instanceHandle, "GeomFile", instanceName);
 
             PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "InputTree", NDPars.m_inputTreeName));
             PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(instanceHandle, "GeomManager", NDPars.m_geomManagerName));
@@ -230,7 +240,7 @@ int main(int argc, char *argv[])
             if (XmlHelper::ReadValue(instanceHandle, "RecoOption", instanceRecoOption) == STATUS_CODE_SUCCESS)
             {
                 if (!NDPars.SetRecoOption(instanceRecoOption))
-                    return 1;
+                    throw StatusCodeException(STATUS_CODE_FAILURE);
             }
 
             // Instance may use different projection views as well

@@ -13,9 +13,9 @@
 #include <iostream>
 #include <memory>
 #include <random>
+#include <regex>
 #include <string>
 #include <vector>
-#include <regex>
 
 #include "Api/PandoraApi.h"
 #include "Geometry/LArTPC.h"

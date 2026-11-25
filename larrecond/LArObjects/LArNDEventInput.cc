@@ -55,7 +55,7 @@ void LArNDEventInput::CreateMCParticles(int eventIndex) const
     // Create MC neutrinos. Keep track of the vertex ID's of the neutrinos
     std::map<long, int> vertexIdToIndex;
 
-    for (size_t i = 0; i < nNeutrinos; ++i)
+    for (int i = 0; i < nNeutrinos; ++i)
     {
         // Unique vertex ID for the neutrino
         const long vertexID = (*larspmc->m_vertex_id)[i];
@@ -125,7 +125,14 @@ void LArNDEventInput::CreateMCParticles(int eventIndex) const
 
         // Neutrino info
         const long mcpVertexID = (*larspmc->m_mcp_vertex_id)[i];
-        const int nuIndex = vertexIdToIndex[mcpVertexID];
+        const int nuIndex = vertexIdToIndex.find(mcpVertexID) != vertexIdToIndex.end() ? vertexIdToIndex.at(mcpVertexID) : -1;
+
+        if (nuIndex == -1)
+        {
+            std::cout << "Error in LArNDEventInput: can't find neutrino for vertex ID " << mcpVertexID << std::endl;
+            continue;
+        }
+
         const std::string reaction = this->GetNuanceReaction((*larspmc->m_ccnc)[nuIndex], (*larspmc->m_mode)[nuIndex]);
         mcParticleParameters.m_nuanceCode = this->GetNuanceCode(reaction);
 
@@ -205,7 +212,7 @@ int LArNDEventInput::CreateCaloHits(int eventIndex, int startHitIndex) const
     }
 
     // Loop over the space points and make them into caloHits
-    for (size_t isp = 0; isp < nSP; ++isp)
+    for (int isp = 0; isp < nSP; ++isp)
     {
         const float voxelX = (*m_larsp->m_x)[isp] * m_parameters.m_lengthScale;
         const float voxelY = (*m_larsp->m_y)[isp] * m_parameters.m_lengthScale;
@@ -257,11 +264,16 @@ int LArNDEventInput::CreateCaloHits(int eventIndex, int startHitIndex) const
         if (m_parameters.m_dataFormat == NDParameters::DataFormat::SPMC)
         {
             LArSPMC *larspmc = dynamic_cast<LArSPMC *>(m_larsp.get());
-            if (!larspmc)
-                continue;
 
-            const std::vector<float> mcContribs = (*larspmc->m_hit_packetFrac)[isp];
-            const int biggestContribIndex = std::distance(mcContribs.begin(), std::max_element(mcContribs.begin(), mcContribs.end()));
+            if (!larspmc)
+            {
+                // ATTN: Reset the hit counter to avoid skipping hits.
+                --hitCounter;
+                continue;
+            }
+
+            const auto &mcContribs = (*larspmc->m_hit_packetFrac)[isp];
+            const size_t biggestContribIndex = std::distance(mcContribs.begin(), std::max_element(mcContribs.begin(), mcContribs.end()));
             const std::vector<long> hitPartIDVect = (*larspmc->m_hit_particleID)[isp];
             trackID = (hitPartIDVect.size() > biggestContribIndex) ? hitPartIDVect[biggestContribIndex] : 0;
 
@@ -283,12 +295,13 @@ int LArNDEventInput::CreateCaloHits(int eventIndex, int startHitIndex) const
             PANDORA_THROW_RESULT_IF(
                 pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::CaloHit::Create(*m_pMainPandora, caloHitParameters, m_LArCaloHitFactory));
             PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::CaloHit::Create(*m_pPandora, caloHitParameters, m_LArCaloHitFactory));
-        }
 
-        if (m_parameters.m_dataFormat == NDParameters::DataFormat::SPMC)
-        {
-            PandoraApi::SetCaloHitToMCParticleRelationship(*m_pMainPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
-            PandoraApi::SetCaloHitToMCParticleRelationship(*m_pPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
+            // INFO: Only create MC relationships, if we actually made 3D hits.
+            if (m_parameters.m_dataFormat == NDParameters::DataFormat::SPMC)
+            {
+                PandoraApi::SetCaloHitToMCParticleRelationship(*m_pMainPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
+                PandoraApi::SetCaloHitToMCParticleRelationship(*m_pPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
+            }
         }
 
         if (m_parameters.m_useLArTPC)
