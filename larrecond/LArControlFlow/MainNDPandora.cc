@@ -6,6 +6,7 @@
  *  $Log: $
  */
 
+#include "Pandora/PandoraSettings.h"
 #include "Pandora/StatusCodes.h"
 #include "Api/PandoraApi.h"
 #include "PandoraMonitoringApi.h"
@@ -29,6 +30,52 @@
 
 using namespace pandora;
 
+namespace
+{
+
+// ATTN: The wire parameters below are placeholders for the ND (voxel-based) geometry,
+// taken from the MicroBooNE LArTPC definition.
+constexpr float WirePitch{0.300000011921f}; ///< Wire pitch for the U, V and W views
+constexpr float WireAngleU{1.04719758034f}; ///< Wire angle for the U view (rad), +60 degrees
+constexpr float WireAngleV{-1.04719758034f}; ///< Wire angle for the V view (rad), -60 degrees
+constexpr float WireAngleW{0.f};            ///< Wire angle for the W view (rad)
+constexpr float SigmaUVW{1.f};              ///< Wire position uncertainty
+
+/**
+ *  @brief  Make the Pandora LArTPC parameters from a simple ND TPC box
+ *
+ *  @param  tpc The simple TPC description
+ *
+ *  @return The Pandora LArTPC parameters
+ */
+PandoraApi::Geometry::LArTPC::Parameters CreateLArTPCParameters(const lar_nd_reco::NDSimpleTPC &tpc)
+{
+    PandoraApi::Geometry::LArTPC::Parameters geoParameters;
+
+    geoParameters.m_centerX = 0.5 * (tpc.m_x_min + tpc.m_x_max);
+    geoParameters.m_centerY = 0.5 * (tpc.m_y_min + tpc.m_y_max);
+    geoParameters.m_centerZ = 0.5 * (tpc.m_z_min + tpc.m_z_max);
+    geoParameters.m_widthX = (tpc.m_x_max - tpc.m_x_min);
+    geoParameters.m_widthY = (tpc.m_y_max - tpc.m_y_min);
+    geoParameters.m_widthZ = (tpc.m_z_max - tpc.m_z_min);
+
+    geoParameters.m_larTPCVolumeId = tpc.m_TPC_ID;
+    geoParameters.m_wirePitchU = WirePitch;
+    geoParameters.m_wirePitchV = WirePitch;
+    geoParameters.m_wirePitchW = WirePitch;
+    geoParameters.m_wireAngleU = WireAngleU;
+    geoParameters.m_wireAngleV = WireAngleV;
+    geoParameters.m_wireAngleW = WireAngleW;
+    geoParameters.m_sigmaUVW = SigmaUVW;
+
+    // ATTN: Assumes the drift direction alternates with the TPC ID (even IDs drift in -x, odd IDs in +x)
+    geoParameters.m_isDriftInPositiveX = (tpc.m_TPC_ID % 2) != 0;
+
+    return geoParameters;
+}
+
+} // namespace
+
 namespace lar_nd_reco
 {
 
@@ -51,7 +98,8 @@ MainNDPandora::MainNDPandora(const std::string &mainName, const NDParameters &ma
 MainNDPandora::~MainNDPandora()
 {
     // Delete all Pandora instances, including the main one
-    std::cout << "DeletePandoraInstances" << std::endl;
+    if (this->ShouldDisplayInfo())
+        std::cout << "DeletePandoraInstances" << std::endl;
     MultiPandoraApi::DeletePandoraInstances(m_pMainPandora);
 
     for (const auto &pair : m_NDEventInputMap)
@@ -121,7 +169,7 @@ void MainNDPandora::CreatePandoraTPCs()
     for (const auto *pPandora : pandoraList)
     {
         const std::string pandoraName = pPandora->GetName();
-        const NDParameters parameters = this->GetPandoraParameters(pandoraName);
+        const NDParameters &parameters = this->GetPandoraParameters(pandoraName);
 
         std::cout << "Creating TPCs for " << pandoraName << std::endl;
 
@@ -142,26 +190,8 @@ void MainNDPandora::CreatePandoraTPCs()
         std::map<unsigned int, NDSimpleTPC>::const_iterator tpcIter;
         for (tpcIter = tpcGeom.m_TPCs.begin(); tpcIter != tpcGeom.m_TPCs.end(); ++tpcIter)
         {
-            const NDSimpleTPC tpc = tpcIter->second;
-            PandoraApi::Geometry::LArTPC::Parameters geoParameters;
-
-            geoParameters.m_centerX = 0.5 * (tpc.m_x_min + tpc.m_x_max);
-            geoParameters.m_centerY = 0.5 * (tpc.m_y_min + tpc.m_y_max);
-            geoParameters.m_centerZ = 0.5 * (tpc.m_z_min + tpc.m_z_max);
-            geoParameters.m_widthX = (tpc.m_x_max - tpc.m_x_min);
-            geoParameters.m_widthY = (tpc.m_y_max - tpc.m_y_min);
-            geoParameters.m_widthZ = (tpc.m_z_max - tpc.m_z_min);
-
-            // ATTN: parameters past here taken from uboone
-            geoParameters.m_larTPCVolumeId = tpc.m_TPC_ID;
-            geoParameters.m_wirePitchU = 0.300000011921;
-            geoParameters.m_wirePitchV = 0.300000011921;
-            geoParameters.m_wirePitchW = 0.300000011921;
-            geoParameters.m_wireAngleU = 1.04719758034;
-            geoParameters.m_wireAngleV = -1.04719758034;
-            geoParameters.m_wireAngleW = 0.0;
-            geoParameters.m_sigmaUVW = 1;
-            geoParameters.m_isDriftInPositiveX = tpc.m_TPC_ID % 2;
+            const NDSimpleTPC &tpc = tpcIter->second;
+            const PandoraApi::Geometry::LArTPC::Parameters geoParameters(CreateLArTPCParameters(tpc));
 
             try
             {
@@ -209,7 +239,7 @@ void MainNDPandora::ConfigurePandoraInstances()
     const PandoraInstanceList pandoraList = MultiPandoraApi::GetDaughterPandoraInstanceList(m_pMainPandora);
     for (const auto *pPandora : pandoraList)
     {
-        const NDParameters parameters = this->GetPandoraParameters(pPandora->GetName());
+        const NDParameters &parameters = this->GetPandoraParameters(pPandora->GetName());
         this->ProcessExternalParameters(pPandora, parameters);
         PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::ReadSettings(*pPandora, parameters.m_settingsFile));
     }
@@ -255,10 +285,10 @@ void MainNDPandora::ConfigureEventInputs()
     for (const auto *pPandora : pandoraList)
     {
         const std::string pandoraName = pPandora->GetName();
-        const NDParameters parameters = this->GetPandoraParameters(pandoraName);
+        const NDParameters &parameters = this->GetPandoraParameters(pandoraName);
 
         // The TPC geometry
-        const NDSimpleTPCGeom tpcGeom = this->GetNDSimpleTPCGeom(pandoraName);
+        const NDSimpleTPCGeom &tpcGeom = this->GetNDSimpleTPCGeom(pandoraName);
 
         // Create the NDEventInput pointer
         const NDEventInput *pEventInput{nullptr};
@@ -280,7 +310,8 @@ void MainNDPandora::ConfigureEventInputs()
 
 void MainNDPandora::ProcessEvents()
 {
-    std::cout << "MainNDPandora::ProcessEvents()" << std::endl;
+    if (this->ShouldDisplayInfo())
+        std::cout << "MainNDPandora::ProcessEvents()" << std::endl;
 
     if (m_NDEventInputMap.empty())
     {
@@ -327,12 +358,14 @@ void MainNDPandora::ProcessEvents()
             if (!pEventInput)
                 continue;
 
-            std::cout << "NDEventInput name = " << iter->first << std::endl;
+            if (this->ShouldDisplayInfo())
+                std::cout << "NDEventInput name = " << iter->first << std::endl;
             pEventInput->CreateMCParticles(iEvt);
             nTotalHits = pEventInput->CreateCaloHits(iEvt, nTotalHits);
             nTotalTracks = pEventInput->CreateTracks(iEvt, nTotalTracks);
 
-            std::cout << "nTotalHits = " << nTotalHits << ", nTotalTracks = " << nTotalTracks << std::endl;
+            if (this->ShouldDisplayInfo())
+                std::cout << "nTotalHits = " << nTotalHits << ", nTotalTracks = " << nTotalTracks << std::endl;
 
             // Run the algorithms for this Pandora event instance
             const pandora::Pandora *pPandora = pEventInput->GetPandoraInstance();
@@ -359,7 +392,14 @@ void MainNDPandora::ProcessEvents()
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-const NDParameters MainNDPandora::GetPandoraParameters(const std::string &name) const
+bool MainNDPandora::ShouldDisplayInfo() const
+{
+    return m_pMainPandora && m_pMainPandora->GetSettings() && m_pMainPandora->GetSettings()->ShouldDisplayAlgorithmInfo();
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+const NDParameters &MainNDPandora::GetPandoraParameters(const std::string &name) const
 {
     NDParametersMap::const_iterator iter = m_NDParametersMap.find(name);
 
@@ -371,7 +411,7 @@ const NDParameters MainNDPandora::GetPandoraParameters(const std::string &name) 
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-const NDSimpleTPCGeom MainNDPandora::GetNDSimpleTPCGeom(const std::string &name) const
+const NDSimpleTPCGeom &MainNDPandora::GetNDSimpleTPCGeom(const std::string &name) const
 {
     NDSimpleTPCGeomMap::const_iterator iter = m_NDSimpleTPCGeomMap.find(name);
 

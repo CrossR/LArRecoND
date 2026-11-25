@@ -16,6 +16,7 @@
 #include "larpandoracontent/LArPlugins/LArPseudoLayerPlugin.h"
 #include "larpandoracontent/LArPlugins/LArRotationalTransformationPlugin.h"
 
+#include "larrecond/LArHelpers/NDNuanceHelper.h"
 #include "larrecond/LArObjects/LArNDEventInput.h"
 
 #include "TTree.h"
@@ -27,7 +28,8 @@ LArNDEventInput::LArNDEventInput(const pandora::Pandora *pPandora, const NDParam
     NDEventInput(pPandora, parameters, tpcGeom),
     m_larsp{}
 {
-    std::cout << "LArNDEventInput nEntries = " << m_nEntries << std::endl;
+    if (this->ShouldDisplayInfo())
+        std::cout << "LArNDEventInput nEntries = " << m_nEntries << std::endl;
     m_larsp = (parameters.m_dataFormat == NDParameters::DataFormat::SPMC) ? std::make_unique<LArSPMC>(m_pTree) : std::make_unique<LArSP>(m_pTree);
 }
 
@@ -50,7 +52,8 @@ void LArNDEventInput::CreateMCParticles(int eventIndex) const
     larspmc->GetEntry(eventIndex);
 
     const int nNeutrinos(larspmc->m_nuPDG->size());
-    std::cout << "Read in " << nNeutrinos << " true neutrinos" << std::endl;
+    if (this->ShouldDisplayInfo())
+        std::cout << "Read in " << nNeutrinos << " true neutrinos" << std::endl;
 
     // Create MC neutrinos. Keep track of the vertex ID's of the neutrinos
     std::map<long, int> vertexIdToIndex;
@@ -63,8 +66,8 @@ void LArNDEventInput::CreateMCParticles(int eventIndex) const
         vertexIdToIndex[vertexID] = i;
 
         const int neutrinoPDG = (*larspmc->m_nuPDG)[i];
-        const std::string reaction = this->GetNuanceReaction((*larspmc->m_ccnc)[i], (*larspmc->m_mode)[i]);
-        const int nuanceCode = this->GetNuanceCode(reaction);
+        const std::string reaction = GetNuanceReaction((*larspmc->m_ccnc)[i], (*larspmc->m_mode)[i]);
+        const int nuanceCode = GetNuanceCode(reaction);
         const float nuVtxX = (*larspmc->m_nuvtxx)[i] * m_parameters.m_lengthScale;
         const float nuVtxY = (*larspmc->m_nuvtxy)[i] * m_parameters.m_lengthScale;
         const float nuVtxZ = (*larspmc->m_nuvtxz)[i] * m_parameters.m_lengthScale;
@@ -133,8 +136,8 @@ void LArNDEventInput::CreateMCParticles(int eventIndex) const
             continue;
         }
 
-        const std::string reaction = this->GetNuanceReaction((*larspmc->m_ccnc)[nuIndex], (*larspmc->m_mode)[nuIndex]);
-        mcParticleParameters.m_nuanceCode = this->GetNuanceCode(reaction);
+        const std::string reaction = GetNuanceReaction((*larspmc->m_ccnc)[nuIndex], (*larspmc->m_mode)[nuIndex]);
+        mcParticleParameters.m_nuanceCode = GetNuanceCode(reaction);
 
         // Unique file-based ID for this MC particle
         const long mcpID = (*larspmc->m_mcp_id)[i];
@@ -188,12 +191,14 @@ void LArNDEventInput::CreateMCParticles(int eventIndex) const
 
 int LArNDEventInput::CreateCaloHits(int eventIndex, int startHitIndex) const
 {
-    std::cout << "LArNDEventInput::CreateCaloHits eventIndex = " << eventIndex << std::endl;
+    if (this->ShouldDisplayInfo())
+        std::cout << "LArNDEventInput::CreateCaloHits eventIndex = " << eventIndex << std::endl;
 
     m_larsp->GetEntry(eventIndex);
 
     int hitCounter{startHitIndex};
-    std::cout << "LArNDEventInput: startHitIndex = " << startHitIndex << std::endl;
+    if (this->ShouldDisplayInfo())
+        std::cout << "LArNDEventInput: startHitIndex = " << startHitIndex << std::endl;
 
     const int nSP = m_larsp->m_x->size();
 
@@ -228,49 +233,20 @@ int LArNDEventInput::CreateCaloHits(int eventIndex, int startHitIndex) const
         }
 
         const pandora::CartesianVector voxelPos(voxelX, voxelY, voxelZ);
-        const float MipE{0.00075};
-        const float voxelMipEquivalentE = voxelE / MipE;
         const int tpcID(m_tpcGeom.GetTPCNumber(voxelPos));
-        const float voxelWidth(m_parameters.m_voxelWidth);
-
-        lar_content::LArCaloHitParameters caloHitParameters;
-        caloHitParameters.m_positionVector = voxelPos;
-        caloHitParameters.m_expectedDirection = pandora::CartesianVector(0.f, 0.f, 1.f);
-        caloHitParameters.m_cellNormalVector = pandora::CartesianVector(0.f, 0.f, 1.f);
-        caloHitParameters.m_cellGeometry = pandora::RECTANGULAR;
-        caloHitParameters.m_cellSize0 = voxelWidth;
-        caloHitParameters.m_cellSize1 = voxelWidth;
-        caloHitParameters.m_cellThickness = voxelWidth;
-        caloHitParameters.m_nCellRadiationLengths = 1.f;
-        caloHitParameters.m_nCellInteractionLengths = 1.f;
-        caloHitParameters.m_time = 0.f;
-        caloHitParameters.m_inputEnergy = voxelE;
-        caloHitParameters.m_mipEquivalentEnergy = voxelMipEquivalentE;
-        caloHitParameters.m_electromagneticEnergy = voxelE;
-        caloHitParameters.m_hadronicEnergy = voxelE;
-        caloHitParameters.m_isDigital = false;
-        caloHitParameters.m_hitType = pandora::TPC_3D;
-        caloHitParameters.m_hitRegion = pandora::SINGLE_REGION;
-        caloHitParameters.m_layer = 0;
-        caloHitParameters.m_isInOuterSamplingLayer = false;
-        caloHitParameters.m_pParentAddress = (void *)(static_cast<uintptr_t>(++hitCounter));
-        caloHitParameters.m_larTPCVolumeId = tpcID < 0 ? 0 : tpcID;
-        caloHitParameters.m_daughterVolumeId = 0;
+        const lar_content::LArCaloHitParameters caloHitParameters(this->MakeCaloHitParameters(voxelPos, voxelE, tpcID));
 
         // Only used for truth
         long trackID{0};
         float energyFrac{0.f};
+        bool hasMCLink{false};
         // Set calo hit to MCParticle relation using trackID
         if (m_parameters.m_dataFormat == NDParameters::DataFormat::SPMC)
         {
             LArSPMC *larspmc = dynamic_cast<LArSPMC *>(m_larsp.get());
 
             if (!larspmc)
-            {
-                // ATTN: Reset the hit counter to avoid skipping hits.
-                --hitCounter;
                 continue;
-            }
 
             const auto &mcContribs = (*larspmc->m_hit_packetFrac)[isp];
             const size_t biggestContribIndex = std::distance(mcContribs.begin(), std::max_element(mcContribs.begin(), mcContribs.end()));
@@ -287,78 +263,17 @@ int LArNDEventInput::CreateCaloHits(int eventIndex, int startHitIndex) const
 
             if (std::find(larspmc->m_mcp_id->begin(), larspmc->m_mcp_id->end(), trackID) == larspmc->m_mcp_id->end())
                 std::cout << "Problem? Could not find MC particle with file ID " << trackID << std::endl;
+
+            hasMCLink = true;
         }
 
-        // Create CaloHit for the main Pandora instance and create a copy for this instance as well
-        if (m_parameters.m_use3D)
-        {
-            PANDORA_THROW_RESULT_IF(
-                pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::CaloHit::Create(*m_pMainPandora, caloHitParameters, m_LArCaloHitFactory));
-            PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::CaloHit::Create(*m_pPandora, caloHitParameters, m_LArCaloHitFactory));
-
-            // INFO: Only create MC relationships, if we actually made 3D hits.
-            if (m_parameters.m_dataFormat == NDParameters::DataFormat::SPMC)
-            {
-                PandoraApi::SetCaloHitToMCParticleRelationship(*m_pMainPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
-                PandoraApi::SetCaloHitToMCParticleRelationship(*m_pPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
-            }
-        }
-
-        if (m_parameters.m_useLArTPC)
-        {
-            // Create LArCaloHits for U, V and W views assuming x is the common drift coordinate
-            const float x0_cm(voxelPos.GetX());
-            const float y0_cm(voxelPos.GetY());
-            const float z0_cm(voxelPos.GetZ());
-
-            // U view
-            lar_content::LArCaloHitParameters caloHitPars_UView(caloHitParameters);
-            caloHitPars_UView.m_hitType = pandora::TPC_VIEW_U;
-            caloHitPars_UView.m_pParentAddress = (void *)(intptr_t(++hitCounter));
-            const float upos_cm(m_pPandora->GetPlugins()->GetLArTransformationPlugin()->YZtoU(y0_cm, z0_cm));
-            caloHitPars_UView.m_positionVector = pandora::CartesianVector(x0_cm, 0.f, upos_cm);
-            PANDORA_THROW_RESULT_IF(
-                pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::CaloHit::Create(*m_pMainPandora, caloHitPars_UView, m_LArCaloHitFactory));
-            PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::CaloHit::Create(*m_pPandora, caloHitPars_UView, m_LArCaloHitFactory));
-            if (m_parameters.m_dataFormat == NDParameters::DataFormat::SPMC)
-            {
-                PandoraApi::SetCaloHitToMCParticleRelationship(*m_pMainPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
-                PandoraApi::SetCaloHitToMCParticleRelationship(*m_pPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
-            }
-
-            // V view
-            lar_content::LArCaloHitParameters caloHitPars_VView(caloHitParameters);
-            caloHitPars_VView.m_hitType = pandora::TPC_VIEW_V;
-            caloHitPars_VView.m_pParentAddress = (void *)(intptr_t(++hitCounter));
-            const float vpos_cm(m_pPandora->GetPlugins()->GetLArTransformationPlugin()->YZtoV(y0_cm, z0_cm));
-            caloHitPars_VView.m_positionVector = pandora::CartesianVector(x0_cm, 0.f, vpos_cm);
-            PANDORA_THROW_RESULT_IF(
-                pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::CaloHit::Create(*m_pMainPandora, caloHitPars_VView, m_LArCaloHitFactory));
-            PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::CaloHit::Create(*m_pPandora, caloHitPars_VView, m_LArCaloHitFactory));
-            if (m_parameters.m_dataFormat == NDParameters::DataFormat::SPMC)
-            {
-                PandoraApi::SetCaloHitToMCParticleRelationship(*m_pMainPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
-                PandoraApi::SetCaloHitToMCParticleRelationship(*m_pPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
-            }
-            // W view
-            lar_content::LArCaloHitParameters caloHitPars_WView(caloHitParameters);
-            caloHitPars_WView.m_hitType = pandora::TPC_VIEW_W;
-            caloHitPars_WView.m_pParentAddress = (void *)(intptr_t(++hitCounter));
-            const float wpos_cm(m_pPandora->GetPlugins()->GetLArTransformationPlugin()->YZtoW(y0_cm, z0_cm));
-            caloHitPars_WView.m_positionVector = pandora::CartesianVector(x0_cm, 0.f, wpos_cm);
-            PANDORA_THROW_RESULT_IF(
-                pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::CaloHit::Create(*m_pMainPandora, caloHitPars_WView, m_LArCaloHitFactory));
-            PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::CaloHit::Create(*m_pPandora, caloHitPars_WView, m_LArCaloHitFactory));
-            if (m_parameters.m_dataFormat == NDParameters::DataFormat::SPMC)
-            {
-                PandoraApi::SetCaloHitToMCParticleRelationship(*m_pMainPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
-                PandoraApi::SetCaloHitToMCParticleRelationship(*m_pPandora, (void *)((intptr_t)hitCounter), (void *)((intptr_t)trackID), energyFrac);
-            }
-
-        } // use LArTPC coords
+        // Create the hits (3D and/or U, V, W views) in the main Pandora instance and in this one
+        const MCLink mcLink{trackID, energyFrac};
+        this->CreateVoxelCaloHits(caloHitParameters, voxelPos, hitCounter, hasMCLink ? &mcLink : nullptr);
     } // end space point loop
 
-    std::cout << "startHitIndex = " << startHitIndex << ", hitCounter = " << hitCounter << std::endl;
+    if (this->ShouldDisplayInfo())
+        std::cout << "startHitIndex = " << startHitIndex << ", hitCounter = " << hitCounter << std::endl;
     return hitCounter;
 }
 

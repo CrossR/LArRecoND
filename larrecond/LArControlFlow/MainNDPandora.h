@@ -90,7 +90,7 @@ public:
      *
      *  @return the main Pandora instance parameters
      */
-    const NDParameters GetMainPandoraParameters() const
+    const NDParameters &GetMainPandoraParameters() const
     {
         return m_mainParameters;
     }
@@ -101,7 +101,7 @@ public:
      *  @param  name The name of the Pandora instance
      *  @return The parameters of the given Pandora instance
      */
-    const NDParameters GetPandoraParameters(const std::string &name) const;
+    const NDParameters &GetPandoraParameters(const std::string &name) const;
 
     /**
      *  @brief  Get the TPC geometry info for the given Pandora instance
@@ -109,7 +109,7 @@ public:
      *  @param  name The name of the Pandora instance
      *  @return The TPC geometry info
      */
-    const NDSimpleTPCGeom GetNDSimpleTPCGeom(const std::string &name) const;
+    const NDSimpleTPCGeom &GetNDSimpleTPCGeom(const std::string &name) const;
 
     /**
      *  @brief  Get the event input pointer for the given Pandora instance
@@ -120,6 +120,13 @@ public:
     const NDEventInput *GetNDEventInput(const std::string &name) const;
 
 private:
+    /**
+     *  @brief  Whether verbose output is enabled in the main Pandora instance settings
+     *
+     *  @return True if the Pandora settings request algorithm info to be displayed
+     */
+    bool ShouldDisplayInfo() const;
+
     /**
      *  @brief  Create the Pandora instance
      *
