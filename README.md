@@ -228,11 +228,6 @@ python ndlarflow/h5_to_root_ndlarflow.py inputHDF5File 1 outputDir
 where the first argument is the input HDF5 file, the second integer specifies data (1) and the final argument
 is the location of the output directory which will store the equivalent ROOT file.
 
-To use deep learning vertexing (DLVtx), make sure LArRecoND and LArContent is first built with LibTorch enabled, then use
-the [PandoraSettings_LArRecoND_ThreeD_DLVtx.xml](settings/PandoraSettings_LArRecoND_ThreeD_DLVtx.xml) settings file.
-You can tell if the DL vertexing is running if you see messages such as
-`Loaded the TorchScript model PandoraNetworkDataFileName.pt` when the first event is getting processed.
-
 ### 2x2 simulation
 
 The following example can be used to run LArRecoND 3D-clustering and 2D-projection neutrino reconstruction
@@ -259,17 +254,14 @@ python ndlarflow/h5_to_root_ndlarflow.py inputHDF5File 0 outputDir
 where the first argument is the input HDF5 file, the second integer specifies MC (0) and the final argument
 is the location of the output directory which will store the equivalent ROOT file.
 
-To use deep learning vertexing (DLVtx), make sure LArRecoND and LArContent is first built with LibTorch enabled, then use
-the [PandoraSettings_LArRecoND_ThreeD_DLVtx.xml](settings/PandoraSettings_LArRecoND_ThreeD_DLVtx.xml) settings file.
-
 ### Cheating
 
 It is possible to cheat various steps of the reconstruction, in which MC truth information is used to create "perfectly" reconstructed objects.
 These can then be compared with the full reconstruction objects to see which algorithms need further improvement.
 There are two cheating workflows available: fully-cheated and partially-cheated reconstruction. The fully-cheated workflow is enabled using
-the [PandoraSettings_LArRecoND_ThreeD_Cheated.xml](settings/PandoraSettings_LArRecoND_ThreeD_Cheated.xml) settings file, while the
+the [PandoraSettings_LArRecoND_ThreeD_Cheated.xml](settings/development/PandoraSettings_LArRecoND_ThreeD_Cheated.xml) settings file, while the
 partially-cheated workflow that only cheats rock muon tracks can be run using
-[PandoraSettings_LArRecoND_ThreeD_PartialCheated.xml](settings/PandoraSettings_LArRecoND_ThreeD_PartialCheated.xml).
+[PandoraSettings_LArRecoND_ThreeD_PartialCheated.xml](settings/development/PandoraSettings_LArRecoND_ThreeD_PartialCheated.xml).
 These workflows require the `SPMC` input format, since all the MC information needs to be available; they won't work for the data `SP` format.
 
 ### edep-sim
@@ -289,9 +281,6 @@ input to use the [edep-sim format](https://github.com/ClarkMcGrew/edep-sim/tree/
 available MC truth information. The `-n` option sets the number of events (in this case 10) while `-N` prints out
 event information. Usually, the TGeoManager geometry information is stored in the event input ROOT file, so the same
 filename should be used for both the `-e` and `-g` options if this is indeed the case.
-
-To use deep learning vertexing (DLVtx), make sure LArRecoND and LArContent is first built with LibTorch enabled, then use
-the [PandoraSettings_LArRecoND_ThreeD_DLVtx.xml](settings/PandoraSettings_LArRecoND_ThreeD_DLVtx.xml) settings file.
 
 ### Event displays
 
@@ -383,13 +372,12 @@ Hierarchy Tools while the local ones are used by the CAF truth matching. A map i
 the unique ID numbers. If these MC ID variable names are not provided, then only the unique MC IDs are used (the local IDs are
 set equal to them), meaning that the CAF truth matching will be incomplete.
 
-The xml settings files [PandoraSettings_LArRecoND_ThreeD.xml](settings/PandoraSettings_LArRecoND_ThreeD.xml) and
-[PandoraSettings_LArRecoND_ThreeD_DLVtx.xml](settings/PandoraSettings_LArRecoND_ThreeD_DLVtx.xml) contain
+The xml settings file [PandoraSettings_LArRecoND_ThreeD.xml](settings/PandoraSettings_LArRecoND_ThreeD.xml) contains
 (commented out) examples of using LArContent's
 [LArHierarchyValidation](https://github.com/PandoraPFA/LArContent/blob/master/larpandoracontent/LArMonitoring/HierarchyValidationAlgorithm.h)
 algorithm, which can be used to create event and particle-level ROOT output files that contain much more detail of the hierarchy than the
 above LArRecoND analysis algorithm, such as complete lists of all possible reco-MC matches.
-The xml files also contain (commented out) examples of using the MicroBooNE validation algorithm
+The xml file also contains (commented out) examples of using the MicroBooNE validation algorithm
 [LArNeutrinoEventValidation](https://github.com/PandoraPFA/LArContent/blob/master/larpandoracontent/LArMonitoring/NeutrinoEventValidationAlgorithm.h),
 which only works for events containing single neutrino interactions (with cosmic rays).
 
