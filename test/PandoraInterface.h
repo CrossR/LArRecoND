@@ -161,7 +161,6 @@ inline Parameters::Parameters() :
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------------------------------------
 
 /**
  *  @brief  Create the detector geometry based on the C++ root file
@@ -280,29 +279,6 @@ void ProcessSEDEvents(const Parameters &parameters, const pandora::Pandora *cons
  *  @param  parameters The application parameters
  */
 void CreateSEDMCParticles(const LArSED &larsed, const pandora::Pandora *const pPrimaryPandora, const Parameters &parameters);
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-/**
- *  @brief  Convert the GENIE neutrino reaction string to a Nuance-like integer code
- *
- *  @param  reaction The neutrino reaction string
- *
- *  @return The reaction integer code
- */
-int GetNuanceCode(const std::string &reaction);
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-/**
- *  @brief  Get Nuance reaction string for SED format
- *
- *  @param  ccnc Integer specifying CCNC reaction
- *  @param  mode Integer specifying general physics mode
- *
- *  @return Name of the Nuance reaction
- */
-std::string GetNuanceReaction(const int ccnc, const int mode);
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 

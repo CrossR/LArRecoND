@@ -97,23 +97,43 @@ protected:
     void Initialize();
 
     /**
-     *  @brief  Convert the GENIE neutrino reaction string to a Nuance-like integer code
-     *
-     *  @param  reaction The neutrino reaction string
-     *
-     *  @return The reaction integer code
+     *  @brief  Link between a CaloHit and the MCParticle that contributed most to it
      */
-    int GetNuanceCode(const std::string &reaction) const;
+    struct MCLink
+    {
+        long m_trackID;    ///< The (file-based) ID of the MCParticle
+        float m_energyFrac; ///< The fraction of the hit energy from the MCParticle
+    };
 
     /**
-     *  @brief  Get Nuance reaction string
+     *  @brief  Make the default 3D CaloHit parameters for a voxel (the parent address is not set)
      *
-     *  @param  ccnc Integer specifying CCNC reaction
-     *  @param  mode Integer specifying general physics mode
+     *  @param  voxelPos The voxel position (cm)
+     *  @param  voxelE The voxel energy (GeV)
+     *  @param  tpcID The TPC number of the voxel (negative values are mapped to TPC 0)
      *
-     *  @return Name of the Nuance reaction
+     *  @return The CaloHit parameters
      */
-    std::string GetNuanceReaction(const int ccnc, const int mode) const;
+    lar_content::LArCaloHitParameters MakeCaloHitParameters(const pandora::CartesianVector &voxelPos, const float voxelE, const int tpcID) const;
+
+    /**
+     *  @brief  Create the CaloHits for a voxel: a 3D hit (if enabled) and U, V and W view hits (if enabled).
+     *          Each hit is created in both the main and this Pandora instance, with a unique parent address.
+     *
+     *  @param  caloHitParameters The default parameters from MakeCaloHitParameters
+     *  @param  voxelPos The voxel position (cm)
+     *  @param  hitCounter The running hit counter, which is incremented for each hit (or reserved 3D hit) made
+     *  @param  pMCLink The MC link to set for each hit, or nullptr if there is no truth information
+     */
+    void CreateVoxelCaloHits(const lar_content::LArCaloHitParameters &caloHitParameters, const pandora::CartesianVector &voxelPos,
+        int &hitCounter, const MCLink *pMCLink) const;
+
+    /**
+     *  @brief  Whether verbose output is enabled for this Pandora instance
+     *
+     *  @return True if the Pandora settings request algorithm info to be displayed
+     */
+    bool ShouldDisplayInfo() const;
 
     const pandora::Pandora *m_pPandora;
     const pandora::Pandora *m_pMainPandora;

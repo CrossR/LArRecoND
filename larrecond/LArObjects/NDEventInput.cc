@@ -6,14 +6,27 @@
  *  $Log: $
  */
 
+#include <array>
+#include <utility>
+
 #include "Api/PandoraApi.h"
 
+#include "Managers/PluginManager.h"
+#include "Pandora/PandoraSettings.h"
+
 #include "larpandoracontent/LArControlFlow/MultiPandoraApi.h"
+#include "larpandoracontent/LArPlugins/LArRotationalTransformationPlugin.h"
 
 #include "larrecond/LArObjects/NDEventInput.h"
 
 #include "TFile.h"
 #include "TTree.h"
+
+namespace
+{
+// Mip-equivalent energy of a voxel (GeV)
+constexpr float MipE{0.00075f};
+} // namespace
 
 namespace lar_nd_reco
 {
@@ -45,12 +58,16 @@ NDEventInput::NDEventInput(const pandora::Pandora *pPandora, const NDParameters 
 
 void NDEventInput::Initialize()
 {
-    std::cout << "Constructing NDEventInput for " << m_pPandora->GetName() << ", " << m_parameters.m_inputFileName << ", "
-              << m_parameters.m_inputTreeName << std::endl;
+    if (this->ShouldDisplayInfo())
+    {
+        std::cout << "Constructing NDEventInput for " << m_pPandora->GetName() << ", " << m_parameters.m_inputFileName << ", "
+                  << m_parameters.m_inputTreeName << std::endl;
+    }
 
     // Get the main Pandora instance pointer
     m_pMainPandora = MultiPandoraApi::GetPrimaryPandoraInstance(m_pPandora);
-    std::cout << "Main Pandora instance is " << m_pMainPandora->GetName() << std::endl;
+    if (this->ShouldDisplayInfo())
+        std::cout << "Main Pandora instance is " << m_pMainPandora->GetName() << std::endl;
 
     m_pFile = TFile::Open(m_parameters.m_inputFileName.c_str(), "READ");
     if (m_pFile)
@@ -85,122 +102,94 @@ NDEventInput::~NDEventInput()
     }
 }
 
+bool NDEventInput::ShouldDisplayInfo() const
+{
+    return m_pPandora && m_pPandora->GetSettings() && m_pPandora->GetSettings()->ShouldDisplayAlgorithmInfo();
+}
+
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-int NDEventInput::GetNuanceCode(const std::string &reaction) const
+lar_content::LArCaloHitParameters NDEventInput::MakeCaloHitParameters(const pandora::CartesianVector &voxelPos, const float voxelE, const int tpcID) const
 {
-    // The GENIE reaction string (also stored by edep-sim) is created using
-    // https://github.com/GENIE-MC/Generator/blob/master/src/Framework/Interaction/Interaction.cxx#L249
-    // String format is "nu:PDGId;tgt:PDGId;N:PDGId;proc:interactionType,scattering;", e.g.
-    //                  "nu:14;tgt:1000180400;N:2112;proc:Weak[CC],QES;"
+    const float voxelWidth(m_parameters.m_voxelWidth);
 
-    // GENIE scattering codes:
-    // https://github.com/GENIE-MC/Generator/blob/master/src/Framework/Interaction/ScatteringType.h
+    lar_content::LArCaloHitParameters caloHitParameters;
+    caloHitParameters.m_positionVector = voxelPos;
+    caloHitParameters.m_expectedDirection = pandora::CartesianVector(0.f, 0.f, 1.f);
+    caloHitParameters.m_cellNormalVector = pandora::CartesianVector(0.f, 0.f, 1.f);
+    caloHitParameters.m_cellGeometry = pandora::RECTANGULAR;
+    caloHitParameters.m_cellSize0 = voxelWidth;
+    caloHitParameters.m_cellSize1 = voxelWidth;
+    caloHitParameters.m_cellThickness = voxelWidth;
+    caloHitParameters.m_nCellRadiationLengths = 1.f;
+    caloHitParameters.m_nCellInteractionLengths = 1.f;
+    caloHitParameters.m_time = 0.f;
+    caloHitParameters.m_inputEnergy = voxelE;
+    caloHitParameters.m_mipEquivalentEnergy = voxelE / MipE;
+    caloHitParameters.m_electromagneticEnergy = voxelE;
+    caloHitParameters.m_hadronicEnergy = voxelE;
+    caloHitParameters.m_isDigital = false;
+    caloHitParameters.m_hitType = pandora::TPC_3D;
+    caloHitParameters.m_hitRegion = pandora::SINGLE_REGION;
+    caloHitParameters.m_layer = 0;
+    caloHitParameters.m_isInOuterSamplingLayer = false;
+    caloHitParameters.m_larTPCVolumeId = tpcID < 0 ? 0 : tpcID;
+    caloHitParameters.m_daughterVolumeId = 0;
 
-    // Nuance codes:
-    // https://internal.dunescience.org/doxygen/MCNeutrino_8h_source.html
-
-    // GENIE conversion code for RooTracker output files:
-    // https://github.com/GENIE-MC/Generator/blob/master/src/contrib/t2k/neut_code_from_rootracker.C
-    // Similar code is available here (Neut reaction code):
-    // https://internal.dunescience.org/doxygen/namespacegenie_1_1utils_1_1ghep.html
-
-    // For now, just set the basic reaction types, excluding any specific final states:
-    // https://github.com/GENIE-MC/Generator/blob/master/src/contrib/t2k/neut_code_from_rootracker.C#L276
-    int code(1000);
-
-    const bool is_cc = (reaction.find("Weak[CC]") != std::string::npos); // weak charged-current
-    const bool is_nc = (reaction.find("Weak[NC]") != std::string::npos); // weak neutral-current
-    // const bool is_charm = (reaction.find("charm")    != std::string::npos); // charm production
-    const bool is_qel = (reaction.find("QES") != std::string::npos);   // quasi-elastic scattering
-    const bool is_dis = (reaction.find("DIS") != std::string::npos);   // deep inelastic scattering
-    const bool is_res = (reaction.find("RES") != std::string::npos);   // resonance
-    const bool is_cohpi = (reaction.find("COH") != std::string::npos); // coherent pi
-    const bool is_ve = (reaction.find("NuEEL") != std::string::npos);  // nu e elastic
-    const bool is_imd = (reaction.find("IMD") != std::string::npos);   // inverse mu decay
-    const bool is_mec = (reaction.find("MEC") != std::string::npos);   // meson exchange current
-
-    if (is_qel)
-    {
-        code = 0;
-        if (is_cc)
-            code = 1001;
-        else if (is_nc)
-            code = 1002;
-    }
-    else if (is_dis)
-    {
-        code = 2;
-        if (is_cc)
-            code = 1091;
-        else if (is_nc)
-            code = 1092;
-    }
-    else if (is_res)
-        code = 1;
-    else if (is_cohpi)
-    {
-        code = 3;
-        if (is_qel)
-            code = 4;
-    }
-    else if (is_ve)
-        code = 1098;
-    else if (is_imd)
-        code = 1099;
-    else if (is_mec)
-        code = 10;
-
-    // std::cout << "Reaction " << reaction << " has code = " << code << std::endl;
-
-    return code;
+    return caloHitParameters;
 }
 
-std::string NDEventInput::GetNuanceReaction(const int ccnc, const int mode) const
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+void NDEventInput::CreateVoxelCaloHits(const lar_content::LArCaloHitParameters &caloHitParameters, const pandora::CartesianVector &voxelPos,
+    int &hitCounter, const MCLink *pMCLink) const
 {
-    std::string reaction("");
+    // Create a CaloHit for the main Pandora instance and a copy for this instance, with an optional MC link
+    const auto createCaloHit = [&](lar_content::LArCaloHitParameters hitParameters, const int hitID)
+    {
+        void *const pHitAddress = (void *)(static_cast<intptr_t>(hitID));
+        hitParameters.m_pParentAddress = pHitAddress;
 
-    if (mode == 0)
-    {
-        reaction = "QES";
-    }
-    else if (mode == 2)
-    {
-        reaction = "DIS";
-    }
-    else if (mode == 1)
-    {
-        reaction = "RES";
-    }
-    else if (mode == 3)
-    {
-        reaction = "COH";
-    }
-    else if (mode == 5)
-    {
-        reaction = "NuEEL";
-    }
-    else if (mode == 6)
-    {
-        reaction = "IMD";
-    }
-    else if (mode == 10)
-    {
-        reaction = "MEC";
-    }
+        PANDORA_THROW_RESULT_IF(
+            pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::CaloHit::Create(*m_pMainPandora, hitParameters, m_LArCaloHitFactory));
+        PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::CaloHit::Create(*m_pPandora, hitParameters, m_LArCaloHitFactory));
 
-    if (ccnc == 0)
-    {
-        reaction += "Weak[CC]";
-    }
-    else if (ccnc == 1)
-    {
-        reaction += "Weak[NC]";
-    }
+        if (pMCLink)
+        {
+            void *const pTrackAddress = (void *)(static_cast<intptr_t>(pMCLink->m_trackID));
+            PandoraApi::SetCaloHitToMCParticleRelationship(*m_pMainPandora, pHitAddress, pTrackAddress, pMCLink->m_energyFrac);
+            PandoraApi::SetCaloHitToMCParticleRelationship(*m_pPandora, pHitAddress, pTrackAddress, pMCLink->m_energyFrac);
+        }
+    };
 
-    return reaction;
+    // ATTN: A hit ID is always reserved for the 3D hit, even if the 3D hit is not made
+    const int hitID3D = ++hitCounter;
+
+    if (m_parameters.m_use3D)
+        createCaloHit(caloHitParameters, hitID3D);
+
+    if (m_parameters.m_useLArTPC)
+    {
+        // Create LArCaloHits for U, V and W views assuming x is the common drift coordinate
+        const float x0_cm(voxelPos.GetX());
+        const float y0_cm(voxelPos.GetY());
+        const float z0_cm(voxelPos.GetZ());
+
+        const auto *const pTransformationPlugin(m_pPandora->GetPlugins()->GetLArTransformationPlugin());
+
+        const std::array<std::pair<pandora::HitType, float>, 3> views{{{pandora::TPC_VIEW_U, pTransformationPlugin->YZtoU(y0_cm, z0_cm)},
+            {pandora::TPC_VIEW_V, pTransformationPlugin->YZtoV(y0_cm, z0_cm)}, {pandora::TPC_VIEW_W, pTransformationPlugin->YZtoW(y0_cm, z0_cm)}}};
+
+        for (const auto &view : views)
+        {
+            lar_content::LArCaloHitParameters viewParameters(caloHitParameters);
+            viewParameters.m_hitType = view.first;
+            viewParameters.m_positionVector = pandora::CartesianVector(x0_cm, 0.f, view.second);
+            createCaloHit(viewParameters, ++hitCounter);
+        }
+    }
 }
 
-//---------------------------------------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------------------------------------
 
 } // namespace lar_nd_reco
