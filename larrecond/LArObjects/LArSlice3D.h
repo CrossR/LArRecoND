@@ -1,5 +1,5 @@
 /**
- *  @file   include/LArSlice3D.h
+ *  @file   larrecond/LArObjects/LArSlice3D.h
  *
  *  @brief  Header file for a slice containing 3D hits.
  *

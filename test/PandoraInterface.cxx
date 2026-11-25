@@ -1,5 +1,5 @@
 /**
- *  @file   LArRecoMP/test/PandoraInterface.cc
+ *  @file   test/PandoraInterface.cxx
  *
  *  @brief  Implementation of the lar reco mp application
  *
@@ -15,6 +15,7 @@
 #include <random>
 #include <string>
 #include <vector>
+#include <regex>
 
 #include "Api/PandoraApi.h"
 #include "Geometry/LArTPC.h"

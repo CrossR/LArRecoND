@@ -1,5 +1,5 @@
 /**
- *  @file   LArReco/validation/NewValidation.h
+ *  @file   validation/Validation.h
  *
  *  @brief  Header file for validation functionality
  *

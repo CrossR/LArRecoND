@@ -1,5 +1,5 @@
 /**
- *  @file   LArRecoND/include/NDEventInput.h
+ *  @file   larrecond/LArObjects/NDEventInput.h
  *
  *  @brief  Header file for the ND event input
  *

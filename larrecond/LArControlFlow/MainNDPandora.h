@@ -1,5 +1,5 @@
 /**
- *  @file   LArRecoND/include/MainNDPandora.h
+ *  @file   larrecond/LArControlFlow/MainNDPandora.h
  *
  *  @brief  Header file for the main Pandora ND instance
  *

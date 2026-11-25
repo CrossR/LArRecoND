@@ -1,5 +1,5 @@
 /**
- *  @file   LArRecoND/include/LArVoxel.h
+ *  @file   larrecond/LArObjects/LArVoxel.h
  *
  *  @brief  Header file for LArVoxel and LArVoxelProjection
  *

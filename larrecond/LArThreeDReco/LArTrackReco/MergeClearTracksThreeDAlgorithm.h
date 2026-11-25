@@ -1,5 +1,5 @@
 /**
- *  @file   include/MergeClearTracksThreeDAlgorithm.h
+ *  @file   larrecond/LArThreeDReco/LArTrackReco/MergeClearTracksThreeDAlgorithm.h
  *
  *  @brief  Header file for the clear 3D track merging algorithm class.
  *

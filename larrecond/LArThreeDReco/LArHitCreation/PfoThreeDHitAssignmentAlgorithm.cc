@@ -1,5 +1,5 @@
 /**
- *  @file   src/PfoThreeDHitAssignmentAlgorithm.cc
+ *  @file   larrecond/LArThreeDReco/LArHitCreation/PfoThreeDHitAssignmentAlgorithm.cc
  *
  *  @brief
  *

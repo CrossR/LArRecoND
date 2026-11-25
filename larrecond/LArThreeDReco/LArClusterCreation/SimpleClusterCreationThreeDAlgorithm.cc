@@ -1,5 +1,5 @@
 /**
- *  @file   src/SimpleClusterCreationThreeDAlgorithm.cc
+ *  @file   larrecond/LArThreeDReco/LArClusterCreation/SimpleClusterCreationThreeDAlgorithm.cc
  *
  *  @brief  Implementation of the 3D cluster creation algorithm class.
  *

@@ -1,5 +1,5 @@
 /**
- *  @file   src/TMSEventInput.cc
+ *  @file   larrecond/LArObjects/TMSEventInput.cc
  *
  *  @brief  Implementation of the TMS event input
  *

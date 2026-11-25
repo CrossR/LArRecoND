@@ -1,5 +1,5 @@
 /**
- *  @file   include/PfoThreeDHitAssignmentAlgorithm.h
+ *  @file   larrecond/LArThreeDReco/LArHitCreation/PfoThreeDHitAssignmentAlgorithm.h
  *
  *  @brief  Header file for the cluster creation algorithm class.
  *

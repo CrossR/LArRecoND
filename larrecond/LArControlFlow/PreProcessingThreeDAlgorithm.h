@@ -1,5 +1,5 @@
 /**
- *  @file   include/PreProcessingThreeDAlgorithm.h
+ *  @file   larrecond/LArControlFlow/PreProcessingThreeDAlgorithm.h
  *
  *  @brief  Header file for the 3D pre processing algorithm class.
  *

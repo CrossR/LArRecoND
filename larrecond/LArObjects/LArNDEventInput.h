@@ -1,5 +1,5 @@
 /**
- *  @file   LArRecoND/include/LArNDEventInput.h
+ *  @file   larrecond/LArObjects/LArNDEventInput.h
  *
  *  @brief  Header file for the LArND event processor
  *

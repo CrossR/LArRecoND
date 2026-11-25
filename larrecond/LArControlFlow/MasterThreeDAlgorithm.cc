@@ -1,5 +1,5 @@
 /**
- *  @file   src/MasterThreeDAlgorithm.cc
+ *  @file   larrecond/LArControlFlow/MasterThreeDAlgorithm.cc
  *
  *  @brief  Implementation of the 3D master algorithm class.
  *

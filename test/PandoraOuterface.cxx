@@ -1,5 +1,5 @@
 /**
- *  @file   LArRecoND/test/PandoraOuterface.cc
+ *  @file   test/PandoraOuterface.cxx
  *
  *  @brief  Implementation of the Post-Pandora high-level reco for DUNE ND
  *

@@ -1,5 +1,5 @@
 /**
- *  @file   include/CreateMainNDListsAlgorithm.h
+ *  @file   larrecond/LArControlFlow/CreateMainNDListsAlgorithm.h
  *
  *  @brief  Header file for creating various lists for the MainND instance
  *

@@ -1,5 +1,5 @@
 /**
- *  @file   LArRecoND/include/TMSEventInput.h
+ *  @file   larrecond/LArObjects/TMSEventInput.h
  *
  *  @brief  Header file for the TMS event processor
  *

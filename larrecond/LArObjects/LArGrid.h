@@ -1,5 +1,5 @@
 /**
- *  @file   LArReco/include/LArGrid.h
+ *  @file   larrecond/LArObjects/LArGrid.h
  *
  *  @brief  Header file for the voxelisation grid
  *

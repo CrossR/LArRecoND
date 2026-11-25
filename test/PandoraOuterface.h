@@ -1,5 +1,5 @@
 /**
- *  @file   LArRecoND/include/PandoraOuterface.h
+ *  @file   test/PandoraOuterface.h
  *
  *  @brief  Header file for PandoraOuterface.
  *

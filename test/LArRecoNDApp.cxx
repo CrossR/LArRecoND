@@ -1,5 +1,5 @@
 /**
- *  @file   LArRecoND/app/LArRecoNDApp.cxx
+ *  @file   test/LArRecoNDApp.cxx
  *
  *  @brief  Implementation of the LArRecoND application
  *

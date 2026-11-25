@@ -1,5 +1,5 @@
 /**
- *  @file   LArReco/include/NDSimpleTPCGeom.h
+ *  @file   larrecond/LArObjects/NDSimpleTPCGeom.h
  *
  *  @brief  Header file for storing TPC-like geometry for the ND
  *

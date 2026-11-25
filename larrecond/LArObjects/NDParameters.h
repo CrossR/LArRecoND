@@ -1,5 +1,5 @@
 /**
- *  @file   LArRecoND/include/NDParameters.h
+ *  @file   larrecond/LArObjects/NDParameters.h
  *
  *  @brief  Header file for ND parameters
  *

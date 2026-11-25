@@ -1,5 +1,5 @@
 /**
- *  @file   include/CheatingRockMuonTaggingTool.h
+ *  @file   larrecond/LArCheating/CheatingRockMuonTaggingTool.h
  *
  *  @brief  Header file for the cheating rock muon tagging tool class.
  *

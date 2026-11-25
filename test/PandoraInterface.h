@@ -1,5 +1,5 @@
 /**
- *  @file   LArRecoND/include/PandoraInterface.h
+ *  @file   test/PandoraInterface.h
  *
  *  @brief  Header file for PandoraInterface.
  *

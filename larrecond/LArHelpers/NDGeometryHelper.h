@@ -1,5 +1,5 @@
 /**
- *  @file   LArRecoND/include/NDGeometryHelper.h
+ *  @file   larrecond/LArHelpers/NDGeometryHelper.h
  *
  *  @brief  Header file for the ND geometry helper
  *

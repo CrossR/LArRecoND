@@ -1,5 +1,5 @@
 /**
- *  @file   src/HierarchyAnalysisAlgorithm.cc
+ *  @file   larrecond/LArMonitoring/HierarchyAnalysisAlgorithm.cc
  *
  *  @brief  Implementation of the hierarchy analysis output algorithm
  *

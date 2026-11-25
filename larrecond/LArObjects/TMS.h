@@ -1,5 +1,5 @@
 /**
- *  @file   LArRecoND/include/TMS.h
+ *  @file   larrecond/LArObjects/TMS.h
  *
  *  @brief  Header file defining the TMS format
  *

@@ -1,5 +1,5 @@
 /**
- *  @file   src/NDEventInput.cc
+ *  @file   larrecond/LArObjects/NDEventInput.cc
  *
  *  @brief  Implementation of the ND event input
  *

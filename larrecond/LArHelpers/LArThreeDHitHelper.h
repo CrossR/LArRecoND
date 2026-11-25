@@ -1,5 +1,5 @@
 /**
- *  @file   include/LArThreeDHitHelper.h
+ *  @file   larrecond/LArHelpers/LArThreeDHitHelper.h
  *
  *  @brief  Header file for the 3D hit helper.
  *

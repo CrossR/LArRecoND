@@ -1,5 +1,5 @@
 /**
- *  @file   src/CheatingRockMuonRemovalAlgorithm.cc
+ *  @file   larrecond/LArCheating/CheatingRockMuonRemovalAlgorithm.cc
  *
  *  @brief  Implementation of the cheating rock muon removal algorithm class.
  *

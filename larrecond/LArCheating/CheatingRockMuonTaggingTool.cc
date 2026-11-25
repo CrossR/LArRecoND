@@ -1,5 +1,5 @@
 /**
- *  @file   src/CheatingRockMuonTaggingTool.cc
+ *  @file   larrecond/LArCheating/CheatingRockMuonTaggingTool.cc
  *
  *  @brief  Implementation of the cheating rock muon tagging tool class.
  *

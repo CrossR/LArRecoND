@@ -1,5 +1,5 @@
 /**
- *  @file   src/MergeClearTracksThreeDAlgorithm.cc
+ *  @file   larrecond/LArThreeDReco/LArTrackReco/MergeClearTracksThreeDAlgorithm.cc
  *
  *  @brief  Implementation of the 3D track merging algorithm class.
  *

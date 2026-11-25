@@ -1,5 +1,5 @@
 /**
- *  @file   LArRecoND/include/LArRecoNDApp.h
+ *  @file   test/LArRecoNDApp.h
  *
  *  @brief  Header file for LArRecoNDApp
  *

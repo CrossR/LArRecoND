@@ -1,5 +1,5 @@
 /**
- *  @file   src/NDGeometryHelper.cc
+ *  @file   larrecond/LArHelpers/NDGeometryHelper.cc
  *
  *  @brief  Implementation of the ND TPC Geometry helper
  *

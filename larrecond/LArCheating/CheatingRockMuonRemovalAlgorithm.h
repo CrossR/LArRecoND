@@ -1,5 +1,5 @@
 /**
- *  @file   include/CheatingRockMuonRemovalAlgorithm.h
+ *  @file   larrecond/LArCheating/CheatingRockMuonRemovalAlgorithm.h
  *
  *  @brief  Header file for the cheating rock muon removal algorithm class.
  *

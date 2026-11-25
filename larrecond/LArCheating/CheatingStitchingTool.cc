@@ -1,5 +1,5 @@
 /**
- *  @file   src/CheatingStitchingTool.cc
+ *  @file   larrecond/LArCheating/CheatingStitchingTool.cc
  *
  *  @brief  Implementation of the cheating stitching tool class.
  *

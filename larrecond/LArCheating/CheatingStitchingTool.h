@@ -1,5 +1,5 @@
 /**
- *  @file   include/CheatingStitchingTool.h
+ *  @file   larrecond/LArCheating/CheatingStitchingTool.h
  *
  *  @brief  Header file for the cheating stitching tool class.
  *

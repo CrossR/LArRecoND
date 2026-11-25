@@ -1,5 +1,5 @@
 /**
- *  @file   larpandoracontent/LArControlFlow/EventSlicingThreeDBaseTool.h
+ *  @file   larrecond/LArControlFlow/EventSlicingThreeDBaseTool.h
  *
  *  @brief  Header file for the event slicing tool base class.
  *

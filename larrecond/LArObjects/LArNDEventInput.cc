@@ -1,5 +1,5 @@
 /**
- *  @file   src/LArNDEventInput.cc
+ *  @file   larrecond/LArObjects/LArNDEventInput.cc
  *
  *  @brief  Implementation of the LArND event input
  *

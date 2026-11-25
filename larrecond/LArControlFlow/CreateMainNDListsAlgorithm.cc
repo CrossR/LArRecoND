@@ -1,5 +1,5 @@
 /**
- *  @file   src/CreateMainNDListsAlgorithm.cc
+ *  @file   larrecond/LArControlFlow/CreateMainNDListsAlgorithm.cc
  *
  *  @brief  Implementation of creating various lists for the MainND instance
  *

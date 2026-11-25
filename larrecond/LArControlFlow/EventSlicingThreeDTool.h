@@ -1,5 +1,5 @@
 /**
- *  @file   include/EventSlicingThreeDTool.h
+ *  @file   larrecond/LArControlFlow/EventSlicingThreeDTool.h
  *
  *  @brief  Header file for the 3D event slicing tool class.
  *

@@ -1,5 +1,5 @@
 /**
- *  @file   src/MainNDPandora.cc
+ *  @file   larrecond/LArControlFlow/MainNDPandora.cc
  *
  *  @brief  Implementation of the main Pandora ND instance
  *

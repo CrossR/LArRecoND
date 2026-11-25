@@ -1,5 +1,5 @@
 /**
- *  @file   include/SlicingThreeDAlgorithm.h
+ *  @file   larrecond/LArControlFlow/SlicingThreeDAlgorithm.h
  *
  *  @brief  Header file for the 3D slicing algorithm.
  *

@@ -1,12 +1,12 @@
 /**
- *  @file   src/LArThreeDHitHelper.cc
+ *  @file   larrecond/LArHelpers/LArThreeDHitHelper.cc
  *
  *  @brief  Implementation of the 3D hit helper class.
  *
  *  $Log: $
  */
 
-#include "LArThreeDHitHelper.h"
+#include "larrecond/LArHelpers/LArThreeDHitHelper.h"
 
 using namespace pandora;
 
