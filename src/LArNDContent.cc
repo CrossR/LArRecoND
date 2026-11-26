@@ -12,7 +12,6 @@
 #include "Pandora/AlgorithmTool.h"
 #include "Pandora/Pandora.h"
 
-#include "CheatingEventSlicingThreeDTool.h"
 #include "CheatingRockMuonRemovalAlgorithm.h"
 #include "CheatingRockMuonTaggingTool.h"
 #include "CheatingStitchingTool.h"
@@ -20,8 +19,6 @@
 #include "CandidateVertexCreationThreeDAlgorithm.h"
 #include "CreateTwoDClustersFromThreeDAlgorithm.h"
 #include "CutClusterCharacterisationThreeDAlgorithm.h"
-#include "DLEventSlicingThreeDTool.h"
-#include "EventSlicingThreeDTool.h"
 #include "HierarchyAnalysisAlgorithm.h"
 #include "LArNDContent.h"
 #include "MasterThreeDAlgorithm.h"
@@ -30,7 +27,7 @@
 #include "PreProcessingThreeDAlgorithm.h"
 #include "ReplaceHitAndClusterListsAlgorithm.h"
 #include "SimpleClusterCreationThreeDAlgorithm.h"
-#include "SlicingThreeDAlgorithm.h"
+#include "SlicingAnalysisAlgorithm.h"
 
 // clang-format off
 #define LAR_ND_ALGORITHM_LIST(d)                                                                                                   \
@@ -38,7 +35,7 @@
     d("LArMergeClearTracksThreeD",              MergeClearTracksThreeDAlgorithm)                                                   \
     d("LArSimpleClusterCreationThreeD",         SimpleClusterCreationThreeDAlgorithm)                                              \
     d("LArCreateTwoDClustersFromThreeD",        CreateTwoDClustersFromThreeDAlgorithm)                                             \
-    d("LArSlicingThreeD",                       SlicingThreeDAlgorithm)                                                            \
+    d("LArSlicingAnalysis",                     SlicingAnalysisAlgorithm)                                                          \
     d("LArPfoThreeDHitAssignment",              PfoThreeDHitAssignmentAlgorithm)                                                   \
     d("LArReplaceHitAndClusterLists",           ReplaceHitAndClusterListsAlgorithm)                                                \
     d("LArPreProcessingThreeD",                 PreProcessingThreeDAlgorithm)                                                      \
@@ -48,12 +45,9 @@
     d("LArCheatingRockMuonRemoval",             CheatingRockMuonRemovalAlgorithm)
 
 #define LAR_ND_ALGORITHM_TOOL_LIST(d)                                                                                              \
-    d("LArEventSlicingThreeD",                  EventSlicingThreeDTool)                                                            \
-    d("LArDLEventSlicingThreeD",                DLEventSlicingThreeDTool)                                                          \
-    d("LArCheatingEventSlicingThreeD",          CheatingEventSlicingThreeDTool)                                                    \
     d("LArCheatingStitching",                   CheatingStitchingTool)                                                             \
     d("LArCheatingRockMuonTagging",             CheatingRockMuonTaggingTool)                                                       \
-    d("LArRockMuonTagging",             RockMuonTaggingTool)
+    d("LArRockMuonTagging",                     RockMuonTaggingTool)
 
 #define FACTORY Factory
 

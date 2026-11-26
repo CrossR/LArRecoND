@@ -1,7 +1,7 @@
 /**
- *  @file   src/SlicingThreeDAlgorithm.cc
+ *  @file   src/SlicingAnalysisAlgorithm.cc
  *
- *  @brief  Implementation of the 3D slicing algorithm class.
+ *  @brief  Implementation of the slicing analysis algorithm class.
  *
  *  $Log: $
  */
@@ -10,11 +10,12 @@
 
 #include "larpandoracontent/LArHelpers/LArGeometryHelper.h"
 #include "larpandoracontent/LArHelpers/LArMCParticleHelper.h"
+#include "larpandoracontent/LArHelpers/LArPfoHelper.h"
 #include "larpandoracontent/LArObjects/LArCaloHit.h"
 
-#include "SlicingThreeDAlgorithm.h"
+#include "SlicingAnalysisAlgorithm.h"
 
-#include <chrono>
+#include <algorithm>
 #include <limits>
 
 using namespace pandora;
@@ -22,132 +23,57 @@ using namespace pandora;
 namespace lar_content
 {
 
-SlicingThreeDAlgorithm::SlicingThreeDAlgorithm() :
-    m_pEventSlicingTool(nullptr)
+SlicingAnalysisAlgorithm::SlicingAnalysisAlgorithm() :
+    m_analysisTreeName("SlicingThreeDAnalysis"),
+    m_analysisFileName("SlicingThreeDAnalysis.root")
 {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-SlicingThreeDAlgorithm::~SlicingThreeDAlgorithm()
+SlicingAnalysisAlgorithm::~SlicingAnalysisAlgorithm()
 {
-    if (m_evaluateSlices)
-    {
-        PANDORA_MONITORING_API(SaveTree(this->GetPandora(), m_analysisTreeName.c_str(), m_analysisFileName.c_str(), "UPDATE"));
+    PANDORA_MONITORING_API(SaveTree(this->GetPandora(), m_analysisTreeName.c_str(), m_analysisFileName.c_str(), "UPDATE"));
 
-        std::string truthTreeName = m_analysisTreeName + "_TruthBased";
-        PANDORA_MONITORING_API(SaveTree(this->GetPandora(), truthTreeName.c_str(), m_analysisFileName.c_str(), "UPDATE"));
-    }
+    const std::string truthTreeName(m_analysisTreeName + "_TruthBased");
+    PANDORA_MONITORING_API(SaveTree(this->GetPandora(), truthTreeName.c_str(), m_analysisFileName.c_str(), "UPDATE"));
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-const Vertex *CreateVertexCopy(const Algorithm &algorithm, const Vertex *const pInputVertex)
+StatusCode SlicingAnalysisAlgorithm::Run()
 {
-    PandoraContentApi::Vertex::Parameters vertexParameters;
-    vertexParameters.m_position = pInputVertex->GetPosition();
-    vertexParameters.m_vertexLabel = pInputVertex->GetVertexLabel();
-    vertexParameters.m_vertexType = pInputVertex->GetVertexType();
+    const PfoList *pSlicePfoList(nullptr);
+    PANDORA_THROW_RESULT_IF_AND_IF(STATUS_CODE_SUCCESS, STATUS_CODE_NOT_INITIALIZED, !=,
+        PandoraContentApi::GetList(*this, m_slicePfoListName, pSlicePfoList));
 
-    const Vertex *pNewVertex(nullptr);
-    PANDORA_THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::Vertex::Create(algorithm, vertexParameters, pNewVertex));
-
-    return pNewVertex;
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-StatusCode SlicingThreeDAlgorithm::Run()
-{
-    Slice3DList sliceList;
-    m_pEventSlicingTool->RunSlicing(this, m_caloHitListNames, m_clusterListNames, sliceList);
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::RunDaughterAlgorithm(*this, m_slicingListDeletionAlgorithm));
-
-    if (sliceList.empty())
+    if (!pSlicePfoList || pSlicePfoList->empty())
         return STATUS_CODE_SUCCESS;
 
-    std::string clusterListName;
-    const ClusterList *pClusterList(nullptr);
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::CreateTemporaryListAndSetCurrent(*this, pClusterList, clusterListName));
+    // The pfo list is unordered, so sort the slices to keep the slice indices reproducible.
+    PfoVector slicePfos(pSlicePfoList->begin(), pSlicePfoList->end());
+    std::sort(slicePfos.begin(), slicePfos.end(), LArPfoHelper::SortByNHits);
 
-    std::string pfoListName;
-    const PfoList *pPfoList(nullptr);
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::CreateTemporaryListAndSetCurrent(*this, pPfoList, pfoListName));
-
-    std::string vertexListName;
-    const VertexList *pVertexList(nullptr);
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::CreateTemporaryListAndSetCurrent(*this, pVertexList, vertexListName));
-
-    if (m_evaluateSlices)
-        this->EvaluateSlices(sliceList);
-
-    for (const Slice3D &slice : sliceList)
+    std::vector<CaloHitList> sliceList;
+    for (const Pfo *const pSlicePfo : slicePfos)
     {
-        const Cluster *pClusterU(nullptr), *pClusterV(nullptr), *pClusterW(nullptr), *pCluster3D(nullptr);
-        PandoraContentApi::Cluster::Parameters clusterParametersU, clusterParametersV, clusterParametersW, clusterParameters3D;
-        clusterParametersU.m_caloHitList = slice.m_caloHitListU;
-        clusterParametersV.m_caloHitList = slice.m_caloHitListV;
-        clusterParametersW.m_caloHitList = slice.m_caloHitListW;
-        clusterParameters3D.m_caloHitList = slice.m_caloHitList3D;
-        if (!clusterParametersU.m_caloHitList.empty())
-            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::Cluster::Create(*this, clusterParametersU, pClusterU));
-        if (!clusterParametersV.m_caloHitList.empty())
-            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::Cluster::Create(*this, clusterParametersV, pClusterV));
-        if (!clusterParametersW.m_caloHitList.empty())
-            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::Cluster::Create(*this, clusterParametersW, pClusterW));
-        if (!clusterParameters3D.m_caloHitList.empty())
-            PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::Cluster::Create(*this, clusterParameters3D, pCluster3D));
-
-        if (!pClusterU && !pClusterV && !pClusterW && !pCluster3D)
-            throw StatusCodeException(STATUS_CODE_FAILURE);
-
-        const Pfo *pSlicePfo(nullptr);
-        PandoraContentApi::ParticleFlowObject::Parameters pfoParameters;
-        if (pClusterU)
-            pfoParameters.m_clusterList.push_back(pClusterU);
-        if (pClusterV)
-            pfoParameters.m_clusterList.push_back(pClusterV);
-        if (pClusterW)
-            pfoParameters.m_clusterList.push_back(pClusterW);
-        if (pCluster3D)
-            pfoParameters.m_clusterList.push_back(pCluster3D);
-        pfoParameters.m_charge = 0;
-        pfoParameters.m_energy = 0.f;
-        pfoParameters.m_mass = 0.f;
-        pfoParameters.m_momentum = CartesianVector(0.f, 0.f, 0.f);
-        pfoParameters.m_particleId = 0;
-
-        for (const auto &vertex : slice.m_vertexList)
-            pfoParameters.m_vertexList.push_back(CreateVertexCopy(*this, vertex));
-
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::ParticleFlowObject::Create(*this, pfoParameters, pSlicePfo));
+        CaloHitList caloHitList3D;
+        LArPfoHelper::GetCaloHits(pSlicePfo, TPC_3D, caloHitList3D);
+        sliceList.push_back(caloHitList3D);
     }
 
-    if (!pClusterList->empty())
-    {
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::SaveList<Cluster>(*this, m_sliceClusterListName));
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::ReplaceCurrentList<Cluster>(*this, m_sliceClusterListName));
-    }
-
-    if (!pPfoList->empty())
-    {
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::SaveList<ParticleFlowObject>(*this, m_slicePfoListName));
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::ReplaceCurrentList<ParticleFlowObject>(*this, m_slicePfoListName));
-    }
-
-    if (!pVertexList->empty())
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraContentApi::SaveList<Vertex>(*this, m_slicePfoListName + "Vertices"));
+    this->EvaluateSlices(sliceList);
 
     return STATUS_CODE_SUCCESS;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
+void SlicingAnalysisAlgorithm::EvaluateSlices(const std::vector<CaloHitList> &sliceList)
 {
     if (sliceList.empty())
     {
-        std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: No slices to evaluate" << std::endl;
+        std::cout << "SlicingAnalysisAlgorithm::EvaluateSlices: No slices to evaluate" << std::endl;
         return;
     }
 
@@ -155,27 +81,27 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
     const MCParticleList *pMCParticleList(nullptr);
     if (PandoraContentApi::GetCurrentList(*this, pMCParticleList) != STATUS_CODE_SUCCESS)
     {
-        std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Failed to get current MC particle list" << std::endl;
+        std::cout << "SlicingAnalysisAlgorithm::EvaluateSlices: Failed to get current MC particle list" << std::endl;
         return;
     }
 
     if (!pMCParticleList || pMCParticleList->empty())
     {
-        std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Failed to get current MC particle list or it is empty" << std::endl;
+        std::cout << "SlicingAnalysisAlgorithm::EvaluateSlices: Failed to get current MC particle list or it is empty" << std::endl;
         return;
     }
 
     // Get the current calo hit list
     const CaloHitList *pCaloHitList(nullptr);
-    if (PandoraContentApi::GetList(*this, m_caloHitListNames[TPC_3D], pCaloHitList) != STATUS_CODE_SUCCESS)
+    if (PandoraContentApi::GetList(*this, m_caloHitListName3D, pCaloHitList) != STATUS_CODE_SUCCESS)
     {
-        std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Failed to get current calo hit list" << std::endl;
+        std::cout << "SlicingAnalysisAlgorithm::EvaluateSlices: Failed to get current calo hit list" << std::endl;
         return;
     }
 
     if (!pCaloHitList || pCaloHitList->empty())
     {
-        std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Failed to get current calo hit list or it is empty" << std::endl;
+        std::cout << "SlicingAnalysisAlgorithm::EvaluateSlices: Failed to get current calo hit list or it is empty" << std::endl;
         return;
     }
 
@@ -251,9 +177,9 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
     int sliceIndex = 0;
 
     // Now, we can loop through every slice, and evaluate it.
-    for (const Slice3D &slice : sliceList)
+    for (const CaloHitList &sliceHits : sliceList)
     {
-        const auto hits(slice.m_caloHitList3D);
+        const CaloHitList &hits(sliceHits);
 
         // Lets find the biggest neutrino contribution to this slice.
         // The nu that contributed the most is the target and will be used to evaluate the slice.
@@ -265,6 +191,13 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
                 continue;
 
             nuContributionMap[it->second] += pCaloHit->GetInputEnergy();
+        }
+
+        // A slice with no hits from any true neutrino has nothing to evaluate.
+        if (nuContributionMap.empty())
+        {
+            sliceIndex++;
+            continue;
         }
 
         // Find the neutrino with the largest contribution.
@@ -350,14 +283,14 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
         sliceIndex++;
     }
 
-    std::cout << "SlicingThreeDAlgorithm::EvaluateSlices: Evaluated " << sliceIndex << " reco slices for this event" << std::endl;
+    std::cout << "SlicingAnalysisAlgorithm::EvaluateSlices: Evaluated " << sliceIndex << " reco slices for this event" << std::endl;
 
     // Now build some more truth based metrics, rather than the previous reco-based metrics.
     std::map<const CaloHit *, int> caloHitToSliceMap;
     int currentSliceIdx = 0;
-    for (const Slice3D &slice : sliceList)
+    for (const CaloHitList &sliceHits : sliceList)
     {
-        for (const CaloHit *pCaloHit : slice.m_caloHitList3D)
+        for (const CaloHit *pCaloHit : sliceHits)
             caloHitToSliceMap[pCaloHit] = currentSliceIdx;
         currentSliceIdx++;
     }
@@ -577,7 +510,7 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
         nuIdTruth.push_back(truthIt->second);
         bestSliceIndexTruth.push_back(bestSliceIdx);
         trueNuSizeTruth.push_back(static_cast<int>(trueNuHits));
-        bestSliceSizeTruth.push_back(bestSliceIdx >= 0 ? static_cast<int>(sliceList[bestSliceIdx].m_caloHitList3D.size()) : 0);
+        bestSliceSizeTruth.push_back(bestSliceIdx >= 0 ? static_cast<int>(sliceList[bestSliceIdx].size()) : 0);
         matchedHitsTruth.push_back(static_cast<int>(maxMatchedHits));
         numComparableTruth.push_back(static_cast<int>(numComparableHits));
         numTruthTruth.push_back(static_cast<int>(numTruth));
@@ -625,44 +558,14 @@ void SlicingThreeDAlgorithm::EvaluateSlices(const Slice3DList &sliceList)
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-StatusCode SlicingThreeDAlgorithm::ReadSettings(const TiXmlHandle xmlHandle)
+StatusCode SlicingAnalysisAlgorithm::ReadSettings(const TiXmlHandle xmlHandle)
 {
-    AlgorithmTool *pAlgorithmTool(nullptr);
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ProcessAlgorithmTool(*this, xmlHandle, "SliceCreation", pAlgorithmTool));
-    m_pEventSlicingTool = dynamic_cast<EventSlicingThreeDBaseTool *>(pAlgorithmTool);
-
-    if (!m_pEventSlicingTool)
-        return STATUS_CODE_INVALID_PARAMETER;
-
-    PANDORA_RETURN_RESULT_IF(
-        STATUS_CODE_SUCCESS, !=, XmlHelper::ProcessAlgorithm(*this, xmlHandle, "SlicingListDeletion", m_slicingListDeletionAlgorithm));
-
-    std::string caloHitListNameU, caloHitListNameV, caloHitListNameW, caloHitListName3D;
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "InputCaloHitListNameU", caloHitListNameU));
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "InputCaloHitListNameV", caloHitListNameV));
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "InputCaloHitListNameW", caloHitListNameW));
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "InputCaloHitListName3D", caloHitListName3D));
-    m_caloHitListNames[TPC_VIEW_U] = caloHitListNameU;
-    m_caloHitListNames[TPC_VIEW_V] = caloHitListNameV;
-    m_caloHitListNames[TPC_VIEW_W] = caloHitListNameW;
-    m_caloHitListNames[TPC_3D] = caloHitListName3D;
-
-    std::string clusterListNameU, clusterListNameV, clusterListNameW, clusterListName3D;
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "InputClusterListNameU", clusterListNameU));
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "InputClusterListNameV", clusterListNameV));
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "InputClusterListNameW", clusterListNameW));
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "InputCaloHitListName3D", m_caloHitListName3D));
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "InputPfoListName", m_slicePfoListName));
     PANDORA_RETURN_RESULT_IF_AND_IF(
-        STATUS_CODE_SUCCESS, STATUS_CODE_NOT_FOUND, !=, XmlHelper::ReadValue(xmlHandle, "InputClusterListName3D", clusterListName3D));
-    m_clusterListNames[TPC_VIEW_U] = clusterListNameU;
-    m_clusterListNames[TPC_VIEW_V] = clusterListNameV;
-    m_clusterListNames[TPC_VIEW_W] = clusterListNameW;
-
-    if (!clusterListName3D.empty())
-        m_clusterListNames[TPC_3D] = clusterListName3D;
-
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "OutputClusterListName", m_sliceClusterListName));
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, XmlHelper::ReadValue(xmlHandle, "OutputPfoListName", m_slicePfoListName));
-    PANDORA_RETURN_RESULT_IF_AND_IF(STATUS_CODE_SUCCESS, STATUS_CODE_NOT_FOUND, !=, XmlHelper::ReadValue(xmlHandle, "EvaluateSlices", m_evaluateSlices));
+        STATUS_CODE_SUCCESS, STATUS_CODE_NOT_FOUND, !=, XmlHelper::ReadValue(xmlHandle, "AnalysisTreeName", m_analysisTreeName));
+    PANDORA_RETURN_RESULT_IF_AND_IF(
+        STATUS_CODE_SUCCESS, STATUS_CODE_NOT_FOUND, !=, XmlHelper::ReadValue(xmlHandle, "AnalysisFileName", m_analysisFileName));
 
     return STATUS_CODE_SUCCESS;
 }

@@ -251,7 +251,7 @@
     </algorithm>
 
     <!-- SliceCreation -->
-    <algorithm type = "LArSlicingThreeD">
+    <algorithm type = "LArSlicing">
         <InputCaloHitListNameU>CaloHitListU</InputCaloHitListNameU>
         <InputCaloHitListNameV>CaloHitListV</InputCaloHitListNameV>
         <InputCaloHitListNameW>CaloHitListW</InputCaloHitListNameW>
@@ -261,7 +261,7 @@
         <InputClusterListNameW>ClustersW</InputClusterListNameW>
         <OutputClusterListName>SliceClusters</OutputClusterListName>
         <OutputPfoListName>SliceParticles</OutputPfoListName>
-        <tool type = "LArEventSlicingThreeD" description = "SliceCreation">
+        <tool type = "LArEventSlicing" description = "SliceCreation">
             <TrackPfoListName>TrackParticles3D</TrackPfoListName>
             <ShowerPfoListName>ShowerParticles3D</ShowerPfoListName>
             <!-- Need to make the slicing much harsher than the FD -->

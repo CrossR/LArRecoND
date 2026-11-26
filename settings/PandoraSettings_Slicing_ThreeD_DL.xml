@@ -25,7 +25,7 @@
     </algorithm>
 
     <!-- SliceCreation -->
-    <algorithm type = "LArSlicingThreeD">
+    <algorithm type = "LArSlicing">
         <InputCaloHitListNameU>CaloHitListU</InputCaloHitListNameU>
         <InputCaloHitListNameV>CaloHitListV</InputCaloHitListNameV>
         <InputCaloHitListNameW>CaloHitListW</InputCaloHitListNameW>
@@ -36,15 +36,20 @@
         <InputClusterListName3D>DLSlicingClusters3D</InputClusterListName3D>
         <OutputClusterListName>SliceClusters</OutputClusterListName>
         <OutputPfoListName>SliceParticles</OutputPfoListName>
-        <EvaluateSlices>true</EvaluateSlices>
-        <tool type = "LArDLEventSlicingThreeD" description = "SliceCreation">
-            <InputVertexListName3D>DLSlicingVertices3D</InputVertexListName3D>
+        <tool type = "LArDLEventSlicing" description = "SliceCreation">
+            <InputVertexListName>DLSlicingVertices3D</InputVertexListName>
         </tool>
         <algorithm type = "LArListDeletion" description = "SlicingListDeletion">
             <PfoListNames>TrackParticles3D ShowerParticles3D</PfoListNames>
             <ClusterListNames>ClustersU ClustersV ClustersW TrackClusters3D ShowerClusters3D DLSlicingClusters3D</ClusterListNames>
         </algorithm>
     </algorithm>
+    <!-- SliceAnalysis -->
+    <algorithm type = "LArSlicingAnalysis">
+        <InputCaloHitListName3D>CaloHitList3D</InputCaloHitListName3D>
+        <InputPfoListName>SliceParticles</InputPfoListName>
+    </algorithm>
+
     <algorithm type = "LArListChanging">
         <PfoListName>SliceParticles</PfoListName>
     </algorithm>
