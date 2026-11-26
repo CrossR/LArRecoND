@@ -33,10 +33,10 @@
         <InputClusterListNameU>ClustersU</InputClusterListNameU>
         <InputClusterListNameV>ClustersV</InputClusterListNameV>
         <InputClusterListNameW>ClustersW</InputClusterListNameW>
-        <InputClusterListName3D>DLSlicingClusters3D</InputClusterListName3D>
         <OutputClusterListName>SliceClusters</OutputClusterListName>
         <OutputPfoListName>SliceParticles</OutputPfoListName>
-        <tool type = "LArDLEventSlicing" description = "SliceCreation">
+        <tool type = "LArDLEventSlicingThreeD" description = "SliceCreation">
+            <InputClusterListName>DLSlicingClusters3D</InputClusterListName>
             <InputVertexListName>DLSlicingVertices3D</InputVertexListName>
         </tool>
         <algorithm type = "LArListDeletion" description = "SlicingListDeletion">

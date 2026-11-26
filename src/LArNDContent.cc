@@ -19,6 +19,7 @@
 #include "CandidateVertexCreationThreeDAlgorithm.h"
 #include "CreateTwoDClustersFromThreeDAlgorithm.h"
 #include "CutClusterCharacterisationThreeDAlgorithm.h"
+#include "DLEventSlicingThreeDTool.h"
 #include "HierarchyAnalysisAlgorithm.h"
 #include "LArNDContent.h"
 #include "MasterThreeDAlgorithm.h"
@@ -49,6 +50,13 @@
     d("LArCheatingRockMuonTagging",             CheatingRockMuonTaggingTool)                                                       \
     d("LArRockMuonTagging",                     RockMuonTaggingTool)
 
+#ifdef LIBTORCH_DL
+#define LAR_ND_DL_ALGORITHM_TOOL_LIST(d)                                                                                           \
+    d("LArDLEventSlicingThreeD",                DLEventSlicingThreeDTool)
+#else
+#define LAR_ND_DL_ALGORITHM_TOOL_LIST(d)
+#endif
+
 #define FACTORY Factory
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -76,6 +84,7 @@ public:                                                                         
 };
 
 LAR_ND_ALGORITHM_TOOL_LIST(LAR_ND_CONTENT_CREATE_ALGORITHM_TOOL_FACTORY)
+LAR_ND_DL_ALGORITHM_TOOL_LIST(LAR_ND_CONTENT_CREATE_ALGORITHM_TOOL_FACTORY)
 
 } // namespace lar_content
 
@@ -100,6 +109,7 @@ pandora::StatusCode LArNDContent::RegisterAlgorithms(const pandora::Pandora &pan
 {
     LAR_ND_ALGORITHM_LIST(LAR_ND_CONTENT_REGISTER_ALGORITHM);
     LAR_ND_ALGORITHM_TOOL_LIST(LAR_ND_CONTENT_REGISTER_ALGORITHM_TOOL);
+    LAR_ND_DL_ALGORITHM_TOOL_LIST(LAR_ND_CONTENT_REGISTER_ALGORITHM_TOOL);
     return pandora::STATUS_CODE_SUCCESS;
 }
 
