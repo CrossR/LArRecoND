@@ -63,6 +63,7 @@
     </algorithm>
 
     <algorithm type = "LArCreateTwoDClustersFromThreeD">
+        <InputCaloHitListName3D>CaloHitList3D</InputCaloHitListName3D>
         <InputCaloHitListNameU>CaloHitListU</InputCaloHitListNameU>
         <InputCaloHitListNameV>CaloHitListV</InputCaloHitListNameV>
         <InputCaloHitListNameW>CaloHitListW</InputCaloHitListNameW>

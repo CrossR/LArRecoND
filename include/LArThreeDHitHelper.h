@@ -29,7 +29,19 @@ public:
     typedef std::map<const pandora::CaloHit *, std::map<const pandora::HitType, const pandora::CaloHit *>> CaloHitMapping;
 
     /**
+     *  @brief  Get the index of the input hit a worker-instance hit was created from
+     *
+     *  @param  pCaloHit a hit in a worker instance, whose parent is the hit held by the master algorithm
+     *
+     *  @return the parent address of that master hit, shared by the 3D hit and its 2D projections
+     */
+    static intptr_t GetHitIndex(const pandora::CaloHit *const pCaloHit);
+
+    /**
    *  @brief  Get the 2D hits for a list of 3D hits
+   *
+   *  @note   Only valid for hits in a worker instance (parents are master hits). The master algorithm's own
+   *          hits share a single-level parent address, so this does not apply to them.
    *
    *  @param caloHitList3D the list of 3D hits
    *  @param caloHitListU the list of U-plane 2D hits

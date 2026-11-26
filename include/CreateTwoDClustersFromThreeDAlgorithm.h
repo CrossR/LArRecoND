@@ -30,27 +30,13 @@ public:
 private:
     pandora::StatusCode Run();
 
-    typedef std::unordered_map<const pandora::CaloHit *, pandora::CaloHitList> HitAssociationMap;
-    typedef std::unordered_map<const pandora::CaloHit *, bool> HitUsedMap;
-    typedef std::map<std::pair<int, int>, const pandora::CaloHit *> SpatialHitMap;
-
-    /**
-     *  @brief Get the hits in each view matching to the clustered 3D hits
-     *
-     *  @param pCaloHit3D a pointer to the 3D hit
-     *  @param hitMap a spatial map of 2D hits
-     *  @param associatedHits reference to empty hit list to be filled with 2D hits
-     *  @param usedHits2D list of already used 2D hits
-     *  @param hitType the type of hits in the hit list
-     */
-    void GetAssociatedTwoDHit(const pandora::CaloHit *const pCaloHit3D, const SpatialHitMap &hitMap, pandora::CaloHitList &associatedHits,
-        HitUsedMap &usedHits2D, const pandora::HitType &hitType) const;
+    typedef std::map<pandora::HitType, std::string> HitTypeToNameMap;
 
     pandora::StatusCode ReadSettings(const pandora::TiXmlHandle xmlHandle);
 
-    std::vector<std::string> m_inputCaloHitListNames2D; ///< Names of the input 2D hit lists
-    std::string m_inputClusterListName3D;               ///< Name of the input 3D cluster list
-    std::vector<std::string> m_outputClusterListNames;  ///< Names of the output 2D cluster lists
+    HitTypeToNameMap m_inputCaloHitListNames2D; ///< Names of the input 2D hit lists
+    std::string m_inputClusterListName3D;       ///< Name of the input 3D cluster list
+    HitTypeToNameMap m_outputClusterListNames;  ///< Names of the output 2D cluster lists
 };
 
 } // namespace lar_content
