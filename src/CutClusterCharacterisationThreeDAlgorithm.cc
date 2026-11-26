@@ -12,7 +12,6 @@
 #include "larpandoracontent/LArHelpers/LArGeometryHelper.h"
 
 #include "larpandoracontent/LArObjects/LArThreeDSlidingFitResult.h"
-#include "larpandoracontent/LArTrackShowerId/CutClusterCharacterisationAlgorithm.h"
 
 #include "CutClusterCharacterisationThreeDAlgorithm.h"
 
@@ -27,7 +26,6 @@ CutClusterCharacterisationThreeDAlgorithm::CutClusterCharacterisationThreeDAlgor
     m_maxShowerLengthCut(80.f),
     m_pathLengthRatioCut(1.005f),
     m_rTWidthRatioCut(0.05f),
-    m_vertexDistanceRatioCut(0.5f),
     m_showerWidthRatioCut(0.35f)
 {
 }
@@ -102,11 +100,6 @@ bool CutClusterCharacterisationThreeDAlgorithm::IsClearTrack(const Cluster *cons
     if (deltaT / straightLineLength > m_rTWidthRatioCut)
         return false;
 
-    const float vertexDistance(CutClusterCharacterisationAlgorithm::GetVertexDistance(this, pCluster));
-
-    if ((vertexDistance > std::numeric_limits<float>::epsilon()) && ((vertexDistance / straightLineLength) > m_vertexDistanceRatioCut))
-        return false;
-
     return true;
 }
 
@@ -126,9 +119,6 @@ StatusCode CutClusterCharacterisationThreeDAlgorithm::ReadSettings(const TiXmlHa
         STATUS_CODE_SUCCESS, STATUS_CODE_NOT_FOUND, !=, XmlHelper::ReadValue(xmlHandle, "PathLengthRatioCut", m_pathLengthRatioCut));
 
     PANDORA_RETURN_RESULT_IF_AND_IF(STATUS_CODE_SUCCESS, STATUS_CODE_NOT_FOUND, !=, XmlHelper::ReadValue(xmlHandle, "RTWidthRatioCut", m_rTWidthRatioCut));
-
-    PANDORA_RETURN_RESULT_IF_AND_IF(
-        STATUS_CODE_SUCCESS, STATUS_CODE_NOT_FOUND, !=, XmlHelper::ReadValue(xmlHandle, "VertexDistanceRatioCut", m_vertexDistanceRatioCut));
 
     PANDORA_RETURN_RESULT_IF_AND_IF(
         STATUS_CODE_SUCCESS, STATUS_CODE_NOT_FOUND, !=, XmlHelper::ReadValue(xmlHandle, "ShowerWidthRatioCut", m_showerWidthRatioCut));
