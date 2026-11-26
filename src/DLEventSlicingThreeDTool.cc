@@ -8,6 +8,7 @@
 
 #ifdef LIBTORCH_DL
 
+#include "LArThreeDHitHelper.h"
 #include "Pandora/AlgorithmHeaders.h"
 
 #include "DLEventSlicingThreeDTool.h"
@@ -32,8 +33,7 @@ void DLEventSlicingThreeDTool::InitializeHitLookup(const Algorithm *const pAlgor
 
         for (const CaloHit *const pCaloHit : *pCaloHitList)
         {
-            const CaloHit *const pParentCaloHit(static_cast<const CaloHit *>(pCaloHit->GetParentAddress()));
-            m_hitIndexToCaloHitListMap[reinterpret_cast<intptr_t>(pParentCaloHit->GetParentAddress())].push_back(pCaloHit);
+            m_hitIndexToCaloHitListMap[LArThreeDHitHelper::GetHitIndex(pCaloHit)].push_back(pCaloHit);
         }
     }
 }
@@ -42,8 +42,7 @@ void DLEventSlicingThreeDTool::InitializeHitLookup(const Algorithm *const pAlgor
 
 void DLEventSlicingThreeDTool::AddHitToSlice(const CaloHit *const pCaloHit, Slice &slice) const
 {
-    const CaloHit *const pParentCaloHit(static_cast<const CaloHit *>(pCaloHit->GetParentAddress()));
-    const intptr_t hitIndex(reinterpret_cast<intptr_t>(pParentCaloHit->GetParentAddress()));
+    const intptr_t hitIndex(LArThreeDHitHelper::GetHitIndex(pCaloHit));
 
     const auto iter(m_hitIndexToCaloHitListMap.find(hitIndex));
     if (iter == m_hitIndexToCaloHitListMap.end())
