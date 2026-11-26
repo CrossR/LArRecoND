@@ -79,11 +79,11 @@ StatusCode CreateTwoDClustersFromThreeDAlgorithm::Run()
 
             const auto &mappingEntry = iter->second;
 
-            if (mappingEntry.contains(TPC_VIEW_U))
+            if (mappingEntry.count(TPC_VIEW_U))
                 associatedHitsU.emplace_back(mappingEntry.at(TPC_VIEW_U));
-            if (mappingEntry.contains(TPC_VIEW_V))
+            if (mappingEntry.count(TPC_VIEW_V))
                 associatedHitsV.emplace_back(mappingEntry.at(TPC_VIEW_V));
-            if (mappingEntry.contains(TPC_VIEW_W))
+            if (mappingEntry.count(TPC_VIEW_W))
                 associatedHitsW.emplace_back(mappingEntry.at(TPC_VIEW_W));
         }
 
